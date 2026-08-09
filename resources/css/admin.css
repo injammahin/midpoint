@@ -429,7 +429,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-accent);
 
-    font-size: 14px;
+    font-size: 12px;
 
 }
 
@@ -793,7 +793,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-accent);
 
-    font-size: 14px;
+    font-size: 12px;
 
     font-weight: 700;
 
@@ -975,7 +975,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-accent);
 
-    font-size: 9px;
+    font-size:13px;
 
     font-weight: 700;
 
@@ -1074,7 +1074,7 @@ html[data-admin-theme="light"] {
 
     color: white;
 
-    font-size: 9px;
+    font-size:13px;
 
     font-weight: 700;
 
@@ -1523,7 +1523,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-muted);
 
-    font-size: 9px;
+    font-size:13px;
 
 }
 
@@ -1594,7 +1594,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-muted);
 
-    font-size: 9px;
+    font-size:13px;
 
 }
 
@@ -1716,7 +1716,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-muted);
 
-    font-size: 9px;
+    font-size:13px;
 
 }
 
@@ -1803,7 +1803,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-muted);
 
-    font-size: 9px;
+    font-size:13px;
 
     text-align: center;
 
@@ -1899,7 +1899,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-muted);
 
-    font-size: 9px;
+    font-size:13px;
 
 }
 
@@ -2057,7 +2057,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-muted);
 
-    font-size: 9px;
+    font-size:13px;
 
 }
 
@@ -2566,7 +2566,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-muted);
 
-    font-size: 9px;
+    font-size:13px;
 
 }
 
@@ -2790,7 +2790,7 @@ html[data-admin-theme="light"] {
 
     margin-top: 4px;
 
-    font-size: 9px;
+    font-size:13px;
 
 }
 
@@ -3188,7 +3188,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-muted);
 
-    font-size: 9px;
+    font-size:13px;
 
     text-overflow: ellipsis;
 
@@ -3292,7 +3292,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-muted);
 
-    font-size: 9px;
+    font-size:13px;
 
 }
 
@@ -3662,7 +3662,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-muted);
 
-    font-size: 9px;
+    font-size:13px;
 
 }
 
@@ -3676,7 +3676,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-muted);
 
-    font-size: 9px;
+    font-size:13px;
 
 }
 
@@ -3785,7 +3785,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-heading);
 
-    font-size: 9px;
+    font-size:13px;
 
 }
 
@@ -4196,7 +4196,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-muted);
 
-    font-size: 9px;
+    font-size:13px;
 
     font-weight: 600;
 
@@ -4261,7 +4261,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-muted);
 
-    font-size: 9px;
+    font-size:13px;
 
     font-weight: 700;
 
@@ -4302,7 +4302,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-muted);
 
-    font-size: 9px;
+    font-size:13px;
 
     line-height: 1.5;
 
@@ -4381,7 +4381,7 @@ html[data-admin-theme="light"] {
 
     font-family: inherit;
 
-    font-size: 9px;
+    font-size:13px;
 
     cursor: pointer;
 
@@ -4424,7 +4424,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-muted);
 
-    font-size: 9px;
+    font-size:13px;
 
 }
 
@@ -4468,7 +4468,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-muted);
 
-    font-size: 9px;
+    font-size:13px;
 
     text-decoration: none;
 
@@ -4576,7 +4576,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-muted);
 
-    font-size: 9px;
+    font-size:13px;
 
 }
 
@@ -4626,7 +4626,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-muted);
 
-    font-size: 9px;
+    font-size:13px;
 
     text-decoration: none;
 
@@ -4923,7 +4923,7 @@ html[data-admin-theme="light"] {
     color:
         #ef5350;
 
-    font-size: 9px;
+    font-size:13px;
 
 }
 
@@ -5238,7 +5238,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-heading);
 
-    font-size: 9px;
+    font-size:13px;
 
     font-weight: 600;
 
@@ -5530,7 +5530,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-muted);
 
-    font-size: 9px;
+    font-size:13px;
 
     font-weight: 600;
 
@@ -5651,7 +5651,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-muted);
 
-    font-size: 9px;
+    font-size:13px;
 
 }
 
@@ -5715,7 +5715,7 @@ html[data-admin-theme="light"] {
 
     color: #ef5350;
 
-    font-size: 9px;
+    font-size:13px;
 
 }
 
@@ -5975,7 +5975,7 @@ html[data-admin-theme="light"] {
         'Bricolage Grotesque',
         sans-serif;
 
-    font-size: 14px;
+    font-size: 12px;
 
     font-weight: 700;
 }
@@ -6254,7 +6254,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-muted);
 
-    font-size: 9px;
+    font-size:13px;
 
     cursor: pointer;
 
@@ -6390,7 +6390,7 @@ html[data-admin-theme="light"] {
     min-width: 18px;
     height: 18px;
 
-    font-size: 9px;
+    font-size:13px;
 }
 
 
@@ -6452,7 +6452,7 @@ html[data-admin-theme="light"] {
 
     color: #8a98aa;
 
-    font-size: 9px;
+    font-size:13px;
     font-weight: 400;
 
     text-overflow: ellipsis;
@@ -6706,7 +6706,7 @@ html[data-admin-theme="light"] {
 
 .als-stats span {
     color: var(--admin-muted);
-    font-size: 9px;
+    font-size:13px;
 }
 
 .als-stats strong {
@@ -6752,7 +6752,7 @@ html[data-admin-theme="light"] {
     background: transparent;
     color: var(--admin-muted);
     font-family: inherit;
-    font-size: 9px;
+    font-size:13px;
     font-weight: 600;
     cursor: pointer;
 }
@@ -6808,7 +6808,7 @@ html[data-admin-theme="light"] {
     max-width: 330px;
     margin: 5px 0 0;
     color: var(--admin-muted);
-    font-size: 9px;
+    font-size:13px;
     line-height: 1.6;
 }
 
@@ -6855,7 +6855,7 @@ html[data-admin-theme="light"] {
 .als-chat-header span {
     margin-top: 3px;
     color: var(--admin-muted);
-    font-size: 9px;
+    font-size:13px;
 }
 
 .als-chat-header-actions {
@@ -6872,7 +6872,7 @@ html[data-admin-theme="light"] {
     background: var(--admin-accent-strong);
     color: #052d2a;
     font-family: inherit;
-    font-size: 9px;
+    font-size:13px;
     font-weight: 700;
     cursor: pointer;
 }
@@ -6941,7 +6941,7 @@ html[data-admin-theme="light"] {
     padding: 0 12px;
     border-radius: 9px;
     font-family: inherit;
-    font-size: 9px;
+    font-size:13px;
     font-weight: 600;
     cursor: pointer;
 }
@@ -6992,13 +6992,13 @@ html[data-admin-theme="light"] {
 
 .als-modal-title strong {
     color: var(--admin-heading);
-    font-size: 14px;
+    font-size: 12px;
 }
 
 .als-modal-title p {
     margin: 4px 0 0;
     color: var(--admin-muted);
-    font-size: 9px;
+    font-size:13px;
 }
 
 .als-modal-title button {
@@ -7015,7 +7015,7 @@ html[data-admin-theme="light"] {
     display: block;
     margin: 12px 0 6px;
     color: var(--admin-muted);
-    font-size: 9px;
+    font-size:13px;
     font-weight: 600;
 }
 
@@ -7068,7 +7068,7 @@ html[data-admin-theme="light"] {
     gap: 7px;
     margin-bottom: 6px;
     color: var(--admin-accent);
-    font-size: 9px;
+    font-size:13px;
     font-weight: 700;
     letter-spacing: .14em;
     text-transform: uppercase;
@@ -7118,13 +7118,13 @@ html[data-admin-theme="light"] {
 .alss-card-head h3 {
     margin: 0;
     color: var(--admin-heading);
-    font-size: 14px;
+    font-size: 12px;
 }
 
 .alss-card-head p {
     margin: 4px 0 0;
     color: var(--admin-muted);
-    font-size: 9px;
+    font-size:13px;
     line-height: 1.55;
 }
 
@@ -7190,7 +7190,7 @@ html[data-admin-theme="light"] {
     display: block;
     margin-bottom: 6px;
     color: var(--admin-heading);
-    font-size: 9px;
+    font-size:13px;
     font-weight: 600;
 }
 
@@ -7402,7 +7402,7 @@ html[data-admin-theme="light"] {
 }
 
 .alss-day strong {
-    font-size: 9px;
+    font-size:13px;
 }
 
 
@@ -7427,7 +7427,7 @@ html[data-admin-theme="light"] {
     padding: 0 14px;
     border-radius: 9px;
     font-family: inherit;
-    font-size: 9px;
+    font-size:13px;
     font-weight: 700;
     cursor: pointer;
 }
@@ -7497,7 +7497,7 @@ html[data-admin-theme="light"] {
 
 .alss-blackout-info strong {
     color: var(--admin-heading);
-    font-size: 9px;
+    font-size:13px;
 }
 
 .alss-blackout-info strong span {
@@ -7598,7 +7598,7 @@ html[data-admin-theme="light"] {
     gap: 7px;
     margin-bottom: 13px;
     color: var(--admin-heading);
-    font-size: 9px;
+    font-size:13px;
 }
 
 .alss-agent-enabled input {
@@ -7608,7 +7608,7 @@ html[data-admin-theme="light"] {
 .alss-empty {
     padding: 25px 10px;
     color: var(--admin-muted);
-    font-size: 9px;
+    font-size:13px;
     text-align: center;
 }
 
@@ -7885,7 +7885,7 @@ html[data-admin-theme="light"] {
 .als-availability strong {
     color: var(--admin-heading);
 
-    font-size: 9px;
+    font-size:13px;
     font-weight: 600;
 
     white-space: nowrap;
@@ -7944,7 +7944,7 @@ html[data-admin-theme="light"] {
 .als-stats span {
     color: var(--admin-muted);
 
-    font-size: 9px;
+    font-size:13px;
     font-weight: 500;
 }
 
@@ -8034,7 +8034,7 @@ html[data-admin-theme="light"] {
     color: var(--admin-muted);
 
     font-family: inherit;
-    font-size: 9px;
+    font-size:13px;
     font-weight: 600;
 
     cursor: pointer;
@@ -8488,7 +8488,7 @@ html[data-admin-theme="light"] {
     color: #052f2d;
 
     font-family: inherit;
-    font-size: 9px;
+    font-size:13px;
     font-weight: 700;
 
     cursor: pointer;
@@ -8918,7 +8918,7 @@ html[data-admin-theme="light"] {
 
     gap: 7px;
 
-    font-size: 9px;
+    font-size:13px;
     font-weight: 600;
 
     cursor: pointer;
@@ -8960,7 +8960,7 @@ html[data-admin-theme="light"] {
     gap: 7px;
 
     font-family: inherit;
-    font-size: 9px;
+    font-size:13px;
     font-weight: 700;
 
     cursor: pointer;
@@ -9059,7 +9059,7 @@ html[data-admin-theme="light"] {
 .als-modal-title strong {
     color: var(--admin-heading);
 
-    font-size: 14px;
+    font-size: 12px;
 }
 
 
@@ -9068,7 +9068,7 @@ html[data-admin-theme="light"] {
 
     color: var(--admin-muted);
 
-    font-size: 9px;
+    font-size:13px;
     line-height: 1.5;
 }
 
@@ -9097,7 +9097,7 @@ html[data-admin-theme="light"] {
 
     color: var(--admin-heading);
 
-    font-size: 9px;
+    font-size:13px;
     font-weight: 600;
 }
 
@@ -9208,7 +9208,7 @@ html[data-admin-theme="light"] {
             .20
         );
 
-    font-size: 9px;
+    font-size:13px;
     font-weight: 500;
 
     transition:
@@ -9264,7 +9264,7 @@ html[data-admin-theme="light"] {
 
     color: var(--admin-muted);
 
-    font-size: 9px;
+    font-size:13px;
 }
 
 
@@ -9502,7 +9502,7 @@ html[data-admin-theme="light"] {
     .als-message-bubble {
         max-width: 94%;
 
-        font-size: 9px;
+        font-size:13px;
     }
 
 }
@@ -9637,7 +9637,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-heading);
 
-    font-size: 9px;
+    font-size:13px;
     font-weight: 600;
 
     text-decoration: none;
@@ -9780,7 +9780,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-heading) !important;
 
-    font-size: 9px;
+    font-size:13px;
     font-weight: 600;
 
     white-space: nowrap;
@@ -9852,7 +9852,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-muted) !important;
 
-    font-size: 9px;
+    font-size:13px;
     font-weight: 500;
 }
 
@@ -10268,7 +10268,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-heading);
 
-    font-size: 9px;
+    font-size:13px;
     font-weight: 600;
 
     text-overflow: ellipsis;
@@ -10744,7 +10744,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-text);
 
-    font-size: 9px;
+    font-size:13px;
 
     line-height: 1.55;
 
@@ -10989,7 +10989,7 @@ html[data-admin-theme="light"] {
 
     font-family: inherit;
 
-    font-size: 9px;
+    font-size:13px;
 
     line-height: 1.5;
 
@@ -11315,7 +11315,7 @@ html[data-admin-theme="light"] {
 
     font-family: inherit;
 
-    font-size: 9px;
+    font-size:13px;
 
     outline: none;
 
@@ -11382,7 +11382,7 @@ html[data-admin-theme="light"] {
 
     font-family: inherit;
 
-    font-size: 9px;
+    font-size:13px;
     font-weight: 700;
 
     cursor: pointer;
@@ -11437,7 +11437,7 @@ html[data-admin-theme="light"] {
             .22
         );
 
-    font-size: 9px;
+    font-size:13px;
 
     transition:
         .2s ease;

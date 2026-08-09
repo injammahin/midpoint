@@ -1,3 +1,5 @@
+import './bootstrap';
+
 document.addEventListener(
     'DOMContentLoaded',
     () => {
@@ -585,7 +587,108 @@ if (
             );
         }
 
+async function syncCurrentSession()
+{
+    if (!currentSession) {
+        return;
+    }
 
+
+    try {
+
+        const data =
+            await request(
+                `${
+                    app.dataset.sessionBase
+                }/${
+                    currentSession.uuid
+                }`
+            );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Status
+        |--------------------------------------------------------------------------
+        */
+
+        currentSession =
+            data.session;
+
+
+        claimButton.hidden =
+            currentSession.status
+            !==
+            'waiting';
+
+
+        resolveButton.hidden =
+            currentSession.status
+            !==
+            'active';
+
+
+        composer.hidden =
+            currentSession.status
+            !==
+            'active';
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Compare Message Count
+        |--------------------------------------------------------------------------
+        |
+        | Only rerender if something changed.
+        |
+        */
+
+        const serverMessages =
+            data.messages
+            || [];
+
+
+        const localCount =
+            messages.querySelectorAll(
+                '.als-message'
+            ).length;
+
+
+        if (
+            serverMessages.length
+            !==
+            localCount
+        ) {
+
+            renderMessages(
+                serverMessages
+            );
+
+        }
+
+
+    } catch (error) {
+
+        console.error(
+            '[Live Support] backup sync failed:',
+            error
+        );
+
+    }
+}
+
+setInterval(
+    () => {
+
+        if (currentSession) {
+
+            syncCurrentSession();
+
+        }
+
+    },
+    4000
+);
         /*
         |--------------------------------------------------------------------------
         | Chat Render
@@ -994,7 +1097,39 @@ function subscribeSession(
                 'active';
 
 
-            loadFeed();
+            /*
+|--------------------------------------------------------------------------
+| Initial Feed
+|--------------------------------------------------------------------------
+*/
+
+loadFeed();
+
+
+/*
+|--------------------------------------------------------------------------
+| Backup Feed Synchronization
+|--------------------------------------------------------------------------
+|
+| Pusher is the main realtime system.
+|
+| This is only a fallback if:
+|
+| - Internet briefly disconnects
+| - Pusher reconnects
+| - Browser sleeps
+| - Private channel authorization temporarily fails
+|
+*/
+
+setInterval(
+    () => {
+
+        loadFeed();
+
+    },
+    5000
+);
 
         }
     );
@@ -1018,7 +1153,39 @@ function subscribeSession(
                     '.support.inbox.updated',
                     event => {
 
-                        loadFeed();
+                        /*
+|--------------------------------------------------------------------------
+| Initial Feed
+|--------------------------------------------------------------------------
+*/
+
+loadFeed();
+
+
+/*
+|--------------------------------------------------------------------------
+| Backup Feed Synchronization
+|--------------------------------------------------------------------------
+|
+| Pusher is the main realtime system.
+|
+| This is only a fallback if:
+|
+| - Internet briefly disconnects
+| - Pusher reconnects
+| - Browser sleeps
+| - Private channel authorization temporarily fails
+|
+*/
+
+setInterval(
+    () => {
+
+        loadFeed();
+
+    },
+    5000
+);
 
 
                         if (
@@ -1079,7 +1246,39 @@ function subscribeSession(
                     );
 
 
-                    await loadFeed();
+                    await /*
+|--------------------------------------------------------------------------
+| Initial Feed
+|--------------------------------------------------------------------------
+*/
+
+loadFeed();
+
+
+/*
+|--------------------------------------------------------------------------
+| Backup Feed Synchronization
+|--------------------------------------------------------------------------
+|
+| Pusher is the main realtime system.
+|
+| This is only a fallback if:
+|
+| - Internet briefly disconnects
+| - Pusher reconnects
+| - Browser sleeps
+| - Private channel authorization temporarily fails
+|
+*/
+
+setInterval(
+    () => {
+
+        loadFeed();
+
+    },
+    5000
+);
 
                 } catch (error) {
 
@@ -1264,7 +1463,39 @@ function subscribeSession(
                                 : 'Unavailable';
 
 
-                    await loadFeed();
+                    await /*
+|--------------------------------------------------------------------------
+| Initial Feed
+|--------------------------------------------------------------------------
+*/
+
+loadFeed();
+
+
+/*
+|--------------------------------------------------------------------------
+| Backup Feed Synchronization
+|--------------------------------------------------------------------------
+|
+| Pusher is the main realtime system.
+|
+| This is only a fallback if:
+|
+| - Internet briefly disconnects
+| - Pusher reconnects
+| - Browser sleeps
+| - Private channel authorization temporarily fails
+|
+*/
+
+setInterval(
+    () => {
+
+        loadFeed();
+
+    },
+    5000
+);
 
                 } catch (error) {
 
@@ -1429,7 +1660,39 @@ function subscribeSession(
                         );
 
 
-                        await loadFeed();
+                        await /*
+|--------------------------------------------------------------------------
+| Initial Feed
+|--------------------------------------------------------------------------
+*/
+
+loadFeed();
+
+
+/*
+|--------------------------------------------------------------------------
+| Backup Feed Synchronization
+|--------------------------------------------------------------------------
+|
+| Pusher is the main realtime system.
+|
+| This is only a fallback if:
+|
+| - Internet briefly disconnects
+| - Pusher reconnects
+| - Browser sleeps
+| - Private channel authorization temporarily fails
+|
+*/
+
+setInterval(
+    () => {
+
+        loadFeed();
+
+    },
+    5000
+);
 
                     } catch (error) {
 
@@ -1581,7 +1844,39 @@ function subscribeSession(
         |--------------------------------------------------------------------------
         */
 
+        /*
+|--------------------------------------------------------------------------
+| Initial Feed
+|--------------------------------------------------------------------------
+*/
+
+loadFeed();
+
+
+/*
+|--------------------------------------------------------------------------
+| Backup Feed Synchronization
+|--------------------------------------------------------------------------
+|
+| Pusher is the main realtime system.
+|
+| This is only a fallback if:
+|
+| - Internet briefly disconnects
+| - Pusher reconnects
+| - Browser sleeps
+| - Private channel authorization temporarily fails
+|
+*/
+
+setInterval(
+    () => {
+
         loadFeed();
+
+    },
+    5000
+);
 
     }
 );

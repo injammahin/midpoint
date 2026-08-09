@@ -335,7 +335,7 @@
 }
 
 .mp-timeline-title {
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 700;
 }
 
@@ -406,7 +406,7 @@
     justify-content: space-between;
     gap: 16px;
     padding: 9px 0;
-    font-size: 14px;
+    font-size: 12px;
 }
 
 .mp-sum-total {
@@ -457,7 +457,7 @@
 .mp-faq-answer {
     padding: 0 20px 17px;
     color: #5A6660;
-    font-size: 14px;
+    font-size: 12px;
 }
 
 /* Business card */

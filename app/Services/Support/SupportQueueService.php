@@ -12,12 +12,13 @@ use App\Models\SupportChatSetting;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Throwable;
 
 class SupportQueueService
 {
     /*
     |--------------------------------------------------------------------------
-    | Create / Retrieve Customer Session
+    | Create / Get Customer Chat
     |--------------------------------------------------------------------------
     */
 
@@ -49,10 +50,19 @@ class SupportQueueService
 
         if ($existing) {
 
-            return $existing;
+            return $existing->fresh([
+                'user',
+                'agent',
+            ]);
 
         }
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | Create Waiting Session
+        |--------------------------------------------------------------------------
+        */
 
         $session =
             DB::transaction(
@@ -73,30 +83,28 @@ class SupportQueueService
                             + 1;
 
 
-                    return SupportChatSession::create(
-                        [
-                            'uuid' =>
-                                (string) Str::uuid(),
+                    return SupportChatSession::create([
+                        'uuid' =>
+                            (string) Str::uuid(),
 
-                            'user_id' =>
-                                $user->id,
+                        'user_id' =>
+                            $user->id,
 
-                            'status' =>
-                                'waiting',
+                        'status' =>
+                            'waiting',
 
-                            'topic' =>
-                                $topic,
+                        'topic' =>
+                            $topic ?: 'Live Support',
 
-                            'queue_position' =>
-                                $position,
+                        'queue_position' =>
+                            $position,
 
-                            'queue_entered_at' =>
-                                now(),
+                        'queue_entered_at' =>
+                            now(),
 
-                            'last_message_at' =>
-                                now(),
-                        ]
-                    );
+                        'last_message_at' =>
+                            now(),
+                    ]);
 
                 }
             );
@@ -108,11 +116,11 @@ class SupportQueueService
 
         /*
         |--------------------------------------------------------------------------
-        | Personalized Welcome
+        | Welcome Message
         |--------------------------------------------------------------------------
         */
 
-        $welcome =
+        $welcomeMessage =
             'Hi '
             .
             $user->name
@@ -121,23 +129,24 @@ class SupportQueueService
             .
             (
                 $settings->welcome_message
-                ?: 'Welcome to MidPoint Live Support. Please wait while we connect you with an agent.'
+                ?:
+                'Welcome to MidPoint Live Support. Please wait while we connect you with a support specialist.'
             );
 
 
         $this->systemMessage(
             $session,
-            $welcome
+            $welcomeMessage
         );
 
 
         /*
         |--------------------------------------------------------------------------
-        | Alert Agent Console
+        | Notify Admins
         |--------------------------------------------------------------------------
         */
 
-        broadcast(
+        $this->safeBroadcast(
             new SupportAgentInboxUpdated(
                 'new_request',
                 $session
@@ -147,7 +156,7 @@ class SupportQueueService
 
         /*
         |--------------------------------------------------------------------------
-        | Auto Assign
+        | Try Automatic Assignment
         |--------------------------------------------------------------------------
         */
 
@@ -157,35 +166,53 @@ class SupportQueueService
             );
 
 
+        /*
+        |--------------------------------------------------------------------------
+        | No Agent Available
+        |--------------------------------------------------------------------------
+        */
+
         if (!$assigned) {
 
             $session->refresh();
 
 
-            $this->systemMessage(
-                $session,
+            $queueMessage =
                 (
                     $settings->queue_message
-                    ?: 'All of our agents are currently assisting other customers.'
+                    ?:
+                    'All of our support specialists are currently assisting other customers.'
                 )
                 .
-                ' You are #'
+                ' You have been added to the queue. You are #'
                 .
-                $session->queue_position
+                (
+                    $session->queue_position
+                    ?: 1
+                )
                 .
-                ' in the queue.'
+                ' in the queue.';
+
+
+            $this->systemMessage(
+                $session,
+                $queueMessage
             );
 
         }
 
 
-        return $session->fresh();
+        return $session->fresh([
+            'user',
+            'agent',
+        ]);
     }
+
 
 
     /*
     |--------------------------------------------------------------------------
-    | Automatically Pick Agent
+    | Try Automatic Assignment
     |--------------------------------------------------------------------------
     */
 
@@ -193,9 +220,13 @@ class SupportQueueService
         SupportChatSession $session
     ): bool {
 
+        $session->refresh();
+
+
         if (
             $session->status
-            !== 'waiting'
+            !==
+            'waiting'
         ) {
 
             return false;
@@ -231,35 +262,41 @@ class SupportQueueService
                     $onlineSince
                 )
 
-                ->withCount(
-                    [
-                        'activeSessions',
-                    ]
-                )
+                ->with([
+                    'user',
+                ])
+
+                ->withCount([
+                    'activeSessions',
+                ])
 
                 ->orderBy(
                     'active_sessions_count'
                 )
 
-                ->orderBy(
-                    'last_seen_at',
-                    'desc'
+                ->orderByDesc(
+                    'last_seen_at'
                 )
 
                 ->get();
 
 
         foreach (
-            $agents as $agent
+            $agents as $profile
         ) {
 
             if (
-                $agent
-                    ->active_sessions_count
+                $profile->active_sessions_count
                 >=
-                $agent
-                    ->max_active_chats
+                $profile->max_active_chats
             ) {
+
+                continue;
+
+            }
+
+
+            if (!$profile->user) {
 
                 continue;
 
@@ -269,7 +306,7 @@ class SupportQueueService
             if (
                 $this->assignSpecific(
                     $session,
-                    $agent->user
+                    $profile->user
                 )
             ) {
 
@@ -282,6 +319,7 @@ class SupportQueueService
 
         return false;
     }
+
 
 
     /*
@@ -302,6 +340,12 @@ class SupportQueueService
                     $agent
                 ) {
 
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Lock Session
+                    |--------------------------------------------------------------------------
+                    */
+
                     $lockedSession =
                         SupportChatSession::query()
 
@@ -318,13 +362,20 @@ class SupportQueueService
                         !$lockedSession
                         ||
                         $lockedSession->status
-                        !== 'waiting'
+                        !==
+                        'waiting'
                     ) {
 
                         return false;
 
                     }
 
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Lock Agent
+                    |--------------------------------------------------------------------------
+                    */
 
                     $profile =
                         SupportAgentProfile::query()
@@ -351,6 +402,12 @@ class SupportQueueService
 
                     }
 
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Capacity
+                    |--------------------------------------------------------------------------
+                    */
 
                     $activeChats =
                         SupportChatSession::query()
@@ -379,21 +436,28 @@ class SupportQueueService
                     }
 
 
-                    $lockedSession->update(
-                        [
-                            'agent_id' =>
-                                $agent->id,
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Assign
+                    |--------------------------------------------------------------------------
+                    */
 
-                            'status' =>
-                                'active',
+                    $lockedSession->update([
+                        'agent_id' =>
+                            $agent->id,
 
-                            'assigned_at' =>
-                                now(),
+                        'status' =>
+                            'active',
 
-                            'queue_position' =>
-                                null,
-                        ]
-                    );
+                        'assigned_at' =>
+                            now(),
+
+                        'queue_position' =>
+                            null,
+
+                        'last_message_at' =>
+                            now(),
+                    ]);
 
 
                     return true;
@@ -412,22 +476,40 @@ class SupportQueueService
         $session->refresh();
 
 
+        /*
+        |--------------------------------------------------------------------------
+        | Agent Joined Message
+        |--------------------------------------------------------------------------
+        */
+
         $this->systemMessage(
             $session,
             $agent->name
             .
-            ' has joined the conversation. How can we help you today?'
+            ' joined the conversation.'
         );
 
 
-        broadcast(
+        /*
+        |--------------------------------------------------------------------------
+        | Customer Session Update
+        |--------------------------------------------------------------------------
+        */
+
+        $this->safeBroadcast(
             new SupportSessionUpdated(
                 $session
             )
         );
 
 
-        broadcast(
+        /*
+        |--------------------------------------------------------------------------
+        | Admin Inbox Update
+        |--------------------------------------------------------------------------
+        */
+
+        $this->safeBroadcast(
             new SupportAgentInboxUpdated(
                 'assigned',
                 $session
@@ -442,17 +524,21 @@ class SupportQueueService
     }
 
 
+
     /*
     |--------------------------------------------------------------------------
-    | Assign Waiting Customers
+    | Assign Waiting Sessions
     |--------------------------------------------------------------------------
     */
 
     public function assignWaitingSessions()
     {
         /*
-         * Safety limit prevents accidental endless looping.
-         */
+        |--------------------------------------------------------------------------
+        | Safety Limit
+        |--------------------------------------------------------------------------
+        */
+
         for (
             $i = 0;
             $i < 100;
@@ -499,9 +585,10 @@ class SupportQueueService
     }
 
 
+
     /*
     |--------------------------------------------------------------------------
-    | Queue Position Updates
+    | Recalculate Queue
     |--------------------------------------------------------------------------
     */
 
@@ -545,16 +632,20 @@ class SupportQueueService
             }
 
 
-            $session->update(
-                [
-                    'queue_position' =>
-                        $newPosition,
-                ]
-            );
+            $session->update([
+                'queue_position' =>
+                    $newPosition,
+            ]);
 
 
             $session->refresh();
 
+
+            /*
+            |--------------------------------------------------------------------------
+            | Customer Queue Message
+            |--------------------------------------------------------------------------
+            */
 
             $this->systemMessage(
                 $session,
@@ -566,7 +657,13 @@ class SupportQueueService
             );
 
 
-            broadcast(
+            /*
+            |--------------------------------------------------------------------------
+            | Customer State Update
+            |--------------------------------------------------------------------------
+            */
+
+            $this->safeBroadcast(
                 new SupportSessionUpdated(
                     $session
                 )
@@ -576,10 +673,14 @@ class SupportQueueService
     }
 
 
+
     /*
     |--------------------------------------------------------------------------
     | System Message
     |--------------------------------------------------------------------------
+    |
+    | THIS WAS THE MAIN ERROR.
+    |
     */
 
     public function systemMessage(
@@ -588,38 +689,104 @@ class SupportQueueService
     ): SupportChatMessage {
 
         $chatMessage =
-            SupportChatMessage::create(
-                [
-                    'support_chat_session_id' =>
-                        $session->id,
+            DB::transaction(
+                function () use (
+                    $session,
+                    $message
+                ) {
 
-                    'sender_id' =>
-                        null,
+                    $created =
+                        SupportChatMessage::create([
+                            'support_chat_session_id' =>
+                                $session->id,
 
-                    'type' =>
-                        'system',
+                            'sender_id' =>
+                                null,
 
-                    'body' =>
-                        $message,
-                ]
+                            'type' =>
+                                'system',
+
+                            'body' =>
+                                $message,
+                        ]);
+
+
+                    $session->update([
+                        'last_message_at' =>
+                            now(),
+                    ]);
+
+
+                    return $created;
+
+                }
             );
 
 
-        $session->update(
-            [
-                'last_message_at' =>
-                    now(),
-            ]
-        );
+        $session->refresh();
 
 
-        broadcast(
+        $chatMessage->load([
+            'sender',
+            'attachments',
+            'session',
+        ]);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | IMPORTANT
+        |--------------------------------------------------------------------------
+        |
+        | SupportMessageSent expects:
+        |
+        |   SupportChatSession $session
+        |   SupportChatMessage $message
+        |
+        */
+
+        $this->safeBroadcast(
             new SupportMessageSent(
+                $session,
                 $chatMessage
             )
         );
 
 
         return $chatMessage;
+    }
+
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Safe Realtime Broadcast
+    |--------------------------------------------------------------------------
+    |
+    | A temporary Pusher problem should NEVER cause:
+    |
+    | - Chat creation to fail
+    | - Resolve to fail
+    | - Database state to become inconsistent
+    |
+    */
+
+    private function safeBroadcast(
+        object $event
+    ): void {
+
+        try {
+
+            broadcast(
+                $event
+            );
+
+        } catch (Throwable $exception) {
+
+            report(
+                $exception
+            );
+
+        }
     }
 }

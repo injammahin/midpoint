@@ -9,7 +9,7 @@
 @section('content')
 
     {{-- =========================================================
-        PAGE HEADER
+    PAGE HEADER
     ========================================================== --}}
     <div class="admin-users-page-head">
 
@@ -43,7 +43,7 @@
 
 
     {{-- =========================================================
-        SUCCESS MESSAGE
+    SUCCESS MESSAGE
     ========================================================== --}}
     @if(session('success'))
 
@@ -62,7 +62,7 @@
 
 
     {{-- =========================================================
-        ERROR MESSAGE
+    ERROR MESSAGE
     ========================================================== --}}
     @if($errors->any())
 
@@ -89,7 +89,7 @@
 
 
     {{-- =========================================================
-        STATISTICS
+    STATISTICS
     ========================================================== --}}
     <div class="admin-users-stat-grid">
 
@@ -217,15 +217,11 @@
 
 
     {{-- =========================================================
-        FILTER / SEARCH
+    FILTER / SEARCH
     ========================================================== --}}
     <div class="admin-card admin-users-toolbar">
 
-        <form
-            method="GET"
-            action="{{ route('admin.users.index') }}"
-            class="admin-users-filter-form"
-        >
+        <form method="GET" action="{{ route('admin.users.index') }}" class="admin-users-filter-form">
 
             {{-- Search --}}
             <div class="admin-users-search">
@@ -233,41 +229,27 @@
                 <i class="fa-solid fa-magnifying-glass"></i>
 
 
-                <input
-                    type="search"
-                    name="search"
-                    value="{{ request('search') }}"
-                    placeholder="Search name, email or phone..."
-                    autocomplete="off"
-                >
+                <input type="search" name="search" value="{{ request('search') }}"
+                    placeholder="Search name, email or phone..." autocomplete="off">
 
             </div>
 
 
 
             {{-- Status --}}
-            <select
-                name="status"
-                aria-label="Filter by status"
-            >
+            <select name="status" aria-label="Filter by status">
 
                 <option value="">
                     All statuses
                 </option>
 
 
-                <option
-                    value="active"
-                    {{ request('status') === 'active' ? 'selected' : '' }}
-                >
+                <option value="active" {{ request('status') === 'active' ? 'selected' : '' }}>
                     Active
                 </option>
 
 
-                <option
-                    value="inactive"
-                    {{ request('status') === 'inactive' ? 'selected' : '' }}
-                >
+                <option value="inactive" {{ request('status') === 'inactive' ? 'selected' : '' }}>
                     Inactive
                 </option>
 
@@ -276,28 +258,19 @@
 
 
             {{-- Verification --}}
-            <select
-                name="verification"
-                aria-label="Filter by verification"
-            >
+            <select name="verification" aria-label="Filter by verification">
 
                 <option value="">
                     All verification
                 </option>
 
 
-                <option
-                    value="verified"
-                    {{ request('verification') === 'verified' ? 'selected' : '' }}
-                >
+                <option value="verified" {{ request('verification') === 'verified' ? 'selected' : '' }}>
                     Verified
                 </option>
 
 
-                <option
-                    value="unverified"
-                    {{ request('verification') === 'unverified' ? 'selected' : '' }}
-                >
+                <option value="unverified" {{ request('verification') === 'unverified' ? 'selected' : '' }}>
                     Unverified
                 </option>
 
@@ -306,28 +279,19 @@
 
 
             {{-- Preferred Role --}}
-            <select
-                name="preferred_role"
-                aria-label="Filter by account preference"
-            >
+            <select name="preferred_role" aria-label="Filter by account preference">
 
                 <option value="">
                     Buyer & seller
                 </option>
 
 
-                <option
-                    value="seller"
-                    {{ request('preferred_role') === 'seller' ? 'selected' : '' }}
-                >
+                <option value="seller" {{ request('preferred_role') === 'seller' ? 'selected' : '' }}>
                     Seller preference
                 </option>
 
 
-                <option
-                    value="buyer"
-                    {{ request('preferred_role') === 'buyer' ? 'selected' : '' }}
-                >
+                <option value="buyer" {{ request('preferred_role') === 'buyer' ? 'selected' : '' }}>
                     Buyer preference
                 </option>
 
@@ -336,10 +300,7 @@
 
 
             {{-- Filter --}}
-            <button
-                type="submit"
-                class="admin-users-filter-button"
-            >
+            <button type="submit" class="admin-users-filter-button">
 
                 <i class="fa-solid fa-filter"></i>
 
@@ -351,19 +312,16 @@
 
             {{-- Reset --}}
             @if(
-                request()->filled('search')
-                ||
-                request()->filled('status')
-                ||
-                request()->filled('verification')
-                ||
-                request()->filled('preferred_role')
-            )
+                    request()->filled('search')
+                    ||
+                    request()->filled('status')
+                    ||
+                    request()->filled('verification')
+                    ||
+                    request()->filled('preferred_role')
+                )
 
-                <a
-                    href="{{ route('admin.users.index') }}"
-                    class="admin-users-reset"
-                >
+                <a href="{{ route('admin.users.index') }}" class="admin-users-reset">
                     Reset
                 </a>
 
@@ -376,13 +334,13 @@
 
 
     {{-- =========================================================
-        USER TABLE CARD
+    USER TABLE CARD
     ========================================================== --}}
     <div class="admin-card admin-users-table-card">
 
 
         {{-- =====================================================
-            TABLE HEADER
+        TABLE HEADER
         ====================================================== --}}
         <div class="admin-users-table-card-head">
 
@@ -436,7 +394,7 @@
 
 
         {{-- =====================================================
-            TABLE
+        TABLE
         ====================================================== --}}
         <div class="admin-users-table-wrapper">
 
@@ -483,419 +441,389 @@
 
                     @forelse($users as $user)
 
-                        <tr>
+                                    <tr>
 
 
-                            {{-- =========================================
-                                USER
-                            ========================================== --}}
-                            <td>
+                                        {{-- =========================================
+                                        USER
+                                        ========================================== --}}
+                                        <td>
 
-                                <div class="admin-users-person">
+                                            <div class="admin-users-person">
 
-                                    <div class="admin-users-avatar">
+                                                <div class="admin-users-avatar">
 
-                                        {{
-                                            strtoupper(
-                                                mb_substr(
-                                                    $user->name ?? 'U',
-                                                    0,
-                                                    1
-                                                )
-                                            )
-                                        }}
+                                                    {{
+                            strtoupper(
+                                mb_substr(
+                                    $user->name ?? 'U',
+                                    0,
+                                    1
+                                )
+                            )
+                                                            }}
 
-                                    </div>
+                                                </div>
 
 
-                                    <div class="admin-users-person-info">
+                                                <div class="admin-users-person-info">
 
-                                        <strong>
-                                            {{ $user->name }}
-                                        </strong>
+                                                    <strong>
+                                                        {{ $user->name }}
+                                                    </strong>
 
 
-                                        <span>
-                                            User ID #{{ $user->id }}
-                                        </span>
+                                                    <span>
+                                                        User ID #{{ $user->id }}
+                                                    </span>
 
 
-                                        <small>
-                                            Joined
-                                            {{ optional($user->created_at)->format('M d, Y') }}
-                                        </small>
+                                                    <small>
+                                                        Joined
+                                                        {{ optional($user->created_at)->format('M d, Y') }}
+                                                    </small>
 
-                                    </div>
+                                                </div>
 
-                                </div>
+                                            </div>
 
-                            </td>
+                                        </td>
 
 
 
-                            {{-- =========================================
-                                CONTACT
-                            ========================================== --}}
-                            <td>
+                                        {{-- =========================================
+                                        CONTACT
+                                        ========================================== --}}
+                                        <td>
 
-                                <div class="admin-users-contact">
-
-                                    <span>
-
-                                        <i class="fa-regular fa-envelope"></i>
-
-                                        {{ $user->email }}
-
-                                    </span>
-
-
-                                    <span>
-
-                                        <i class="fa-solid fa-phone"></i>
-
-                                        {{ $user->phone ?: 'No phone added' }}
-
-                                    </span>
-
-                                </div>
-
-                            </td>
-
-
-
-                            {{-- =========================================
-                                PREFERRED ROLE
-                            ========================================== --}}
-                            <td>
-
-                                @if($user->preferred_role === 'buyer')
-
-                                    <span class="admin-users-role-badge buyer">
-
-                                        <i class="fa-solid fa-bag-shopping"></i>
-
-                                        Buyer
-
-                                    </span>
-
-                                @else
-
-                                    <span class="admin-users-role-badge seller">
-
-                                        <i class="fa-solid fa-store"></i>
-
-                                        Seller
-
-                                    </span>
-
-                                @endif
-
-                            </td>
-
-
-
-                            {{-- =========================================
-                                EMAIL VERIFICATION
-                            ========================================== --}}
-                            <td>
-
-                                @if($user->hasVerifiedEmail())
-
-                                    <div class="admin-users-verification verified">
-
-                                        <span>
-
-                                            <i class="fa-solid fa-check"></i>
-
-                                        </span>
-
-
-                                        <div>
-
-                                            <strong>
-                                                Verified
-                                            </strong>
-
-                                            <small>
-                                                {{
-                                                    optional($user->email_verified_at)
-                                                        ->format('M d, Y')
-                                                }}
-                                            </small>
-
-                                        </div>
-
-                                    </div>
-
-                                @else
-
-                                    <div class="admin-users-verification pending">
-
-                                        <span>
-
-                                            <i class="fa-regular fa-clock"></i>
-
-                                        </span>
-
-
-                                        <div>
-
-                                            <strong>
-                                                Pending
-                                            </strong>
-
-                                            <small>
-                                                Awaiting verification
-                                            </small>
-
-                                        </div>
-
-                                    </div>
-
-                                @endif
-
-                            </td>
-
-
-
-                            {{-- =========================================
-                                STATUS
-                            ========================================== --}}
-                            <td>
-
-                                <span
-                                    class="admin-users-status-badge
-                                           {{
-                                                $user->status
-                                                    ? 'active'
-                                                    : 'inactive'
-                                           }}"
-                                >
-
-                                    <span></span>
-
-
-                                    {{
-                                        $user->status
-                                            ? 'Active'
-                                            : 'Inactive'
-                                    }}
-
-                                </span>
-
-                            </td>
-
-
-
-                            {{-- =========================================
-                                LAST LOGIN
-                            ========================================== --}}
-                            <td>
-
-                                <div class="admin-users-last-login">
-
-                                    @if($user->last_login_at)
-
-                                        <strong>
-                                            {{
-                                                $user
-                                                    ->last_login_at
-                                                    ->diffForHumans()
-                                            }}
-                                        </strong>
-
-
-                                        <span>
-                                            {{
-                                                $user
-                                                    ->last_login_at
-                                                    ->format(
-                                                        'M d, Y · h:i A'
-                                                    )
-                                            }}
-                                        </span>
-
-
-                                        @if($user->last_login_ip)
-
-                                            <small>
-
-                                                <i class="fa-solid fa-location-dot"></i>
-
-                                                {{ $user->last_login_ip }}
-
-                                            </small>
-
-                                        @endif
-
-
-                                    @else
-
-                                        <strong class="never">
-                                            Never logged in
-                                        </strong>
-
-                                    @endif
-
-                                </div>
-
-                            </td>
-
-
-
-                            {{-- =========================================
-                                ACTIONS
-                            ========================================== --}}
-                            <td>
-
-                                <div class="admin-users-actions">
-
-
-                                    {{-- =====================================
-                                        LOGIN AS USER
-                                    ====================================== --}}
-                                    @if(
-                                        $user->status
-                                        &&
-                                        $user->hasVerifiedEmail()
-                                    )
-
-                                        <form
-                                            method="POST"
-                                            action="{{ route(
-                                                'admin.users.impersonate',
-                                                $user
-                                            ) }}"
-                                            class="admin-users-action-form"
-                                            onsubmit="return confirm(
-                                                'Login as {{ addslashes($user->name) }}? You will temporarily enter this user account.'
-                                            );"
-                                        >
-
-                                            @csrf
-
-
-                                            <button
-                                                type="submit"
-                                                class="admin-users-action login"
-                                                title="Login as user"
-                                            >
-
-                                                <i class="fa-solid fa-right-to-bracket"></i>
+                                            <div class="admin-users-contact">
 
                                                 <span>
-                                                    Login
+
+                                                    <i class="fa-regular fa-envelope"></i>
+
+                                                    {{ $user->email }}
+
                                                 </span>
 
-                                            </button>
 
-                                        </form>
+                                                <span>
 
+                                                    <i class="fa-solid fa-phone"></i>
 
-                                    @else
+                                                    {{ $user->phone ?: 'No phone added' }}
 
-                                        <button
-                                            type="button"
-                                            class="admin-users-action disabled"
-                                            title="{{
-                                                !$user->status
-                                                    ? 'Inactive users cannot be accessed'
-                                                    : 'User must verify their email first'
-                                            }}"
-                                            disabled
-                                        >
+                                                </span>
 
-                                            <i class="fa-solid fa-right-to-bracket"></i>
+                                            </div>
 
-                                            <span>
-                                                Login
-                                            </span>
-
-                                        </button>
-
-                                    @endif
+                                        </td>
 
 
 
-                                    {{-- =====================================
-                                        ACTIVATE / DEACTIVATE
-                                    ====================================== --}}
-                                    <form
-                                        method="POST"
-                                        action="{{ route(
-                                            'admin.users.status',
-                                            $user
-                                        ) }}"
-                                        class="admin-users-action-form"
-                                        onsubmit="return confirm(
-                                            '{{ $user->status
-                                                ? 'Deactivate ' . addslashes($user->name) . '? The user will no longer be able to access their account and will receive an email notification.'
-                                                : 'Activate ' . addslashes($user->name) . '?'
-                                            }}'
-                                        );"
-                                    >
+                                        {{-- =========================================
+                                        PREFERRED ROLE
+                                        ========================================== --}}
+                                        <td>
 
-                                        @csrf
-                                        @method('PATCH')
+                                            @if($user->preferred_role === 'buyer')
 
+                                                <span class="admin-users-role-badge buyer">
 
-                                        <button
-                                            type="submit"
-                                            class="admin-users-action
-                                                   {{
-                                                        $user->status
-                                                            ? 'deactivate'
-                                                            : 'activate'
-                                                   }}"
-                                            title="{{
-                                                $user->status
-                                                    ? 'Deactivate user'
-                                                    : 'Activate user'
-                                            }}"
-                                        >
+                                                    <i class="fa-solid fa-bag-shopping"></i>
 
-                                            <i
-                                                class="fa-solid
-                                                       {{
-                                                            $user->status
-                                                                ? 'fa-user-slash'
-                                                                : 'fa-user-check'
-                                                       }}"
-                                            ></i>
+                                                    Buyer
+
+                                                </span>
+
+                                            @else
+
+                                                <span class="admin-users-role-badge seller">
+
+                                                    <i class="fa-solid fa-store"></i>
+
+                                                    Seller
+
+                                                </span>
+
+                                            @endif
+
+                                        </td>
 
 
-                                            <span>
+
+                                        {{-- =========================================
+                                        EMAIL VERIFICATION
+                                        ========================================== --}}
+                                        <td>
+
+                                            @if($user->hasVerifiedEmail())
+
+                                                            <div class="admin-users-verification verified">
+
+                                                                <span>
+
+                                                                    <i class="fa-solid fa-check"></i>
+
+                                                                </span>
+
+
+                                                                <div>
+
+                                                                    <strong>
+                                                                        Verified
+                                                                    </strong>
+
+                                                                    <small>
+                                                                        {{
+                                                optional($user->email_verified_at)
+                                                    ->format('M d, Y')
+                                                                                    }}
+                                                                    </small>
+
+                                                                </div>
+
+                                                            </div>
+
+                                            @else
+
+                                                <div class="admin-users-verification pending">
+
+                                                    <span>
+
+                                                        <i class="fa-regular fa-clock"></i>
+
+                                                    </span>
+
+
+                                                    <div>
+
+                                                        <strong>
+                                                            Pending
+                                                        </strong>
+
+                                                        <small>
+                                                            Awaiting verification
+                                                        </small>
+
+                                                    </div>
+
+                                                </div>
+
+                                            @endif
+
+                                        </td>
+
+
+
+                                        {{-- =========================================
+                                        STATUS
+                                        ========================================== --}}
+                                        <td>
+
+                                            <span class="admin-users-status-badge
+                                                               {{
+                            $user->status
+                            ? 'active'
+                            : 'inactive'
+                                                               }}">
+
+                                                <span></span>
+
 
                                                 {{
-                                                    $user->status
-                                                        ? 'Deactivate'
-                                                        : 'Activate'
-                                                }}
+                            $user->status
+                            ? 'Active'
+                            : 'Inactive'
+                                                        }}
 
                                             </span>
 
-                                        </button>
+                                        </td>
 
-                                    </form>
 
-                                </div>
 
-                            </td>
+                                        {{-- =========================================
+                                        LAST LOGIN
+                                        ========================================== --}}
+                                        <td>
 
-                        </tr>
+                                            <div class="admin-users-last-login">
+
+                                                @if($user->last_login_at)
+
+                                                                    <strong>
+                                                                        {{
+                                                    $user
+                                                        ->last_login_at
+                                                        ->diffForHumans()
+                                                                                    }}
+                                                                    </strong>
+
+
+                                                                    <span>
+                                                                        {{
+                                                    $user
+                                                        ->last_login_at
+                                                        ->format(
+                                                            'M d, Y · h:i A'
+                                                        )
+                                                                                    }}
+                                                                    </span>
+
+
+                                                                    @if($user->last_login_ip)
+
+                                                                        <small>
+
+                                                                            <i class="fa-solid fa-location-dot"></i>
+
+                                                                            {{ $user->last_login_ip }}
+
+                                                                        </small>
+
+                                                                    @endif
+
+
+                                                @else
+
+                                                    <strong class="never">
+                                                        Never logged in
+                                                    </strong>
+
+                                                @endif
+
+                                            </div>
+
+                                        </td>
+
+
+
+                                        {{-- =========================================
+                                        ACTIONS
+                                        ========================================== --}}
+                                        <td>
+
+                                            <div class="admin-users-actions">
+
+
+                                                {{-- =====================================
+                                                LOGIN AS USER
+                                                ====================================== --}}
+                                                @if(
+                                                                            $user->status
+                                                                            &&
+                                                                            $user->hasVerifiedEmail()
+                                                                        )
+
+                                                                        <form method="POST" action="{{ route(
+                                                        'admin.users.impersonate',
+                                                        $user
+                                                    ) }}" class="admin-users-action-form" onsubmit="return confirm(
+                                                                                            'Login as {{ addslashes($user->name) }}? You will temporarily enter this user account.'
+                                                                                        );">
+
+                                                                            @csrf
+
+
+                                                                            <button type="submit" class="admin-users-action login" title="Login as user">
+
+                                                                                <i class="fa-solid fa-right-to-bracket"></i>
+
+                                                                                <span>
+                                                                                    Login
+                                                                                </span>
+
+                                                                            </button>
+
+                                                                        </form>
+
+
+                                                @else
+
+                                                                    <button type="button" class="admin-users-action disabled" title="{{
+                                                    !$user->status
+                                                    ? 'Inactive users cannot be accessed'
+                                                    : 'User must verify their email first'
+                                                                                    }}" disabled>
+
+                                                                        <i class="fa-solid fa-right-to-bracket"></i>
+
+                                                                        <span>
+                                                                            Login
+                                                                        </span>
+
+                                                                    </button>
+
+                                                @endif
+
+
+
+                                                {{-- =====================================
+                                                ACTIVATE / DEACTIVATE
+                                                ====================================== --}}
+                                                <form method="POST" action="{{ route(
+                            'admin.users.status',
+                            $user
+                        ) }}" class="admin-users-action-form" onsubmit="return confirm(
+                                                                '{{ $user->status
+                            ? 'Deactivate ' . addslashes($user->name) . '? The user will no longer be able to access their account and will receive an email notification.'
+                            : 'Activate ' . addslashes($user->name) . '?'
+                                                                }}'
+                                                            );">
+
+                                                    @csrf
+                                                    @method('PATCH')
+
+
+                                                    <button type="submit" class="admin-users-action
+                                                                       {{
+                            $user->status
+                            ? 'deactivate'
+                            : 'activate'
+                                                                       }}" title="{{
+                            $user->status
+                            ? 'Deactivate user'
+                            : 'Activate user'
+                                                                }}">
+
+                                                        <i class="fa-solid
+                                                                           {{
+                            $user->status
+                            ? 'fa-user-slash'
+                            : 'fa-user-check'
+                                                                           }}"></i>
+
+
+                                                        <span>
+
+                                                            {{
+                            $user->status
+                            ? 'Deactivate'
+                            : 'Activate'
+                                                                    }}
+
+                                                        </span>
+
+                                                    </button>
+
+                                                </form>
+
+                                            </div>
+
+                                        </td>
+
+                                    </tr>
 
 
                     @empty
 
                         {{-- =========================================
-                            EMPTY STATE
+                        EMPTY STATE
                         ========================================== --}}
                         <tr>
 
-                            <td
-                                colspan="7"
-                                class="admin-users-empty-cell"
-                            >
+                            <td colspan="7" class="admin-users-empty-cell">
 
                                 <div class="admin-users-empty">
 
@@ -914,14 +842,14 @@
                                     <p>
 
                                         @if(
-                                            request()->filled('search')
-                                            ||
-                                            request()->filled('status')
-                                            ||
-                                            request()->filled('verification')
-                                            ||
-                                            request()->filled('preferred_role')
-                                        )
+                                                request()->filled('search')
+                                                ||
+                                                request()->filled('status')
+                                                ||
+                                                request()->filled('verification')
+                                                ||
+                                                request()->filled('preferred_role')
+                                            )
 
                                             No users matched the selected filters.
 
@@ -936,14 +864,14 @@
 
 
                                     @if(
-                                        request()->filled('search')
-                                        ||
-                                        request()->filled('status')
-                                        ||
-                                        request()->filled('verification')
-                                        ||
-                                        request()->filled('preferred_role')
-                                    )
+                                            request()->filled('search')
+                                            ||
+                                            request()->filled('status')
+                                            ||
+                                            request()->filled('verification')
+                                            ||
+                                            request()->filled('preferred_role')
+                                        )
 
                                         <a href="{{ route('admin.users.index') }}">
 
@@ -974,7 +902,7 @@
 
 
     {{-- =========================================================
-        PAGINATION
+    PAGINATION
     ========================================================== --}}
     @if($users->hasPages())
 
@@ -991,1568 +919,1565 @@
 
 
 {{-- =============================================================
-    USER MANAGEMENT STYLES
+USER MANAGEMENT STYLES
 ================================================================ --}}
 @push('styles')
 
-<style>
+    <style>
+        /*
+    |--------------------------------------------------------------------------
+    | User Management - Page Header
+    |--------------------------------------------------------------------------
+    */
 
-/*
-|--------------------------------------------------------------------------
-| User Management - Page Header
-|--------------------------------------------------------------------------
-*/
+        .admin-users-page-head {
 
-.admin-users-page-head {
+            display: flex;
 
-    display: flex;
+            align-items: center;
 
-    align-items: center;
+            justify-content: space-between;
 
-    justify-content: space-between;
+            gap: 20px;
 
-    gap: 20px;
+            margin-bottom: 18px;
 
-    margin-bottom: 18px;
+        }
 
-}
 
+        .admin-users-page-head h2 {
 
-.admin-users-page-head h2 {
+            margin: 0;
 
-    margin: 0;
+            color:
+                var(--admin-heading);
 
-    color:
-        var(--admin-heading);
+            font-family:
+                'Bricolage Grotesque',
+                sans-serif;
 
-    font-family:
-        'Bricolage Grotesque',
-        sans-serif;
+            font-size: 20px;
 
-    font-size: 20px;
+            font-weight: 700;
 
-    font-weight: 700;
+        }
 
-}
 
+        .admin-users-page-head p {
 
-.admin-users-page-head p {
+            max-width: 650px;
 
-    max-width: 650px;
+            margin:
+                5px 0 0;
 
-    margin:
-        5px 0 0;
+            color:
+                var(--admin-muted);
 
-    color:
-        var(--admin-muted);
+            font-size: 10px;
 
-    font-size: 10px;
+            line-height: 1.6;
 
-    line-height: 1.6;
+        }
 
-}
 
+        .admin-users-header-meta {
 
-.admin-users-header-meta {
+            flex:
+                0 0 auto;
 
-    flex:
-        0 0 auto;
+        }
 
-}
 
+        .admin-users-header-meta span {
 
-.admin-users-header-meta span {
+            display: inline-flex;
 
-    display: inline-flex;
+            align-items: center;
 
-    align-items: center;
+            gap: 7px;
 
-    gap: 7px;
+            height: 36px;
 
-    height: 36px;
+            padding:
+                0 12px;
 
-    padding:
-        0 12px;
+            border:
+                1px solid var(--admin-border);
 
-    border:
-        1px solid var(--admin-border);
+            border-radius: 9px;
 
-    border-radius: 9px;
+            background:
+                var(--admin-surface);
 
-    background:
-        var(--admin-surface);
+            color:
+                var(--admin-muted);
 
-    color:
-        var(--admin-muted);
+            font-size: 12px;
 
-    font-size: 9px;
+        }
 
-}
 
+        .admin-users-header-meta i {
 
-.admin-users-header-meta i {
+            color:
+                var(--admin-accent);
 
-    color:
-        var(--admin-accent);
+        }
 
-}
 
 
+        /*
+    |--------------------------------------------------------------------------
+    | Alerts
+    |--------------------------------------------------------------------------
+    */
 
-/*
-|--------------------------------------------------------------------------
-| Alerts
-|--------------------------------------------------------------------------
-*/
+        .admin-users-error-alert {
 
-.admin-users-error-alert {
+            display: flex;
 
-    display: flex;
+            align-items: flex-start;
 
-    align-items: flex-start;
+            gap: 9px;
 
-    gap: 9px;
+            margin-bottom: 16px;
 
-    margin-bottom: 16px;
+            padding:
+                11px 13px;
 
-    padding:
-        11px 13px;
+            border:
+                1px solid rgba(239, 83, 80, .25);
 
-    border:
-        1px solid rgba(239, 83, 80, .25);
+            border-radius: 10px;
 
-    border-radius: 10px;
+            background:
+                rgba(239, 83, 80, .07);
 
-    background:
-        rgba(239, 83, 80, .07);
+            color:
+                #ef5350;
 
-    color:
-        #ef5350;
+            font-size: 10px;
 
-    font-size: 10px;
+            line-height: 1.6;
 
-    line-height: 1.6;
+        }
 
-}
 
 
+        /*
+    |--------------------------------------------------------------------------
+    | Statistics
+    |--------------------------------------------------------------------------
+    */
 
-/*
-|--------------------------------------------------------------------------
-| Statistics
-|--------------------------------------------------------------------------
-*/
+        .admin-users-stat-grid {
 
-.admin-users-stat-grid {
+            display: grid;
 
-    display: grid;
+            grid-template-columns:
+                repeat(4, minmax(0, 1fr));
 
-    grid-template-columns:
-        repeat(4, minmax(0, 1fr));
+            gap: 14px;
 
-    gap: 14px;
+            margin-bottom: 16px;
 
-    margin-bottom: 16px;
+        }
 
-}
 
+        .admin-users-stat-card {
 
-.admin-users-stat-card {
+            position: relative;
 
-    position: relative;
+            min-height: 112px;
 
-    min-height: 112px;
+            display: flex;
 
-    display: flex;
+            align-items: center;
 
-    align-items: center;
+            justify-content: space-between;
 
-    justify-content: space-between;
+            gap: 15px;
 
-    gap: 15px;
+            padding: 17px;
 
-    padding: 17px;
+        }
 
-}
 
+        .admin-users-stat-content {
 
-.admin-users-stat-content {
+            min-width: 0;
 
-    min-width: 0;
+        }
 
-}
 
+        .admin-users-stat-label {
 
-.admin-users-stat-label {
+            display: block;
 
-    display: block;
+            color:
+                var(--admin-muted);
 
-    color:
-        var(--admin-muted);
+            font-size: 10px;
 
-    font-size: 10px;
+        }
 
-}
 
+        .admin-users-stat-value {
 
-.admin-users-stat-value {
+            display: block;
 
-    display: block;
+            margin-top: 8px;
 
-    margin-top: 8px;
+            color:
+                var(--admin-heading);
 
-    color:
-        var(--admin-heading);
+            font-family:
+                'Bricolage Grotesque',
+                sans-serif;
 
-    font-family:
-        'Bricolage Grotesque',
-        sans-serif;
+            font-size: 23px;
 
-    font-size: 23px;
+            line-height: 1;
 
-    line-height: 1;
+        }
 
-}
 
+        .admin-users-stat-content small {
 
-.admin-users-stat-content small {
+            display: block;
 
-    display: block;
+            margin-top: 10px;
 
-    margin-top: 10px;
+            color:
+                var(--admin-muted-2);
 
-    color:
-        var(--admin-muted-2);
+            font-size: 8px;
 
-    font-size: 8px;
+        }
 
-}
 
+        .admin-users-stat-icon {
 
-.admin-users-stat-icon {
+            width: 40px;
 
-    width: 40px;
+            height: 40px;
 
-    height: 40px;
+            flex:
+                0 0 40px;
 
-    flex:
-        0 0 40px;
+            display: grid;
 
-    display: grid;
+            place-items: center;
 
-    place-items: center;
+            border-radius: 11px;
 
-    border-radius: 11px;
+            background:
+                var(--admin-accent-soft);
 
-    background:
-        var(--admin-accent-soft);
+            color:
+                var(--admin-accent);
 
-    color:
-        var(--admin-accent);
+            font-size: 12px;
 
-    font-size: 14px;
+        }
 
-}
 
+        .admin-users-stat-icon.inactive {
 
-.admin-users-stat-icon.inactive {
+            background:
+                rgba(239, 83, 80, .10);
 
-    background:
-        rgba(239, 83, 80, .10);
+            color:
+                #ef5350;
 
-    color:
-        #ef5350;
+        }
 
-}
 
+        .admin-users-stat-icon.verified {
 
-.admin-users-stat-icon.verified {
+            background:
+                rgba(122, 90, 248, .10);
 
-    background:
-        rgba(122, 90, 248, .10);
+            color:
+                #7a5af8;
 
-    color:
-        #7a5af8;
+        }
 
-}
 
 
+        /*
+    |--------------------------------------------------------------------------
+    | Toolbar
+    |--------------------------------------------------------------------------
+    */
 
-/*
-|--------------------------------------------------------------------------
-| Toolbar
-|--------------------------------------------------------------------------
-*/
+        .admin-users-toolbar {
 
-.admin-users-toolbar {
+            margin-bottom: 16px;
 
-    margin-bottom: 16px;
+            padding: 13px;
 
-    padding: 13px;
+        }
 
-}
 
+        .admin-users-filter-form {
 
-.admin-users-filter-form {
+            display: flex;
 
-    display: flex;
+            align-items: center;
 
-    align-items: center;
+            gap: 9px;
 
-    gap: 9px;
+        }
 
-}
 
+        .admin-users-search {
 
-.admin-users-search {
+            position: relative;
 
-    position: relative;
+            min-width: 220px;
 
-    min-width: 220px;
+            flex: 1;
 
-    flex: 1;
+        }
 
-}
 
+        .admin-users-search i {
 
-.admin-users-search i {
+            position: absolute;
 
-    position: absolute;
+            top: 50%;
 
-    top: 50%;
+            left: 13px;
 
-    left: 13px;
+            transform:
+                translateY(-50%);
 
-    transform:
-        translateY(-50%);
+            color:
+                var(--admin-muted-2);
 
-    color:
-        var(--admin-muted-2);
+            font-size: 10px;
 
-    font-size: 10px;
+            pointer-events: none;
 
-    pointer-events: none;
+        }
 
-}
 
+        .admin-users-search input,
+        .admin-users-filter-form select {
 
-.admin-users-search input,
-.admin-users-filter-form select {
+            height: 40px;
 
-    height: 40px;
+            border:
+                1px solid var(--admin-border);
 
-    border:
-        1px solid var(--admin-border);
+            border-radius: 9px;
 
-    border-radius: 9px;
+            background:
+                var(--admin-surface);
 
-    background:
-        var(--admin-surface);
+            color:
+                var(--admin-text);
 
-    color:
-        var(--admin-text);
+            font-family: inherit;
 
-    font-family: inherit;
+            font-size: 10px;
 
-    font-size: 10px;
+            outline: none;
 
-    outline: none;
+            transition:
+                border-color .15s ease,
+                box-shadow .15s ease;
 
-    transition:
-        border-color .15s ease,
-        box-shadow .15s ease;
+        }
 
-}
 
+        .admin-users-search input {
 
-.admin-users-search input {
+            width: 100%;
 
-    width: 100%;
+            padding:
+                0 12px 0 35px;
 
-    padding:
-        0 12px 0 35px;
+        }
 
-}
 
+        .admin-users-search input::placeholder {
 
-.admin-users-search input::placeholder {
+            color:
+                var(--admin-muted-2);
 
-    color:
-        var(--admin-muted-2);
+        }
 
-}
 
+        .admin-users-filter-form select {
 
-.admin-users-filter-form select {
+            min-width: 135px;
 
-    min-width: 135px;
+            padding:
+                0 28px 0 10px;
 
-    padding:
-        0 28px 0 10px;
+        }
 
-}
 
+        .admin-users-search input:focus,
+        .admin-users-filter-form select:focus {
 
-.admin-users-search input:focus,
-.admin-users-filter-form select:focus {
+            border-color:
+                var(--admin-accent);
 
-    border-color:
-        var(--admin-accent);
+            box-shadow:
+                0 0 0 3px var(--admin-accent-soft);
 
-    box-shadow:
-        0 0 0 3px
-        var(--admin-accent-soft);
+        }
 
-}
 
+        .admin-users-filter-button {
 
-.admin-users-filter-button {
+            height: 40px;
 
-    height: 40px;
+            display: inline-flex;
 
-    display: inline-flex;
+            align-items: center;
 
-    align-items: center;
+            justify-content: center;
 
-    justify-content: center;
+            gap: 7px;
 
-    gap: 7px;
+            padding:
+                0 15px;
 
-    padding:
-        0 15px;
+            border: 0;
 
-    border: 0;
+            border-radius: 9px;
 
-    border-radius: 9px;
+            background:
+                var(--admin-accent);
 
-    background:
-        var(--admin-accent);
+            color: #06312e;
 
-    color: #06312e;
+            font-family: inherit;
 
-    font-family: inherit;
+            font-size: 10px;
 
-    font-size: 10px;
+            font-weight: 700;
 
-    font-weight: 700;
+            cursor: pointer;
 
-    cursor: pointer;
+            transition:
+                transform .15s ease,
+                opacity .15s ease;
 
-    transition:
-        transform .15s ease,
-        opacity .15s ease;
+        }
 
-}
 
+        .admin-users-filter-button:hover {
 
-.admin-users-filter-button:hover {
+            transform:
+                translateY(-1px);
 
-    transform:
-        translateY(-1px);
+        }
 
-}
 
+        .admin-users-reset {
 
-.admin-users-reset {
+            color:
+                var(--admin-muted);
 
-    color:
-        var(--admin-muted);
+            font-size: 12px;
 
-    font-size: 9px;
+            font-weight: 600;
 
-    font-weight: 600;
+            text-decoration: none;
 
-    text-decoration: none;
+        }
 
-}
 
+        .admin-users-reset:hover {
 
-.admin-users-reset:hover {
+            color:
+                var(--admin-accent);
 
-    color:
-        var(--admin-accent);
+        }
 
-}
 
 
+        /*
+    |--------------------------------------------------------------------------
+    | Table Card Header
+    |--------------------------------------------------------------------------
+    */
 
-/*
-|--------------------------------------------------------------------------
-| Table Card Header
-|--------------------------------------------------------------------------
-*/
+        .admin-users-table-card {
 
-.admin-users-table-card {
+            overflow: hidden;
 
-    overflow: hidden;
+        }
 
-}
 
+        .admin-users-table-card-head {
 
-.admin-users-table-card-head {
+            min-height: 66px;
 
-    min-height: 66px;
+            display: flex;
 
-    display: flex;
+            align-items: center;
 
-    align-items: center;
+            justify-content: space-between;
 
-    justify-content: space-between;
+            gap: 15px;
 
-    gap: 15px;
+            padding:
+                15px 17px;
 
-    padding:
-        15px 17px;
+            border-bottom:
+                1px solid var(--admin-border);
 
-    border-bottom:
-        1px solid var(--admin-border);
+        }
 
-}
 
+        .admin-users-table-card-head h3 {
 
-.admin-users-table-card-head h3 {
+            margin: 0;
 
-    margin: 0;
+            color:
+                var(--admin-heading);
 
-    color:
-        var(--admin-heading);
+            font-family:
+                'Bricolage Grotesque',
+                sans-serif;
 
-    font-family:
-        'Bricolage Grotesque',
-        sans-serif;
+            font-size: 13px;
 
-    font-size: 13px;
+        }
 
-}
 
+        .admin-users-table-card-head p {
 
-.admin-users-table-card-head p {
+            margin:
+                4px 0 0;
 
-    margin:
-        4px 0 0;
+            color:
+                var(--admin-muted);
 
-    color:
-        var(--admin-muted);
+            font-size: 8px;
 
-    font-size: 8px;
+        }
 
-}
 
+        .admin-users-table-card-head p strong {
 
-.admin-users-table-card-head p strong {
+            color:
+                var(--admin-heading);
 
-    color:
-        var(--admin-heading);
+        }
 
-}
 
+        .admin-users-table-icon {
 
-.admin-users-table-icon {
+            width: 36px;
 
-    width: 36px;
+            height: 36px;
 
-    height: 36px;
+            display: grid;
 
-    display: grid;
+            place-items: center;
 
-    place-items: center;
+            border-radius: 10px;
 
-    border-radius: 10px;
+            background:
+                var(--admin-accent-soft);
 
-    background:
-        var(--admin-accent-soft);
+            color:
+                var(--admin-accent);
 
-    color:
-        var(--admin-accent);
+            font-size: 12px;
 
-    font-size: 12px;
+        }
 
-}
 
 
+        /*
+    |--------------------------------------------------------------------------
+    | Table
+    |--------------------------------------------------------------------------
+    */
 
-/*
-|--------------------------------------------------------------------------
-| Table
-|--------------------------------------------------------------------------
-*/
+        .admin-users-table-wrapper {
 
-.admin-users-table-wrapper {
+            width: 100%;
 
-    width: 100%;
+            overflow-x: auto;
 
-    overflow-x: auto;
+        }
 
-}
 
+        .admin-users-table {
 
-.admin-users-table {
+            width: 100%;
 
-    width: 100%;
+            min-width: 1050px;
 
-    min-width: 1050px;
+            border-collapse: collapse;
 
-    border-collapse: collapse;
+        }
 
-}
 
+        .admin-users-table th {
 
-.admin-users-table th {
+            padding:
+                11px 14px;
 
-    padding:
-        11px 14px;
+            border-bottom:
+                1px solid var(--admin-border);
 
-    border-bottom:
-        1px solid var(--admin-border);
+            background:
+                var(--admin-surface-soft);
 
-    background:
-        var(--admin-surface-soft);
+            color:
+                var(--admin-muted);
 
-    color:
-        var(--admin-muted);
+            font-size: 8px;
 
-    font-size: 8px;
+            font-weight: 700;
 
-    font-weight: 700;
+            letter-spacing: .06em;
 
-    letter-spacing: .06em;
+            text-align: left;
 
-    text-align: left;
+            text-transform: uppercase;
 
-    text-transform: uppercase;
+        }
 
-}
 
+        .admin-users-table td {
 
-.admin-users-table td {
+            padding:
+                13px 14px;
 
-    padding:
-        13px 14px;
+            border-bottom:
+                1px solid var(--admin-border-soft);
 
-    border-bottom:
-        1px solid var(--admin-border-soft);
+            color:
+                var(--admin-text);
 
-    color:
-        var(--admin-text);
+            font-size: 10px;
 
-    font-size: 10px;
+            vertical-align: middle;
 
-    vertical-align: middle;
+        }
 
-}
 
+        .admin-users-table tbody tr:last-child td {
 
-.admin-users-table tbody tr:last-child td {
+            border-bottom: 0;
 
-    border-bottom: 0;
+        }
 
-}
 
+        .admin-users-table tbody tr {
 
-.admin-users-table tbody tr {
+            transition:
+                background .15s ease;
 
-    transition:
-        background .15s ease;
+        }
 
-}
 
+        .admin-users-table tbody tr:hover {
 
-.admin-users-table tbody tr:hover {
+            background:
+                var(--admin-surface-hover);
 
-    background:
-        var(--admin-surface-hover);
+        }
 
-}
 
+        .admin-users-actions-heading {
 
-.admin-users-actions-heading {
+            text-align: right !important;
 
-    text-align: right !important;
+        }
 
-}
 
 
+        /*
+    |--------------------------------------------------------------------------
+    | User Person
+    |--------------------------------------------------------------------------
+    */
 
-/*
-|--------------------------------------------------------------------------
-| User Person
-|--------------------------------------------------------------------------
-*/
+        .admin-users-person {
 
-.admin-users-person {
+            display: flex;
 
-    display: flex;
+            align-items: center;
 
-    align-items: center;
+            gap: 10px;
 
-    gap: 10px;
+            min-width: 175px;
 
-    min-width: 175px;
+        }
 
-}
 
+        .admin-users-avatar {
 
-.admin-users-avatar {
+            width: 39px;
 
-    width: 39px;
+            height: 39px;
 
-    height: 39px;
+            flex:
+                0 0 39px;
 
-    flex:
-        0 0 39px;
+            display: grid;
 
-    display: grid;
+            place-items: center;
 
-    place-items: center;
+            border-radius: 11px;
 
-    border-radius: 11px;
+            background:
+                var(--admin-accent-soft);
 
-    background:
-        var(--admin-accent-soft);
+            color:
+                var(--admin-accent);
 
-    color:
-        var(--admin-accent);
+            font-family:
+                'Bricolage Grotesque',
+                sans-serif;
 
-    font-family:
-        'Bricolage Grotesque',
-        sans-serif;
+            font-size: 13px;
 
-    font-size: 13px;
+            font-weight: 700;
 
-    font-weight: 700;
+        }
 
-}
 
+        .admin-users-person-info {
 
-.admin-users-person-info {
+            min-width: 0;
 
-    min-width: 0;
+            display: flex;
 
-    display: flex;
+            flex-direction: column;
 
-    flex-direction: column;
+        }
 
-}
 
+        .admin-users-person-info strong {
 
-.admin-users-person-info strong {
+            max-width: 175px;
 
-    max-width: 175px;
+            overflow: hidden;
 
-    overflow: hidden;
+            color:
+                var(--admin-heading);
 
-    color:
-        var(--admin-heading);
+            font-size: 10px;
 
-    font-size: 10px;
+            font-weight: 700;
 
-    font-weight: 700;
+            text-overflow: ellipsis;
 
-    text-overflow: ellipsis;
+            white-space: nowrap;
 
-    white-space: nowrap;
+        }
 
-}
 
+        .admin-users-person-info span {
 
-.admin-users-person-info span {
+            margin-top: 3px;
 
-    margin-top: 3px;
+            color:
+                var(--admin-muted);
 
-    color:
-        var(--admin-muted);
+            font-size: 8px;
 
-    font-size: 8px;
+        }
 
-}
 
+        .admin-users-person-info small {
 
-.admin-users-person-info small {
+            margin-top: 2px;
 
-    margin-top: 2px;
+            color:
+                var(--admin-muted-2);
 
-    color:
-        var(--admin-muted-2);
+            font-size: 7px;
 
-    font-size: 7px;
+        }
 
-}
 
 
+        /*
+    |--------------------------------------------------------------------------
+    | Contact
+    |--------------------------------------------------------------------------
+    */
 
-/*
-|--------------------------------------------------------------------------
-| Contact
-|--------------------------------------------------------------------------
-*/
+        .admin-users-contact {
 
-.admin-users-contact {
+            min-width: 180px;
 
-    min-width: 180px;
+            display: flex;
 
-    display: flex;
+            flex-direction: column;
 
-    flex-direction: column;
+            gap: 5px;
 
-    gap: 5px;
+        }
 
-}
 
+        .admin-users-contact span {
 
-.admin-users-contact span {
+            display: flex;
 
-    display: flex;
+            align-items: center;
 
-    align-items: center;
+            gap: 6px;
 
-    gap: 6px;
+            color:
+                var(--admin-muted);
 
-    color:
-        var(--admin-muted);
+            font-size: 12px;
 
-    font-size: 9px;
+        }
 
-}
 
+        .admin-users-contact span:first-child {
 
-.admin-users-contact span:first-child {
+            color:
+                var(--admin-text);
 
-    color:
-        var(--admin-text);
+        }
 
-}
 
+        .admin-users-contact i {
 
-.admin-users-contact i {
+            width: 12px;
 
-    width: 12px;
+            color:
+                var(--admin-muted-2);
 
-    color:
-        var(--admin-muted-2);
+            font-size: 8px;
 
-    font-size: 8px;
+            text-align: center;
 
-    text-align: center;
+        }
 
-}
 
 
+        /*
+    |--------------------------------------------------------------------------
+    | Role
+    |--------------------------------------------------------------------------
+    */
 
-/*
-|--------------------------------------------------------------------------
-| Role
-|--------------------------------------------------------------------------
-*/
+        .admin-users-role-badge {
 
-.admin-users-role-badge {
+            display: inline-flex;
 
-    display: inline-flex;
+            align-items: center;
 
-    align-items: center;
+            gap: 6px;
 
-    gap: 6px;
+            padding:
+                6px 9px;
 
-    padding:
-        6px 9px;
+            border-radius: 999px;
 
-    border-radius: 999px;
+            font-size: 8px;
 
-    font-size: 8px;
+            font-weight: 600;
 
-    font-weight: 600;
+            white-space: nowrap;
 
-    white-space: nowrap;
+        }
 
-}
 
+        .admin-users-role-badge.seller {
 
-.admin-users-role-badge.seller {
+            background:
+                var(--admin-accent-soft);
 
-    background:
-        var(--admin-accent-soft);
+            color:
+                var(--admin-accent);
 
-    color:
-        var(--admin-accent);
+        }
 
-}
 
+        .admin-users-role-badge.buyer {
 
-.admin-users-role-badge.buyer {
+            background:
+                rgba(122, 90, 248, .11);
 
-    background:
-        rgba(122, 90, 248, .11);
+            color:
+                #7a5af8;
 
-    color:
-        #7a5af8;
+        }
 
-}
 
 
+        /*
+    |--------------------------------------------------------------------------
+    | Verification
+    |--------------------------------------------------------------------------
+    */
 
-/*
-|--------------------------------------------------------------------------
-| Verification
-|--------------------------------------------------------------------------
-*/
+        .admin-users-verification {
 
-.admin-users-verification {
+            display: flex;
 
-    display: flex;
+            align-items: center;
 
-    align-items: center;
+            gap: 8px;
 
-    gap: 8px;
+            min-width: 120px;
 
-    min-width: 120px;
+        }
 
-}
 
+        .admin-users-verification>span {
 
-.admin-users-verification > span {
+            width: 27px;
 
-    width: 27px;
+            height: 27px;
 
-    height: 27px;
+            flex:
+                0 0 27px;
 
-    flex:
-        0 0 27px;
+            display: grid;
 
-    display: grid;
+            place-items: center;
 
-    place-items: center;
+            border-radius: 8px;
 
-    border-radius: 8px;
+            font-size: 8px;
 
-    font-size: 8px;
+        }
 
-}
 
+        .admin-users-verification>div {
 
-.admin-users-verification > div {
+            display: flex;
 
-    display: flex;
+            flex-direction: column;
 
-    flex-direction: column;
+        }
 
-}
 
+        .admin-users-verification strong {
 
-.admin-users-verification strong {
+            font-size: 12px;
 
-    font-size: 9px;
+        }
 
-}
 
+        .admin-users-verification small {
 
-.admin-users-verification small {
+            margin-top: 2px;
 
-    margin-top: 2px;
+            color:
+                var(--admin-muted);
 
-    color:
-        var(--admin-muted);
+            font-size: 7px;
 
-    font-size: 7px;
+        }
 
-}
 
+        .admin-users-verification.verified>span {
 
-.admin-users-verification.verified > span {
+            background:
+                rgba(18, 183, 106, .11);
 
-    background:
-        rgba(18, 183, 106, .11);
+            color:
+                #12b76a;
 
-    color:
-        #12b76a;
+        }
 
-}
 
+        .admin-users-verification.verified strong {
 
-.admin-users-verification.verified strong {
+            color:
+                #12b76a;
 
-    color:
-        #12b76a;
+        }
 
-}
 
+        .admin-users-verification.pending>span {
 
-.admin-users-verification.pending > span {
+            background:
+                rgba(255, 150, 56, .12);
 
-    background:
-        rgba(255, 150, 56, .12);
+            color:
+                #ff9638;
 
-    color:
-        #ff9638;
+        }
 
-}
 
+        .admin-users-verification.pending strong {
 
-.admin-users-verification.pending strong {
+            color:
+                #ff9638;
 
-    color:
-        #ff9638;
+        }
 
-}
 
 
+        /*
+    |--------------------------------------------------------------------------
+    | Status
+    |--------------------------------------------------------------------------
+    */
 
-/*
-|--------------------------------------------------------------------------
-| Status
-|--------------------------------------------------------------------------
-*/
+        .admin-users-status-badge {
 
-.admin-users-status-badge {
+            display: inline-flex;
 
-    display: inline-flex;
+            align-items: center;
 
-    align-items: center;
+            gap: 6px;
 
-    gap: 6px;
+            padding:
+                6px 9px;
 
-    padding:
-        6px 9px;
+            border-radius: 999px;
 
-    border-radius: 999px;
+            font-size: 8px;
 
-    font-size: 8px;
+            font-weight: 600;
 
-    font-weight: 600;
+            white-space: nowrap;
 
-    white-space: nowrap;
+        }
 
-}
 
+        .admin-users-status-badge>span {
 
-.admin-users-status-badge > span {
+            width: 6px;
 
-    width: 6px;
+            height: 6px;
 
-    height: 6px;
+            border-radius: 50%;
 
-    border-radius: 50%;
+        }
 
-}
 
+        .admin-users-status-badge.active {
 
-.admin-users-status-badge.active {
+            background:
+                rgba(18, 183, 106, .10);
 
-    background:
-        rgba(18, 183, 106, .10);
+            color:
+                #12b76a;
 
-    color:
-        #12b76a;
+        }
 
-}
 
+        .admin-users-status-badge.active>span {
 
-.admin-users-status-badge.active > span {
+            background:
+                #12b76a;
 
-    background:
-        #12b76a;
+        }
 
-}
 
+        .admin-users-status-badge.inactive {
 
-.admin-users-status-badge.inactive {
+            background:
+                rgba(239, 83, 80, .10);
 
-    background:
-        rgba(239, 83, 80, .10);
+            color:
+                #ef5350;
 
-    color:
-        #ef5350;
+        }
 
-}
 
+        .admin-users-status-badge.inactive>span {
 
-.admin-users-status-badge.inactive > span {
+            background:
+                #ef5350;
 
-    background:
-        #ef5350;
+        }
 
-}
 
 
+        /*
+    |--------------------------------------------------------------------------
+    | Last Login
+    |--------------------------------------------------------------------------
+    */
 
-/*
-|--------------------------------------------------------------------------
-| Last Login
-|--------------------------------------------------------------------------
-*/
+        .admin-users-last-login {
 
-.admin-users-last-login {
+            min-width: 120px;
 
-    min-width: 120px;
+            display: flex;
 
-    display: flex;
+            flex-direction: column;
 
-    flex-direction: column;
+        }
 
-}
 
+        .admin-users-last-login strong {
 
-.admin-users-last-login strong {
+            color:
+                var(--admin-heading);
 
-    color:
-        var(--admin-heading);
+            font-size: 12px;
 
-    font-size: 9px;
+            font-weight: 600;
 
-    font-weight: 600;
+        }
 
-}
 
+        .admin-users-last-login strong.never {
 
-.admin-users-last-login strong.never {
+            color:
+                var(--admin-muted);
 
-    color:
-        var(--admin-muted);
+            font-weight: 500;
 
-    font-weight: 500;
+        }
 
-}
 
+        .admin-users-last-login span {
 
-.admin-users-last-login span {
+            margin-top: 3px;
 
-    margin-top: 3px;
+            color:
+                var(--admin-muted);
 
-    color:
-        var(--admin-muted);
+            font-size: 7px;
 
-    font-size: 7px;
+        }
 
-}
 
+        .admin-users-last-login small {
 
-.admin-users-last-login small {
+            margin-top: 3px;
 
-    margin-top: 3px;
+            color:
+                var(--admin-muted-2);
 
-    color:
-        var(--admin-muted-2);
+            font-size: 7px;
 
-    font-size: 7px;
+        }
 
-}
 
+        .admin-users-last-login small i {
 
-.admin-users-last-login small i {
+            margin-right: 3px;
 
-    margin-right: 3px;
+        }
 
-}
 
 
+        /*
+    |--------------------------------------------------------------------------
+    | Actions
+    |--------------------------------------------------------------------------
+    */
 
-/*
-|--------------------------------------------------------------------------
-| Actions
-|--------------------------------------------------------------------------
-*/
+        .admin-users-actions {
 
-.admin-users-actions {
+            display: flex;
 
-    display: flex;
+            align-items: center;
 
-    align-items: center;
+            justify-content: flex-end;
 
-    justify-content: flex-end;
+            gap: 6px;
 
-    gap: 6px;
+            min-width: 160px;
 
-    min-width: 160px;
+        }
 
-}
 
+        .admin-users-action-form {
 
-.admin-users-action-form {
+            margin: 0;
 
-    margin: 0;
+        }
 
-}
 
+        .admin-users-action {
 
-.admin-users-action {
+            height: 32px;
 
-    height: 32px;
+            display: inline-flex;
 
-    display: inline-flex;
+            align-items: center;
 
-    align-items: center;
+            justify-content: center;
 
-    justify-content: center;
+            gap: 6px;
 
-    gap: 6px;
+            padding:
+                0 9px;
 
-    padding:
-        0 9px;
+            border:
+                1px solid var(--admin-border);
 
-    border:
-        1px solid var(--admin-border);
+            border-radius: 8px;
 
-    border-radius: 8px;
+            background:
+                var(--admin-surface);
 
-    background:
-        var(--admin-surface);
+            color:
+                var(--admin-muted);
 
-    color:
-        var(--admin-muted);
+            font-family: inherit;
 
-    font-family: inherit;
+            font-size: 8px;
 
-    font-size: 8px;
+            font-weight: 600;
 
-    font-weight: 600;
+            white-space: nowrap;
 
-    white-space: nowrap;
+            cursor: pointer;
 
-    cursor: pointer;
+            transition:
+                color .15s ease,
+                background .15s ease,
+                border-color .15s ease,
+                transform .15s ease;
 
-    transition:
-        color .15s ease,
-        background .15s ease,
-        border-color .15s ease,
-        transform .15s ease;
+        }
 
-}
 
+        .admin-users-action:hover {
 
-.admin-users-action:hover {
+            transform:
+                translateY(-1px);
 
-    transform:
-        translateY(-1px);
+        }
 
-}
 
+        .admin-users-action.login:hover {
 
-.admin-users-action.login:hover {
+            border-color:
+                var(--admin-accent);
 
-    border-color:
-        var(--admin-accent);
+            background:
+                var(--admin-accent-soft);
 
-    background:
-        var(--admin-accent-soft);
+            color:
+                var(--admin-accent);
 
-    color:
-        var(--admin-accent);
+        }
 
-}
 
+        .admin-users-action.deactivate {
 
-.admin-users-action.deactivate {
+            color:
+                #ef5350;
 
-    color:
-        #ef5350;
+        }
 
-}
 
+        .admin-users-action.deactivate:hover {
 
-.admin-users-action.deactivate:hover {
+            border-color:
+                rgba(239, 83, 80, .4);
 
-    border-color:
-        rgba(239, 83, 80, .4);
+            background:
+                rgba(239, 83, 80, .08);
 
-    background:
-        rgba(239, 83, 80, .08);
+        }
 
-}
 
+        .admin-users-action.activate {
 
-.admin-users-action.activate {
+            border-color:
+                rgba(18, 183, 106, .22);
 
-    border-color:
-        rgba(18, 183, 106, .22);
+            color:
+                #12b76a;
 
-    color:
-        #12b76a;
+        }
 
-}
 
+        .admin-users-action.activate:hover {
 
-.admin-users-action.activate:hover {
+            border-color:
+                #12b76a;
 
-    border-color:
-        #12b76a;
+            background:
+                rgba(18, 183, 106, .08);
 
-    background:
-        rgba(18, 183, 106, .08);
+        }
 
-}
 
+        .admin-users-action.disabled {
 
-.admin-users-action.disabled {
+            opacity: .42;
 
-    opacity: .42;
+            cursor: not-allowed;
 
-    cursor: not-allowed;
+        }
 
-}
 
+        .admin-users-action.disabled:hover {
 
-.admin-users-action.disabled:hover {
+            transform: none;
 
-    transform: none;
+        }
 
-}
 
 
+        /*
+    |--------------------------------------------------------------------------
+    | Empty State
+    |--------------------------------------------------------------------------
+    */
 
-/*
-|--------------------------------------------------------------------------
-| Empty State
-|--------------------------------------------------------------------------
-*/
+        .admin-users-empty-cell {
 
-.admin-users-empty-cell {
+            height: 330px;
 
-    height: 330px;
+        }
 
-}
 
+        .admin-users-empty {
 
-.admin-users-empty {
+            display: flex;
 
-    display: flex;
+            flex-direction: column;
 
-    flex-direction: column;
+            align-items: center;
 
-    align-items: center;
+            justify-content: center;
 
-    justify-content: center;
+            padding: 30px;
 
-    padding: 30px;
+            text-align: center;
 
-    text-align: center;
+        }
 
-}
 
+        .admin-users-empty-icon {
 
-.admin-users-empty-icon {
+            width: 54px;
 
-    width: 54px;
+            height: 54px;
 
-    height: 54px;
+            display: grid;
 
-    display: grid;
+            place-items: center;
 
-    place-items: center;
+            margin-bottom: 13px;
 
-    margin-bottom: 13px;
+            border-radius: 15px;
 
-    border-radius: 15px;
+            background:
+                var(--admin-accent-soft);
 
-    background:
-        var(--admin-accent-soft);
+            color:
+                var(--admin-accent);
 
-    color:
-        var(--admin-accent);
+            font-size: 18px;
 
-    font-size: 18px;
+        }
 
-}
 
+        .admin-users-empty h3 {
 
-.admin-users-empty h3 {
+            margin: 0;
 
-    margin: 0;
+            color:
+                var(--admin-heading);
 
-    color:
-        var(--admin-heading);
+            font-size: 12px;
 
-    font-size: 12px;
+        }
 
-}
 
+        .admin-users-empty p {
 
-.admin-users-empty p {
+            max-width: 350px;
 
-    max-width: 350px;
+            margin:
+                6px 0 0;
 
-    margin:
-        6px 0 0;
+            color:
+                var(--admin-muted);
 
-    color:
-        var(--admin-muted);
+            font-size: 12px;
 
-    font-size: 9px;
+            line-height: 1.6;
 
-    line-height: 1.6;
+        }
 
-}
 
+        .admin-users-empty a {
 
-.admin-users-empty a {
+            display: inline-flex;
 
-    display: inline-flex;
+            align-items: center;
 
-    align-items: center;
+            gap: 6px;
 
-    gap: 6px;
+            margin-top: 13px;
 
-    margin-top: 13px;
+            color:
+                var(--admin-accent);
 
-    color:
-        var(--admin-accent);
+            font-size: 12px;
 
-    font-size: 9px;
+            font-weight: 600;
 
-    font-weight: 600;
+            text-decoration: none;
 
-    text-decoration: none;
+        }
 
-}
 
 
+        /*
+    |--------------------------------------------------------------------------
+    | Pagination
+    |--------------------------------------------------------------------------
+    */
 
-/*
-|--------------------------------------------------------------------------
-| Pagination
-|--------------------------------------------------------------------------
-*/
+        .admin-users-pagination {
 
-.admin-users-pagination {
+            margin-top: 18px;
 
-    margin-top: 18px;
+        }
 
-}
 
 
+        /*
+    |--------------------------------------------------------------------------
+    | Responsive
+    |--------------------------------------------------------------------------
+    */
 
-/*
-|--------------------------------------------------------------------------
-| Responsive
-|--------------------------------------------------------------------------
-*/
+        @media (max-width: 1200px) {
 
-@media (max-width: 1200px) {
+            .admin-users-stat-grid {
 
-    .admin-users-stat-grid {
+                grid-template-columns:
+                    repeat(2, minmax(0, 1fr));
 
-        grid-template-columns:
-            repeat(2, minmax(0, 1fr));
+            }
 
-    }
 
+            .admin-users-filter-form {
 
-    .admin-users-filter-form {
+                flex-wrap: wrap;
 
-        flex-wrap: wrap;
+            }
 
-    }
 
+            .admin-users-search {
 
-    .admin-users-search {
+                flex-basis:
+                    calc(100% - 1px);
 
-        flex-basis:
-            calc(100% - 1px);
+            }
 
-    }
+        }
 
-}
 
+        @media (max-width: 800px) {
 
-@media (max-width: 800px) {
+            .admin-users-page-head {
 
-    .admin-users-page-head {
+                flex-direction: column;
 
-        flex-direction: column;
+                align-items: flex-start;
 
-        align-items: flex-start;
+            }
 
-    }
 
+            .admin-users-header-meta {
 
-    .admin-users-header-meta {
+                width: 100%;
 
-        width: 100%;
+            }
 
-    }
 
+            .admin-users-header-meta span {
 
-    .admin-users-header-meta span {
+                width: 100%;
 
-        width: 100%;
+                justify-content: center;
 
-        justify-content: center;
+            }
 
-    }
 
+            .admin-users-filter-form {
 
-    .admin-users-filter-form {
+                flex-direction: column;
 
-        flex-direction: column;
+                align-items: stretch;
 
-        align-items: stretch;
+            }
 
-    }
 
+            .admin-users-search {
 
-    .admin-users-search {
+                width: 100%;
 
-        width: 100%;
+                min-width: 0;
 
-        min-width: 0;
+            }
 
-    }
 
+            .admin-users-filter-form select {
 
-    .admin-users-filter-form select {
+                width: 100%;
 
-        width: 100%;
+                min-width: 0;
 
-        min-width: 0;
+            }
 
-    }
 
+            .admin-users-filter-button {
 
-    .admin-users-filter-button {
+                width: 100%;
 
-        width: 100%;
+            }
 
-    }
 
+            .admin-users-reset {
 
-    .admin-users-reset {
+                text-align: center;
 
-        text-align: center;
+            }
 
-    }
+        }
 
-}
 
+        @media (max-width: 520px) {
 
-@media (max-width: 520px) {
+            .admin-users-stat-grid {
 
-    .admin-users-stat-grid {
+                grid-template-columns: 1fr;
 
-        grid-template-columns: 1fr;
+            }
 
-    }
 
+            .admin-users-stat-card {
 
-    .admin-users-stat-card {
+                min-height: 100px;
 
-        min-height: 100px;
+            }
 
-    }
 
+            .admin-users-page-head h2 {
 
-    .admin-users-page-head h2 {
+                font-size: 18px;
 
-        font-size: 18px;
+            }
 
-    }
 
+            .admin-users-table-card-head {
 
-    .admin-users-table-card-head {
+                padding:
+                    13px 14px;
 
-        padding:
-            13px 14px;
+            }
 
-    }
-
-}
-
-</style>
+        }
+    </style>
 
 @endpush

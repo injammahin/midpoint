@@ -322,7 +322,7 @@
 
     color: #5a6660;
 
-    font-size: 9px;
+    font-size: 12px;
 
     white-space: nowrap;
 }
@@ -851,7 +851,7 @@ input:checked + span::after {
 
     color: #bd6700;
 
-    font-size: 9px;
+    font-size: 12px;
     font-weight: 700;
 }
 
@@ -920,7 +920,7 @@ input:checked + span::after {
 .als-empty-chat strong {
     color: #173657;
 
-    font-size: 14px;
+    font-size: 12px;
 }
 
 
@@ -1089,7 +1089,7 @@ input:checked + span::after {
 
     color: #0e7a4c;
 
-    font-size: 9px;
+    font-size: 12px;
     font-weight: 600;
 }
 

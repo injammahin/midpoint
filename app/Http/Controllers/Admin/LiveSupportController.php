@@ -589,7 +589,7 @@ public function claim(
         */
 
         app(
-            \App\Services\SupportQueueService::class
+            \App\Services\Support\SupportQueueService::class
         )->recalculateQueue();
 
 
@@ -642,110 +642,370 @@ public function claim(
     |--------------------------------------------------------------------------
     */
 
-    public function resolve(
-        Request $request,
-        SupportChatSession $session,
-        SupportQueueService $queue
-    ) {
+public function resolve(
+    Request $request,
+    SupportChatSession $session,
+    SupportQueueService $queue
+) {
 
-        abort_unless(
-            $session->agent_id
-            ===
-            $request->user()->id,
-            403
-        );
+    /*
+    |--------------------------------------------------------------------------
+    | Validation
+    |--------------------------------------------------------------------------
+    */
+
+    $validated =
+        $request->validate([
+            'resolution_code' => [
+                'required',
+                'string',
+                'max:100',
+            ],
+
+            'resolution_note' => [
+                'nullable',
+                'string',
+                'max:3000',
+            ],
+        ]);
 
 
-        abort_unless(
-            $session->status
-            ===
-            'active',
-            422
-        );
+    $user =
+        $request->user();
 
 
-        $validated =
-            $request->validate(
-                [
-                    'resolution_code' =>
-                        [
-                            'required',
-                            'string',
-                            'max:100',
-                        ],
+    $newlyResolved =
+        false;
 
-                    'resolution_note' =>
-                        [
-                            'nullable',
-                            'string',
-                            'max:3000',
-                        ],
-                ]
+
+    $systemMessage =
+        null;
+
+
+    try {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Transaction
+        |--------------------------------------------------------------------------
+        */
+
+        $resolvedSession =
+            \Illuminate\Support\Facades\DB::transaction(
+                function () use (
+                    $session,
+                    $user,
+                    $validated,
+                    &$newlyResolved,
+                    &$systemMessage
+                ) {
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Lock Session
+                    |--------------------------------------------------------------------------
+                    */
+
+                    $lockedSession =
+                        SupportChatSession::query()
+
+                            ->whereKey(
+                                $session->id
+                            )
+
+                            ->lockForUpdate()
+
+                            ->firstOrFail();
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Already Resolved
+                    |--------------------------------------------------------------------------
+                    |
+                    | Important:
+                    |
+                    | If the browser sends Resolve twice, or the first response
+                    | was lost, return success rather than 422.
+                    |
+                    */
+
+                    if (
+                        in_array(
+                            $lockedSession->status,
+                            [
+                                'resolved',
+                                'closed',
+                            ],
+                            true
+                        )
+                        &&
+                        (int) $lockedSession->agent_id
+                        ===
+                        (int) $user->id
+                    ) {
+
+                        return $lockedSession;
+
+                    }
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Wrong Agent
+                    |--------------------------------------------------------------------------
+                    */
+
+                    if (
+                        (int) $lockedSession->agent_id
+                        !==
+                        (int) $user->id
+                    ) {
+
+                        abort(
+                            403,
+                            'This conversation is not assigned to you.'
+                        );
+
+                    }
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Must Be Active
+                    |--------------------------------------------------------------------------
+                    */
+
+                    if (
+                        $lockedSession->status
+                        !==
+                        'active'
+                    ) {
+
+                        abort(
+                            409,
+                            'Only an active conversation can be resolved.'
+                        );
+
+                    }
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Resolve
+                    |--------------------------------------------------------------------------
+                    */
+
+                    $lockedSession->update([
+                        'status' =>
+                            'resolved',
+
+                        'resolution_code' =>
+                            $validated[
+                                'resolution_code'
+                            ],
+
+                        'resolution_note' =>
+                            $validated[
+                                'resolution_note'
+                            ]
+                            ?? null,
+
+                        'resolved_at' =>
+                            now(),
+
+                        'last_message_at' =>
+                            now(),
+                    ]);
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Create Resolution System Message
+                    |--------------------------------------------------------------------------
+                    |
+                    | Store it in the SAME transaction.
+                    |
+                    */
+
+                    $systemMessage =
+                        \App\Models\SupportChatMessage::create([
+                            'support_chat_session_id' =>
+                                $lockedSession->id,
+
+                            'sender_id' =>
+                                null,
+
+                            'type' =>
+                                'system',
+
+                            'body' =>
+                                'This support conversation has been marked as resolved by '
+                                .
+                                $user->name
+                                .
+                                '. Please rate your support experience.',
+                        ]);
+
+
+                    $newlyResolved =
+                        true;
+
+
+                    return $lockedSession;
+
+                }
             );
-
-
-        $session->update(
-            [
-                'status' =>
-                    'resolved',
-
-                'resolution_code' =>
-                    $validated[
-                        'resolution_code'
-                    ],
-
-                'resolution_note' =>
-                    $validated[
-                        'resolution_note'
-                    ]
-                    ?? null,
-
-                'resolved_at' =>
-                    now(),
-            ]
-        );
-
-
-        $message =
-            $queue->systemMessage(
-                $session,
-                'This support conversation has been marked as resolved by '
-                .
-                $request->user()->name
-                .
-                '. Please rate your support experience.'
-            );
-
-
-        broadcast(
-            new SupportSessionUpdated(
-                $session->fresh()
-            )
-        );
-
-
-        broadcast(
-            new SupportAgentInboxUpdated(
-                'resolved',
-                $session
-            )
-        );
 
 
         /*
-         * Free agent capacity immediately and
-         * move queue forward.
-         */
+        |--------------------------------------------------------------------------
+        | Refresh Session
+        |--------------------------------------------------------------------------
+        */
+
+        $resolvedSession->refresh();
+
+
+        $resolvedSession->load([
+            'user',
+            'agent',
+        ]);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Broadcast Resolution Message
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            $newlyResolved
+            &&
+            $systemMessage
+        ) {
+
+            $systemMessage->load([
+                'sender',
+                'attachments',
+                'session',
+            ]);
+
+
+            try {
+
+                broadcast(
+                    new \App\Events\SupportMessageSent(
+                        $resolvedSession,
+                        $systemMessage
+                    )
+                );
+
+            } catch (\Throwable $exception) {
+
+                report(
+                    $exception
+                );
+
+            }
+
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Broadcast Session State
+        |--------------------------------------------------------------------------
+        */
+
+        try {
+
+            broadcast(
+                new \App\Events\SupportSessionUpdated(
+                    $resolvedSession
+                )
+            );
+
+
+            broadcast(
+                new \App\Events\SupportAgentInboxUpdated(
+                    'resolved',
+                    $resolvedSession
+                )
+            );
+
+        } catch (\Throwable $exception) {
+
+            report(
+                $exception
+            );
+
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Free Agent Capacity
+        |--------------------------------------------------------------------------
+        */
 
         $queue
             ->assignWaitingSessions();
 
 
+        /*
+        |--------------------------------------------------------------------------
+        | Response
+        |--------------------------------------------------------------------------
+        */
+
+        return response()->json([
+            'success' =>
+                true,
+
+            'already_resolved' =>
+                !$newlyResolved,
+
+            'message' =>
+                $newlyResolved
+                    ? 'Conversation resolved.'
+                    : 'Conversation was already resolved.',
+
+            'session' =>
+                $resolvedSession->payload(),
+        ]);
+
+
+    } catch (
+        \Symfony\Component\HttpKernel\Exception\HttpException $exception
+    ) {
+
         return response()->json(
             [
                 'message' =>
-                    'Conversation resolved.',
-            ]
+                    $exception->getMessage()
+                    ?:
+                    'Unable to resolve this conversation.',
+            ],
+            $exception->getStatusCode()
         );
+
+
+    } catch (\Throwable $exception) {
+
+        report(
+            $exception
+        );
+
+
+        return response()->json(
+            [
+                'message' =>
+                    'Unable to resolve this conversation.',
+            ],
+            500
+        );
+
     }
+}
 }
