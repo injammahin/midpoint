@@ -1,157 +1,268 @@
 <aside
-    class="hidden
-           w-[220px]
-           shrink-0
-           border-r border-[#E4EAE6]
-           py-8 pr-5
-           lg:block"
+    id="buyerMainSidebar"
+    class="buyer-main-sidebar"
 >
 
-    <div
-        class="mb-3
-               px-3
-               text-[10px]
-               font-bold
-               uppercase
-               tracking-[.12em]
-               text-[#98A49E]"
-    >
+
+    {{-- =========================================================
+        BUYER MENU
+    ========================================================== --}}
+
+    <div class="buyer-sidebar-section-title">
+
         Buyer Menu
+
     </div>
 
 
-    <nav class="space-y-1">
+
+    <nav class="buyer-sidebar-nav">
+
+
+        {{-- =====================================================
+            DASHBOARD
+        ====================================================== --}}
 
         <a
             href="{{ route('buyer.dashboard') }}"
-            class="flex
-                   items-center
-                   gap-3
-                   rounded-xl
-                   bg-[#0B3D2E]
-                   px-3 py-3
-                   text-[13px]
-                   font-semibold
-                   text-white"
+
+            class="
+                buyer-sidebar-link
+
+                {{
+                    request()->routeIs(
+                        'buyer.dashboard'
+                    )
+                        ? 'active'
+                        : ''
+                }}
+            "
         >
 
-            <i class="fa-solid fa-house w-4"></i>
+            <span class="buyer-sidebar-icon">
 
-            Dashboard
+                <i class="fa-solid fa-house"></i>
+
+            </span>
+
+
+            <span class="buyer-sidebar-label">
+
+                Dashboard
+
+            </span>
 
         </a>
 
+
+
+        {{-- =====================================================
+            TRANSACTIONS
+        ====================================================== --}}
 
         <a
-            href="#"
-            class="flex
-                   items-center
-                   gap-3
-                   rounded-xl
-                   px-3 py-3
-                   text-[13px]
-                   font-semibold
-                   text-[#5A6660]"
+            href="{{ route('buyer.transactions') }}"
+
+            class="
+                buyer-sidebar-link
+
+                {{
+                    request()->routeIs(
+                        'buyer.transactions*'
+                    )
+                        ? 'active'
+                        : ''
+                }}
+            "
         >
 
-            <i class="fa-solid fa-receipt w-4"></i>
+            <span class="buyer-sidebar-icon">
 
-            Transactions
+                <i class="fa-solid fa-file-lines"></i>
+
+            </span>
+
+
+            <span class="buyer-sidebar-label">
+
+                Transactions
+
+            </span>
 
         </a>
 
+
+
+        {{-- =====================================================
+            NOTIFICATIONS
+        ====================================================== --}}
 
         <a
-            href="#"
-            class="flex
-                   items-center
-                   gap-3
-                   rounded-xl
-                   px-3 py-3
-                   text-[13px]
-                   font-semibold
-                   text-[#5A6660]"
+            href="{{ route('buyer.notifications') }}"
+
+            class="
+                buyer-sidebar-link
+
+                {{
+                    request()->routeIs(
+                        'buyer.notifications*'
+                    )
+                        ? 'active'
+                        : ''
+                }}
+            "
         >
 
-            <i class="fa-regular fa-bell w-4"></i>
+            <span class="buyer-sidebar-icon">
 
-            Notifications
+                <i class="fa-solid fa-bell"></i>
+
+            </span>
+
+
+            <span class="buyer-sidebar-label">
+
+                Notifications
+
+            </span>
 
         </a>
 
+
+
+        {{-- =====================================================
+            FEATURED BUSINESSES
+        ====================================================== --}}
 
         <a
             href="{{ route('featured-businesses') }}"
-            class="flex
-                   items-center
-                   gap-3
-                   rounded-xl
-                   px-3 py-3
-                   text-[13px]
-                   font-semibold
-                   text-[#5A6660]"
+
+            class="
+                buyer-sidebar-link
+
+                {{
+                    request()->routeIs(
+                        'featured-businesses'
+                    )
+                        ? 'active'
+                        : ''
+                }}
+            "
         >
 
-            <i class="fa-solid fa-store w-4"></i>
+            <span class="buyer-sidebar-icon">
 
-            Featured businesses
+                <i class="fa-solid fa-store"></i>
+
+            </span>
+
+
+            <span class="buyer-sidebar-label">
+
+                Featured businesses
+
+            </span>
 
         </a>
 
+
+
+        {{-- =====================================================
+            PROFILE SETTINGS
+        ====================================================== --}}
 
         <a
-            href="#"
-            class="flex
-                   items-center
-                   gap-3
-                   rounded-xl
-                   px-3 py-3
-                   text-[13px]
-                   font-semibold
-                   text-[#5A6660]"
+            href="{{ route('buyer.profile-settings') }}"
+
+            class="
+                buyer-sidebar-link
+
+                {{
+                    request()->routeIs(
+                        'buyer.profile-settings*'
+                    )
+                        ? 'active'
+                        : ''
+                }}
+            "
         >
 
-            <i class="fa-solid fa-gear w-4"></i>
+            <span class="buyer-sidebar-icon">
 
-            Profile settings
+                <i class="fa-solid fa-gear"></i>
+
+            </span>
+
+
+            <span class="buyer-sidebar-label">
+
+                Profile settings
+
+            </span>
 
         </a>
 
+
+
+        {{-- =====================================================
+            SUPPORT
+        ====================================================== --}}
 
         <a
             href="{{ route('support') }}"
-            class="flex
-                   items-center
-                   gap-3
-                   rounded-xl
-                   px-3 py-3
-                   text-[13px]
-                   font-semibold
-                   text-[#5A6660]"
+
+            class="
+                buyer-sidebar-link
+
+                {{
+                    request()->routeIs(
+                        'support'
+                    )
+                        ? 'active'
+                        : ''
+                }}
+            "
         >
 
-            <i class="fa-regular fa-comments w-4"></i>
+            <span class="buyer-sidebar-icon">
 
-            Support
+                <i class="fa-regular fa-comments"></i>
+
+            </span>
+
+
+            <span class="buyer-sidebar-label">
+
+                Support
+
+            </span>
 
         </a>
 
     </nav>
 
 
+
+    {{-- =========================================================
+        SWITCH
+    ========================================================== --}}
+
     <div
-        class="mb-3
-               mt-8
-               px-3
-               text-[10px]
-               font-bold
-               uppercase
-               tracking-[.12em]
-               text-[#98A49E]"
+        class="
+            buyer-sidebar-section-title
+            buyer-sidebar-switch-title
+        "
     >
+
         Switch
+
     </div>
 
+
+
+    {{-- =========================================================
+        SELLER VIEW
+    ========================================================== --}}
 
     <form
         method="POST"
@@ -163,26 +274,36 @@
 
         <button
             type="submit"
-            class="flex
-                   w-full
-                   items-center
-                   gap-3
-                   rounded-xl
-                   px-3 py-3
-                   text-left
-                   text-[13px]
-                   font-semibold
-                   text-[#5A6660]"
+            class="buyer-sidebar-link"
         >
 
-            <i class="fa-solid fa-arrow-right-arrow-left w-4"></i>
+            <span class="buyer-sidebar-icon">
 
-            Seller view
+                <i
+                    class="
+                        fa-solid
+                        fa-arrow-right-arrow-left
+                    "
+                ></i>
+
+            </span>
+
+
+            <span class="buyer-sidebar-label">
+
+                Seller view
+
+            </span>
 
         </button>
 
     </form>
 
+
+
+    {{-- =========================================================
+        LOGOUT
+    ========================================================== --}}
 
     <form
         method="POST"
@@ -194,21 +315,30 @@
 
         <button
             type="submit"
-            class="flex
-                   w-full
-                   items-center
-                   gap-3
-                   rounded-xl
-                   px-3 py-3
-                   text-left
-                   text-[13px]
-                   font-semibold
-                   text-[#5A6660]"
+
+            class="
+                buyer-sidebar-link
+                buyer-sidebar-logout
+            "
         >
 
-            <i class="fa-solid fa-arrow-right-from-bracket w-4"></i>
+            <span class="buyer-sidebar-icon">
 
-            Log out
+                <i
+                    class="
+                        fa-solid
+                        fa-arrow-right-from-bracket
+                    "
+                ></i>
+
+            </span>
+
+
+            <span class="buyer-sidebar-label">
+
+                Log out
+
+            </span>
 
         </button>
 

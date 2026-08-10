@@ -1,4 +1,4 @@
-@extends('account.layouts.app')
+@extends('seller.layouts.app')
 
 
 @section(

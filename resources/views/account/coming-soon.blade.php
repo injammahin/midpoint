@@ -1,4 +1,8 @@
-@extends('account.layouts.app')
+@extends(
+    $dashboardRole === 'seller'
+        ? 'seller.layouts.app'
+        : 'account.layouts.app'
+)
 
 
 @section(
@@ -9,38 +13,54 @@
 
 @section('content')
 
+
 <div class="account-placeholder">
+
 
     <div class="account-placeholder-icon">
 
         <i
-            class="fa-solid {{
-                $pageIcon
-            }}"
+            class="
+                fa-solid
+                {{ $pageIcon }}
+            "
         ></i>
 
     </div>
 
 
+
     <h1>
+
         {{ $pageTitle }}
+
     </h1>
+
 
 
     <p>
 
         This module is ready in the navigation.
+
         We will build its complete functionality next.
 
     </p>
 
 
+
     <a
         href="{{
             $dashboardRole === 'seller'
-                ? route('seller.dashboard')
-                : route('buyer.dashboard')
+
+                ? route(
+                    'seller.dashboard'
+                )
+
+                : route(
+                    'buyer.dashboard'
+                )
         }}"
+
         class="dashboard-primary-button"
     >
 
@@ -51,5 +71,6 @@
     </a>
 
 </div>
+
 
 @endsection

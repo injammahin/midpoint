@@ -16,9 +16,13 @@ class SellerProduct extends Model
 
         'price',
 
+        'stock',
+
         'description',
 
         'image',
+
+        'images',
 
         'is_active',
 
@@ -30,16 +34,92 @@ class SellerProduct extends Model
         'price' =>
             'decimal:2',
 
+        'stock' =>
+            'integer',
+
+        'images' =>
+            'array',
+
         'is_active' =>
             'boolean',
 
     ];
 
 
+    /*
+    |--------------------------------------------------------------------------
+    | User
+    |--------------------------------------------------------------------------
+    */
+
     public function user()
     {
         return $this->belongsTo(
             User::class
+        );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Main Product Image
+    |--------------------------------------------------------------------------
+    */
+
+    public function getMainImageAttribute(): ?string
+    {
+        $images =
+            is_array($this->images)
+                ? $this->images
+                : [];
+
+
+        if (
+            count($images) > 0
+        ) {
+
+            return $images[0];
+        }
+
+
+        return $this->image;
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | All Product Images
+    |--------------------------------------------------------------------------
+    |
+    | Also supports products created before the new multiple-image system.
+    |
+    */
+
+    public function getAllImagesAttribute(): array
+    {
+        $images =
+            is_array($this->images)
+                ? $this->images
+                : [];
+
+
+        if (
+            count($images) === 0
+            &&
+            $this->image
+        ) {
+
+            $images[] =
+                $this->image;
+        }
+
+
+        return array_values(
+            array_unique(
+                array_filter(
+                    $images
+                )
+            )
         );
     }
 }

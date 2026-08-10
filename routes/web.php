@@ -802,44 +802,72 @@ Route::middleware([
             );
 
 
-            /*
-            |--------------------------------------------------------------------------
-            | Listed Products
-            |--------------------------------------------------------------------------
-            */
+        /*
+        |--------------------------------------------------------------------------
+        | Listed Products
+        |--------------------------------------------------------------------------
+        */
 
-            Route::get(
-                '/products',
-                [
-                    SellerProductController::class,
-                    'index',
-                ]
-            )->name(
-                'products'
-            );
-
-
-            Route::post(
-                '/products',
-                [
-                    SellerProductController::class,
-                    'store',
-                ]
-            )->name(
-                'products.store'
-            );
+        Route::get(
+            '/products',
+            [
+                SellerProductController::class,
+                'index',
+            ]
+        )->name(
+            'products'
+        );
 
 
-            Route::delete(
-                '/products/{sellerProduct}',
-                [
-                    SellerProductController::class,
-                    'destroy',
-                ]
-            )->name(
-                'products.destroy'
-            );
+        /*
+        |--------------------------------------------------------------------------
+        | Store Product
+        |--------------------------------------------------------------------------
+        */
 
+        Route::post(
+            '/products',
+            [
+                SellerProductController::class,
+                'store',
+            ]
+        )->name(
+            'products.store'
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Update Product
+        |--------------------------------------------------------------------------
+        */
+
+        Route::put(
+            '/products/{sellerProduct}',
+            [
+                SellerProductController::class,
+                'update',
+            ]
+        )->name(
+            'products.update'
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Delete Product
+        |--------------------------------------------------------------------------
+        */
+
+        Route::delete(
+            '/products/{sellerProduct}',
+            [
+                SellerProductController::class,
+                'destroy',
+            ]
+        )->name(
+            'products.destroy'
+        );
 
             /*
             |--------------------------------------------------------------------------
