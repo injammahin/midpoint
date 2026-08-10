@@ -62,7 +62,8 @@ use App\Http\Controllers\Admin\UserImpersonationController;
 use App\Http\Controllers\Admin\LiveSupportController;
 use App\Http\Controllers\Admin\LiveSupportSettingsController;
 use App\Http\Controllers\Admin\SellerPackageController;
-
+use App\Http\Controllers\Admin\SellerInvoiceController;
+use App\Http\Controllers\Admin\SellerSubscriptionController;
 use App\Http\Controllers\Admin\SellerApplicationController
     as AdminSellerApplicationController;
 
@@ -1116,7 +1117,48 @@ Route::prefix(
         'admin',
     ])
     ->group(function () {
+Route::prefix(
+    'billing'
+)
+    ->name(
+        'billing.'
+    )
+    ->group(function () {
 
+        /*
+        |--------------------------------------------------------------------------
+        | Invoices
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get(
+            '/invoices',
+            [
+                SellerInvoiceController::class,
+                'index',
+            ]
+        )->name(
+            'invoices.index'
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Purchased Packages
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get(
+            '/subscriptions',
+            [
+                SellerSubscriptionController::class,
+                'index',
+            ]
+        )->name(
+            'subscriptions.index'
+        );
+
+    });
 
         /*
         |--------------------------------------------------------------------------

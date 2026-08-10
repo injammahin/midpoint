@@ -13,45 +13,109 @@
     |--------------------------------------------------------------------------
     */
 
-    $oldPackageId = old('seller_package_id');
+    $oldPackageId =
+        old(
+            'seller_package_id'
+        );
 
-    $selectedPackage = null;
+
+    $selectedPackage =
+        null;
+
 
     if ($oldPackageId) {
-        $selectedPackage = $packages->firstWhere(
-            'id',
-            (int) $oldPackageId
-        );
+
+        $selectedPackage =
+            $packages->firstWhere(
+                'id',
+                (int) $oldPackageId
+            );
     }
 
+
     if (!$selectedPackage) {
-        $selectedPackage = $defaultPackage;
+
+        $selectedPackage =
+            $defaultPackage;
     }
+
 
 
     /*
     |--------------------------------------------------------------------------
-    | Application State
+    | Latest Application Status
     |--------------------------------------------------------------------------
     */
 
-    $applicationStatus = $latestApplication
-        ? $latestApplication->status
-        : null;
+    $applicationStatus =
+        $latestApplication
+            ? $latestApplication->status
+            : null;
 
 
-    $canApply =
-        !$latestApplication
-        ||
-        in_array(
-            $applicationStatus,
-            [
-                'revision_required',
-                'superseded',
-            ],
-            true
+
+    /*
+    |--------------------------------------------------------------------------
+    | Active Subscription
+    |--------------------------------------------------------------------------
+    |
+    | This comes from VerifiedSellerController:
+    |
+    | $activeSubscription
+    |
+    */
+
+    $hasActiveSubscription =
+        isset($activeSubscription)
+        &&
+        !is_null(
+            $activeSubscription
         );
 
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Can Apply
+    |--------------------------------------------------------------------------
+    |
+    | Can apply when:
+    |
+    | - No application exists
+    | - Revision required
+    | - Old application superseded
+    | - Previous package expired
+    |
+    | Cannot apply while an active subscription exists.
+    |
+    */
+
+    $canApply =
+        !$hasActiveSubscription
+        &&
+        (
+            !$latestApplication
+
+            ||
+
+            in_array(
+                $applicationStatus,
+                [
+                    'revision_required',
+                    'superseded',
+                    'expired',
+                ],
+                true
+            )
+        );
+
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Under Review
+    |--------------------------------------------------------------------------
+    */
 
     $isUnderReview =
         auth()->check()
@@ -59,11 +123,25 @@
         $applicationStatus === 'submitted';
 
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Revision Required
+    |--------------------------------------------------------------------------
+    */
+
     $isRevisionRequired =
         auth()->check()
         &&
         $applicationStatus === 'revision_required';
 
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Payment Pending
+    |--------------------------------------------------------------------------
+    */
 
     $isPaymentPending =
         auth()->check()
@@ -73,10 +151,37 @@
         $pendingInvoice;
 
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Active Seller
+    |--------------------------------------------------------------------------
+    |
+    | IMPORTANT:
+    |
+    | We use the subscription now, not only the application status.
+    |
+    */
+
     $isActiveSeller =
         auth()->check()
         &&
-        $applicationStatus === 'active';
+        $hasActiveSubscription;
+
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Expired Seller
+    |--------------------------------------------------------------------------
+    */
+
+    $isExpiredSeller =
+        auth()->check()
+        &&
+        !$hasActiveSubscription
+        &&
+        $applicationStatus === 'expired';
 
 @endphp
 
@@ -206,7 +311,9 @@
                 >
 
                     <strong class="text-[13px] text-[#B42318]">
+
                         {{ session('error') }}
+
                     </strong>
 
                 </div>
@@ -376,6 +483,372 @@
 
 
             {{-- =====================================================
+                ACTIVE PLAN INFORMATION
+            ====================================================== --}}
+
+            @if($activeSubscription)
+
+                <div
+                    class="
+                        active-plan-card
+                        mp-card
+                        mx-auto
+                        mb-8
+                        max-w-[880px]
+                        !border-[#ABEFC6]
+                        bg-[#F3FFF8]
+                        p-6
+                    "
+                >
+
+                    <div
+                        class="
+                            flex
+                            items-center
+                            justify-between
+                            gap-6
+                            max-md:flex-col
+                            max-md:items-start
+                        "
+                    >
+
+                        {{-- Left --}}
+                        <div class="flex items-center gap-4">
+
+                            <div
+                                class="
+                                    grid
+                                    h-[52px]
+                                    w-[52px]
+                                    flex-none
+                                    place-items-center
+                                    rounded-[15px]
+                                    bg-[#D1FADF]
+                                    text-[20px]
+                                    text-[#067647]
+                                "
+                            >
+
+                                <i class="fa-solid fa-crown"></i>
+
+                            </div>
+
+
+                            <div>
+
+                                <span
+                                    class="
+                                        mp-badge
+                                        mp-badge-green
+                                    "
+                                >
+
+                                    Active Seller Plan
+
+                                </span>
+
+
+                                <h2
+                                    class="
+                                        mt-2
+                                        font-['Bricolage_Grotesque']
+                                        text-[22px]
+                                        font-bold
+                                    "
+                                >
+
+                                    {{ $activeSubscription->package_name }}
+
+                                </h2>
+
+
+                                <div
+                                    class="
+                                        mt-1
+                                        flex
+                                        flex-wrap
+                                        items-center
+                                        gap-x-4
+                                        gap-y-1
+                                        text-[12px]
+                                        text-[#5A6660]
+                                    "
+                                >
+
+                                    <span>
+
+                                        <i
+                                            class="
+                                                fa-solid
+                                                fa-box-open
+                                                mr-1
+                                                text-[#12B76A]
+                                            "
+                                        ></i>
+
+                                        {{
+                                            number_format(
+                                                $activeSubscription->product_limit
+                                            )
+                                        }}
+
+                                        products
+
+                                    </span>
+
+
+                                    <span>
+
+                                        <i
+                                            class="
+                                                fa-solid
+                                                fa-credit-card
+                                                mr-1
+                                                text-[#12B76A]
+                                            "
+                                        ></i>
+
+                                        ₦{{
+                                            number_format(
+                                                (float) $activeSubscription->price,
+                                                0
+                                            )
+                                        }}
+
+                                        /{{ $activeSubscription->billing_period }}
+
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+
+                        {{-- Right --}}
+                        <div
+                            class="
+                                rounded-[14px]
+                                border
+                                border-[#ABEFC6]
+                                bg-white
+                                px-5
+                                py-4
+                                text-right
+                                max-md:w-full
+                                max-md:text-left
+                            "
+                        >
+
+                            <span
+                                class="
+                                    block
+                                    text-[10px]
+                                    font-semibold
+                                    uppercase
+                                    tracking-[.08em]
+                                    text-[#66756D]
+                                "
+                            >
+
+                                Time remaining
+
+                            </span>
+
+
+                            <strong
+                                class="
+                                    mt-1
+                                    block
+                                    font-['Bricolage_Grotesque']
+                                    text-[24px]
+                                    font-extrabold
+                                    text-[#087443]
+                                "
+                            >
+
+                                {{ $activeSubscription->days_left }}
+
+                                {{
+                                    $activeSubscription->days_left === 1
+                                        ? 'day'
+                                        : 'days'
+                                }}
+
+                                left
+
+                            </strong>
+
+
+                            @if($activeSubscription->expires_at)
+
+                                <span
+                                    class="
+                                        mt-1
+                                        block
+                                        text-[11px]
+                                        text-[#66756D]
+                                    "
+                                >
+
+                                    Expires
+
+                                    {{
+                                        $activeSubscription
+                                            ->expires_at
+                                            ->format(
+                                                'd M Y, h:i A'
+                                            )
+                                    }}
+
+                                </span>
+
+                            @endif
+
+                        </div>
+
+                    </div>
+
+
+                    <div
+                        class="
+                            mt-5
+                            border-t
+                            border-[#D9F0E3]
+                            pt-4
+                            text-[11px]
+                            leading-5
+                            text-[#66756D]
+                        "
+                    >
+
+                        <i
+                            class="
+                                fa-solid
+                                fa-circle-info
+                                mr-1
+                                text-[#12B76A]
+                            "
+                        ></i>
+
+                        Your current package remains active until the
+                        expiration time shown above.
+
+                        Package selection will become available again
+                        after your plan expires.
+
+                    </div>
+
+                </div>
+
+            @endif
+
+
+
+            {{-- =====================================================
+                EXPIRED PACKAGE NOTICE
+            ====================================================== --}}
+
+            @if($isExpiredSeller)
+
+                <div
+                    class="
+                        mp-card
+                        mx-auto
+                        mb-8
+                        max-w-[820px]
+                        !border-[#FEDF89]
+                        bg-[#FFFDF5]
+                        p-6
+                    "
+                >
+
+                    <div
+                        class="
+                            flex
+                            items-start
+                            gap-4
+                        "
+                    >
+
+                        <div
+                            class="
+                                grid
+                                h-[46px]
+                                w-[46px]
+                                flex-none
+                                place-items-center
+                                rounded-full
+                                bg-[#FEF0C7]
+                                text-[#B54708]
+                            "
+                        >
+
+                            <i class="fa-solid fa-clock-rotate-left"></i>
+
+                        </div>
+
+
+                        <div>
+
+                            <span
+                                class="
+                                    mp-badge
+                                    bg-[#FEF0C7]
+                                    text-[#B54708]
+                                "
+                            >
+
+                                Package expired
+
+                            </span>
+
+
+                            <h2
+                                class="
+                                    mt-3
+                                    font-['Bricolage_Grotesque']
+                                    text-[20px]
+                                    font-bold
+                                "
+                            >
+
+                                Your seller package has expired
+
+                            </h2>
+
+
+                            <p
+                                class="
+                                    mp-muted
+                                    mt-2
+                                    max-w-[620px]
+                                    text-[13px]
+                                    leading-6
+                                "
+                            >
+
+                                Your previous seller package is no longer active.
+
+                                You can now select any available package below
+                                and submit a new application to renew or upgrade
+                                your seller account.
+
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            @endif
+
+
+
+            {{-- =====================================================
                 PACKAGES
             ====================================================== --}}
 
@@ -387,7 +860,15 @@
 
                         @php
 
-                            $theme = $package->theme ?: 'green';
+                            /*
+                            |--------------------------------------------------------------------------
+                            | Theme
+                            |--------------------------------------------------------------------------
+                            */
+
+                            $theme =
+                                $package->theme
+                                ?: 'green';
 
 
                             if ($theme === 'purple') {
@@ -417,12 +898,60 @@
                             }
 
 
+
+                            /*
+                            |--------------------------------------------------------------------------
+                            | Selected
+                            |--------------------------------------------------------------------------
+                            */
+
                             $isSelected =
                                 $selectedPackage
                                 &&
                                 (int) $selectedPackage->id
                                 ===
                                 (int) $package->id;
+
+
+
+                            /*
+                            |--------------------------------------------------------------------------
+                            | Current Active Package
+                            |--------------------------------------------------------------------------
+                            */
+
+                            $isCurrentActivePlan =
+                                $hasActiveSubscription
+                                &&
+                                (int) $activeSubscription->seller_package_id
+                                ===
+                                (int) $package->id;
+
+
+
+                            /*
+                            |--------------------------------------------------------------------------
+                            | Plan Locked
+                            |--------------------------------------------------------------------------
+                            |
+                            | User cannot purchase another package until the
+                            | current subscription expires.
+                            |
+                            */
+
+                            $packageLocked =
+                                $hasActiveSubscription;
+
+
+
+                            /*
+                            |--------------------------------------------------------------------------
+                            | Renew / Upgrade State
+                            |--------------------------------------------------------------------------
+                            */
+
+                            $showRenewUpgrade =
+                                $isExpiredSeller;
 
                         @endphp
 
@@ -443,8 +972,16 @@
                                 }}
 
                                 {{
+                                    !$packageLocked
+                                    &&
                                     $isSelected
                                         ? 'is-selected'
+                                        : ''
+                                }}
+
+                                {{
+                                    $isCurrentActivePlan
+                                        ? 'is-active-plan'
                                         : ''
                                 }}
                             "
@@ -467,14 +1004,47 @@
                                         mp-badge-green
                                     "
                                 >
+
                                     Most popular
+
                                 </span>
 
                             @endif
 
 
 
-                            {{-- Package --}}
+                            {{-- Current Plan --}}
+                            @if($isCurrentActivePlan)
+
+                                <span
+                                    class="
+                                        absolute
+                                        right-4
+                                        top-4
+                                        inline-flex
+                                        items-center
+                                        gap-1
+                                        rounded-full
+                                        bg-[#D1FADF]
+                                        px-2.5
+                                        py-1
+                                        text-[9px]
+                                        font-bold
+                                        text-[#067647]
+                                    "
+                                >
+
+                                    <i class="fa-solid fa-circle-check"></i>
+
+                                    Current plan
+
+                                </span>
+
+                            @endif
+
+
+
+                            {{-- Package Badge --}}
                             <span
                                 class="
                                     mp-badge
@@ -580,7 +1150,6 @@
                                 </div>
 
 
-
                                 @foreach(($package->features ?? []) as $feature)
 
                                     <div class="flex items-start gap-2">
@@ -602,42 +1171,95 @@
 
 
 
-                            {{-- Choose --}}
-                            <button
-                                type="button"
+                            {{-- =================================================
+                                PACKAGE BUTTON
+                            ================================================== --}}
 
-                                data-package-id="{{ $package->id }}"
+                            @if($isCurrentActivePlan)
 
-                                data-package="{{ $package->name }}"
+                                <button
+                                    type="button"
+                                    disabled
+                                    class="
+                                        mp-btn
+                                        mp-btn-green
+                                        mt-auto
+                                        cursor-not-allowed
+                                        opacity-70
+                                    "
+                                >
 
-                                data-price="₦{{
-                                    number_format(
-                                        (float) $package->price,
-                                        0
-                                    )
-                                }}/{{ $package->billing_period }}"
+                                    <i class="fa-solid fa-circle-check"></i>
 
-                                data-theme="{{ $theme }}"
+                                    Active Plan
 
-                                class="
-                                    verified-package-btn
-                                    mp-btn
-                                    {{ $buttonClass }}
-                                    mt-auto
-                                "
-                            >
+                                </button>
 
-                                @if($isSelected)
 
-                                    Selected {{ $package->name }}
+                            @elseif($packageLocked)
 
-                                @else
+                                <button
+                                    type="button"
+                                    disabled
+                                    class="
+                                        mp-btn
+                                        mp-btn-outline
+                                        mt-auto
+                                        cursor-not-allowed
+                                        opacity-60
+                                    "
+                                >
 
-                                    Choose {{ $package->name }}
+                                    <i class="fa-solid fa-lock"></i>
 
-                                @endif
+                                    Current plan active
 
-                            </button>
+                                </button>
+
+
+                            @else
+
+                                <button
+                                    type="button"
+
+                                    data-package-id="{{ $package->id }}"
+
+                                    data-package="{{ $package->name }}"
+
+                                    data-price="₦{{
+                                        number_format(
+                                            (float) $package->price,
+                                            0
+                                        )
+                                    }}/{{ $package->billing_period }}"
+
+                                    data-theme="{{ $theme }}"
+
+                                    class="
+                                        verified-package-btn
+                                        mp-btn
+                                        {{ $buttonClass }}
+                                        mt-auto
+                                    "
+                                >
+
+                                    @if($showRenewUpgrade)
+
+                                        Renew / Upgrade {{ $package->name }}
+
+                                    @elseif($isSelected)
+
+                                        Selected {{ $package->name }}
+
+                                    @else
+
+                                        Choose {{ $package->name }}
+
+                                    @endif
+
+                                </button>
+
+                            @endif
 
                         </div>
 
@@ -651,9 +1273,7 @@
                 <div class="mp-card p-8 text-center">
 
                     <strong>
-
                         No seller packages are currently available.
-
                     </strong>
 
                 </div>
@@ -687,13 +1307,16 @@
                             items-start
                             justify-between
                             gap-5
+                            max-sm:flex-col
                         "
                     >
 
                         <div>
 
                             <span class="mp-badge mp-badge-green">
+
                                 Application approved
+
                             </span>
 
 
@@ -721,7 +1344,7 @@
                         </div>
 
 
-                        <div class="text-right">
+                        <div class="text-right max-sm:text-left">
 
                             <span class="mp-small mp-muted">
                                 Invoice
@@ -825,6 +1448,38 @@
                         </div>
 
 
+                        @if($pendingInvoice->due_at)
+
+                            <div
+                                class="
+                                    flex
+                                    items-center
+                                    justify-between
+                                    gap-4
+                                    py-2
+                                "
+                            >
+
+                                <span class="mp-muted">
+                                    Payment due
+                                </span>
+
+
+                                <strong>
+
+                                    {{
+                                        $pendingInvoice
+                                            ->due_at
+                                            ->format('d M Y')
+                                    }}
+
+                                </strong>
+
+                            </div>
+
+                        @endif
+
+
                         <div
                             class="
                                 mt-3
@@ -893,7 +1548,9 @@
                                     text-[#B54708]
                                 "
                             >
+
                                 Demo payment mode
+
                             </strong>
 
 
@@ -910,7 +1567,6 @@
                             <strong>
                                 12/30
                             </strong>
-
 
                             · CVV:
 
@@ -1104,7 +1760,7 @@
                         mp-card
                         mx-auto
                         mt-[34px]
-                        max-w-[720px]
+                        max-w-[760px]
                         !border-[#12B76A]
                         p-[32px]
                         text-center
@@ -1157,31 +1813,140 @@
                             mp-muted
                             mx-auto
                             mt-2
-                            max-w-[500px]
+                            max-w-[540px]
                         "
                     >
 
                         Your
 
                         <strong>
-                            {{ $latestApplication->package_name }}
+                            {{ $activeSubscription->package_name }}
                         </strong>
 
                         package allows up to
 
                         <strong>
-
                             {{
                                 number_format(
-                                    $latestApplication->product_limit
+                                    $activeSubscription->product_limit
                                 )
                             }}
-
                         </strong>
 
                         listed products.
 
                     </p>
+
+
+
+                    {{-- Remaining Time --}}
+                    <div
+                        class="
+                            mx-auto
+                            mt-6
+                            max-w-[500px]
+                            rounded-[14px]
+                            border
+                            border-[#D9F0E3]
+                            bg-[#F8FFFB]
+                            p-4
+                        "
+                    >
+
+                        <div
+                            class="
+                                flex
+                                items-center
+                                justify-between
+                                gap-4
+                                py-1
+                            "
+                        >
+
+                            <span class="mp-small mp-muted">
+                                Days remaining
+                            </span>
+
+
+                            <strong class="text-[13px] text-[#087443]">
+
+                                {{ $activeSubscription->days_left }}
+
+                                {{
+                                    $activeSubscription->days_left === 1
+                                        ? 'day'
+                                        : 'days'
+                                }}
+
+                            </strong>
+
+                        </div>
+
+
+                        @if($activeSubscription->started_at)
+
+                            <div
+                                class="
+                                    flex
+                                    items-center
+                                    justify-between
+                                    gap-4
+                                    py-1
+                                "
+                            >
+
+                                <span class="mp-small mp-muted">
+                                    Started
+                                </span>
+
+
+                                <strong class="text-[12px]">
+
+                                    {{
+                                        $activeSubscription
+                                            ->started_at
+                                            ->format('d M Y, h:i A')
+                                    }}
+
+                                </strong>
+
+                            </div>
+
+                        @endif
+
+
+                        @if($activeSubscription->expires_at)
+
+                            <div
+                                class="
+                                    flex
+                                    items-center
+                                    justify-between
+                                    gap-4
+                                    py-1
+                                "
+                            >
+
+                                <span class="mp-small mp-muted">
+                                    Expires
+                                </span>
+
+
+                                <strong class="text-[12px]">
+
+                                    {{
+                                        $activeSubscription
+                                            ->expires_at
+                                            ->format('d M Y, h:i A')
+                                    }}
+
+                                </strong>
+
+                            </div>
+
+                        @endif
+
+                    </div>
 
 
                     <a
@@ -1465,7 +2230,19 @@
                         "
                     >
 
-                        Apply to become a Verified Seller
+                        @if($isExpiredSeller)
+
+                            Renew or Upgrade Seller Package
+
+                        @elseif($isRevisionRequired)
+
+                            Re-apply to become a Verified Seller
+
+                        @else
+
+                            Apply to become a Verified Seller
+
+                        @endif
 
                     </h2>
 
@@ -1608,7 +2385,9 @@
                                                     : ''
                                             }}
                                         >
+
                                             {{ $category }}
+
                                         </option>
 
                                     @endforeach
@@ -1802,7 +2581,9 @@
                             @php
 
                                 $guestIntendedUrl =
-                                    route('verified-sellers');
+                                    route(
+                                        'verified-sellers'
+                                    );
 
 
                                 if ($selectedPackage) {
@@ -1811,7 +2592,6 @@
                                         '?package='
                                         .
                                         $selectedPackage->id;
-
                                 }
 
 
@@ -1908,10 +2688,6 @@
                                 </p>
 
 
-                            {{-- =================================================
-                                VERIFIED USER
-                            ================================================== --}}
-
                             @else
 
                                 @if($selectedPackage)
@@ -1928,7 +2704,19 @@
 
                                         <i class="fa-solid fa-paper-plane"></i>
 
-                                        Submit application
+                                        @if($isExpiredSeller)
+
+                                            Submit Renewal / Upgrade Application
+
+                                        @elseif($isRevisionRequired)
+
+                                            Re-submit Application
+
+                                        @else
+
+                                            Submit Application
+
+                                        @endif
 
                                     </button>
 
@@ -2008,7 +2796,8 @@
         transition:
             transform .18s ease,
             border-color .18s ease,
-            box-shadow .18s ease;
+            box-shadow .18s ease,
+            opacity .18s ease;
     }
 
 
@@ -2025,6 +2814,29 @@
         box-shadow:
             0 0 0 2px rgba(18,183,106,.08),
             0 14px 35px rgba(11,61,46,.08);
+    }
+
+
+    .seller-package-card.is-active-plan {
+        border-color:
+            #12B76A !important;
+
+        background:
+            linear-gradient(
+                180deg,
+                #F7FFF9 0%,
+                #FFFFFF 100%
+            );
+
+        box-shadow:
+            0 0 0 2px rgba(18,183,106,.08),
+            0 16px 40px rgba(18,183,106,.10);
+    }
+
+
+    .active-plan-card {
+        box-shadow:
+            0 16px 45px rgba(18,183,106,.08);
     }
 
 
@@ -2067,6 +2879,19 @@
 document.addEventListener(
     'DOMContentLoaded',
     function () {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Package Buttons
+        |--------------------------------------------------------------------------
+        |
+        | Only enabled package buttons have:
+        |
+        | .verified-package-btn
+        |
+        | Therefore Active Plan / Locked buttons are automatically ignored.
+        |
+        */
 
         const packageButtons =
             document.querySelectorAll(
@@ -2123,7 +2948,7 @@ document.addEventListener(
 
         /*
         |--------------------------------------------------------------------------
-        | PACKAGE SELECTION
+        | Package Selection
         |--------------------------------------------------------------------------
         */
 
@@ -2230,7 +3055,7 @@ document.addEventListener(
 
                         /*
                         |--------------------------------------------------------------------------
-                        | Card Selected Style
+                        | Selected Card
                         |--------------------------------------------------------------------------
                         */
 
@@ -2289,7 +3114,7 @@ document.addEventListener(
 
                         /*
                         |--------------------------------------------------------------------------
-                        | Guest Login Redirect
+                        | Guest Redirect
                         |--------------------------------------------------------------------------
                         */
 
@@ -2324,7 +3149,7 @@ document.addEventListener(
 
                         /*
                         |--------------------------------------------------------------------------
-                        | Scroll
+                        | Scroll To Application Form
                         |--------------------------------------------------------------------------
                         */
 
@@ -2352,7 +3177,7 @@ document.addEventListener(
 
         /*
         |--------------------------------------------------------------------------
-        | DOCUMENTS
+        | Verification Documents
         |--------------------------------------------------------------------------
         */
 

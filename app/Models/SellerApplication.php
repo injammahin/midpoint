@@ -21,6 +21,8 @@ class SellerApplication extends Model
 
     const STATUS_ACTIVE =
         'active';
+    const STATUS_EXPIRED =
+        'expired';
 
 
     protected $fillable = [
@@ -199,6 +201,8 @@ class SellerApplication extends Model
 
             self::STATUS_ACTIVE =>
                 'Active seller',
+            self::STATUS_EXPIRED =>
+                'Package expired',
 
             self::STATUS_SUPERSEDED =>
                 'Replaced by new application',

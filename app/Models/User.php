@@ -179,7 +179,7 @@ public function sellerSubscriptions()
 
 /*
 |--------------------------------------------------------------------------
-| Current Seller Subscription
+| Active Seller Subscription
 |--------------------------------------------------------------------------
 */
 
@@ -188,26 +188,11 @@ public function activeSellerSubscription()
     return $this->hasOne(
         \App\Models\SellerSubscription::class
     )
-        ->where(
-            'status',
-            'active'
-        )
-        ->where(
-            function ($query) {
-
-                $query
-                    ->whereNull(
-                        'expires_at'
-                    )
-                    ->orWhere(
-                        'expires_at',
-                        '>',
-                        now()
-                    );
-            }
-        )
+        ->active()
         ->latestOfMany();
 }
+
+
 
 
 /*

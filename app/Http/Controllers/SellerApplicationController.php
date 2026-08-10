@@ -6,10 +6,9 @@ use App\Models\SellerApplication;
 use App\Models\SellerApplicationDocument;
 use App\Models\SellerPackage;
 use App\Models\User;
-
+use App\Services\SellerSubscriptionService;
 use App\Notifications\SellerApplicationAdminNotification;
 use App\Notifications\SellerApplicationSubmittedNotification;
-
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
@@ -26,7 +25,8 @@ class SellerApplicationController extends Controller
     */
 
     public function store(
-        Request $request
+        Request $request,
+        SellerSubscriptionService $subscriptions
     ) {
         /*
         |--------------------------------------------------------------------------
@@ -36,7 +36,14 @@ class SellerApplicationController extends Controller
 
         $user =
             $request->user();
+            
+        if ($user) {
 
+            $subscriptions
+                ->expireDueSubscriptionsForUser(
+                    $user
+                );
+        }
 
         /*
         |--------------------------------------------------------------------------
