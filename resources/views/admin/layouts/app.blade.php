@@ -1,18 +1,105 @@
 <!DOCTYPE html>
 
+
 <html
     lang="en"
-    data-admin-theme="dark"
+    data-admin-theme="light"
 >
+
 
 <head>
 
     <meta charset="UTF-8">
 
+
+    {{-- =====================================================
+        ADMIN THEME - APPLY BEFORE FIRST PAINT
+    ====================================================== --}}
+
+    <script>
+        (function () {
+
+            try {
+
+                /*
+                |--------------------------------------------------------------------------
+                | Saved Theme
+                |--------------------------------------------------------------------------
+                */
+
+                const savedTheme =
+                    localStorage.getItem(
+                        'midpoint_admin_theme'
+                    );
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Resolve Theme
+                |--------------------------------------------------------------------------
+                */
+
+                const theme =
+                    savedTheme === 'dark'
+                    ||
+                    savedTheme === 'light'
+
+                        ? savedTheme
+
+                        : 'light';
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Apply Before CSS Paint
+                |--------------------------------------------------------------------------
+                */
+
+                document.documentElement
+                    .setAttribute(
+                        'data-admin-theme',
+                        theme
+                    );
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Browser Native UI
+                |--------------------------------------------------------------------------
+                */
+
+                document.documentElement.style.colorScheme =
+                    theme;
+
+
+            } catch (error) {
+
+                /*
+                |--------------------------------------------------------------------------
+                | Safe Light Fallback
+                |--------------------------------------------------------------------------
+                */
+
+                document.documentElement
+                    .setAttribute(
+                        'data-admin-theme',
+                        'light'
+                    );
+
+
+                document.documentElement.style.colorScheme =
+                    'light';
+            }
+
+        })();
+    </script>
+
+
     <meta
         name="viewport"
         content="width=device-width, initial-scale=1.0"
     >
+
 
     <meta
         name="csrf-token"
@@ -25,10 +112,15 @@
     </title>
 
 
+    {{-- =====================================================
+        Fonts
+    ====================================================== --}}
+
     <link
         rel="preconnect"
         href="https://fonts.googleapis.com"
     >
+
 
     <link
         rel="preconnect"
@@ -36,11 +128,16 @@
         crossorigin
     >
 
+
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Bricolage+Grotesque:wght@500;600;700&display=swap"
         rel="stylesheet"
     >
 
+
+    {{-- =====================================================
+        Admin Assets
+    ====================================================== --}}
 
     @vite([
         'resources/css/admin.css',
@@ -48,41 +145,69 @@
     ])
 
 
+    {{-- =====================================================
+        Page Specific CSS
+    ====================================================== --}}
+
     @stack('styles')
 
 </head>
 
 
+
 <body class="admin-body">
+
 
     <div
         id="adminShell"
         class="admin-shell"
     >
 
-        {{-- Sidebar --}}
+
+        {{-- =================================================
+            Sidebar
+        ================================================== --}}
+
         @include(
             'admin.partials.sidebar.index'
         )
 
 
-        {{-- Overlay for mobile --}}
+        {{-- =================================================
+            Mobile Sidebar Overlay
+        ================================================== --}}
+
         <div
             id="adminSidebarOverlay"
             class="admin-sidebar-overlay"
+            aria-hidden="true"
         ></div>
 
 
+        {{-- =================================================
+            Main
+        ================================================== --}}
+
         <div class="admin-main">
 
-            {{-- Header --}}
+
+            {{-- =============================================
+                Header
+            ============================================== --}}
+
             @include(
                 'admin.partials.header'
             )
 
 
-            {{-- Page content --}}
-            <main class="admin-content">
+            {{-- =============================================
+                Page Content
+            ============================================== --}}
+
+            <main
+                class="admin-content"
+                id="adminContent"
+            >
 
                 @yield('content')
 
@@ -93,8 +218,13 @@
     </div>
 
 
+    {{-- =====================================================
+        Page Specific Scripts
+    ====================================================== --}}
+
     @stack('scripts')
 
 </body>
+
 
 </html>
