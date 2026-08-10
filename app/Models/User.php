@@ -163,4 +163,94 @@ class User extends Authenticatable implements MustVerifyEmailContract
             \App\Models\SupportChatSession::class
         );
     }
+    /*
+|--------------------------------------------------------------------------
+| Seller Package Subscriptions
+|--------------------------------------------------------------------------
+*/
+
+public function sellerSubscriptions()
+{
+    return $this->hasMany(
+        \App\Models\SellerSubscription::class
+    );
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Current Seller Subscription
+|--------------------------------------------------------------------------
+*/
+
+public function activeSellerSubscription()
+{
+    return $this->hasOne(
+        \App\Models\SellerSubscription::class
+    )
+        ->where(
+            'status',
+            'active'
+        )
+        ->where(
+            function ($query) {
+
+                $query
+                    ->whereNull(
+                        'expires_at'
+                    )
+                    ->orWhere(
+                        'expires_at',
+                        '>',
+                        now()
+                    );
+            }
+        )
+        ->latestOfMany();
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Seller Products
+|--------------------------------------------------------------------------
+*/
+
+public function sellerProducts()
+{
+    return $this->hasMany(
+        \App\Models\SellerProduct::class
+    );
+}
+/*
+|--------------------------------------------------------------------------
+| Seller Applications
+|--------------------------------------------------------------------------
+*/
+
+public function sellerApplications()
+{
+    return $this->hasMany(
+        \App\Models\SellerApplication::class
+    );
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Seller Invoices
+|--------------------------------------------------------------------------
+*/
+
+public function sellerInvoices()
+{
+    return $this->hasMany(
+        \App\Models\SellerInvoice::class
+    );
+}
+public function routeNotificationForMail(
+    $notification
+): string {
+    return $this->email;
+}
 }

@@ -66,20 +66,32 @@
 
 
 
-    {{-- =========================================================
-        ADMIN NOTIFICATIONS
-    ========================================================== --}}
+{{-- =========================================================
+    ADMIN NOTIFICATIONS
+========================================================== --}}
 
-    <div
-        class="admin-notification-dropdown"
-        id="adminNotificationDropdown"
-    >
+<div
+    class="admin-notification-dropdown"
+    id="adminNotificationDropdown"
+
+    data-notification-feed="{{
+        route(
+            'admin.notifications.feed'
+        )
+    }}"
+>
+
+    {{-- =====================================================
+        BELL BUTTON
+    ====================================================== --}}
 
     <button
         type="button"
         id="adminNotificationButton"
-        class="admin-icon-button
-               admin-notification-button"
+        class="
+            admin-icon-button
+            admin-notification-button
+        "
         title="Notifications"
         aria-label="Notifications"
     >
@@ -87,33 +99,42 @@
         <i class="fa-solid fa-bell"></i>
 
 
-        @if (
-            ($adminUnreadNotificationCount ?? 0)
-            > 0
-        )
+        <span
+            id="adminNotificationCount"
+            class="admin-notification-count"
+            style="{{
+                ($adminUnreadNotificationCount ?? 0) > 0
+                    ? ''
+                    : 'display:none;'
+            }}"
+        >
 
-            <span
-                class="admin-notification-count"
-            >
-                {{
-                    $adminUnreadNotificationCount > 99
-                        ? '99+'
-                        : $adminUnreadNotificationCount
-                }}
-            </span>
+            {{
+                ($adminUnreadNotificationCount ?? 0) > 99
+                    ? '99+'
+                    : ($adminUnreadNotificationCount ?? 0)
+            }}
 
-        @endif
+        </span>
 
     </button>
 
 
-    {{-- Dropdown --}}
+
+    {{-- =====================================================
+        DROPDOWN
+    ====================================================== --}}
+
     <div
         id="adminNotificationMenu"
         class="admin-notification-menu"
     >
 
-        {{-- Header --}}
+
+        {{-- =================================================
+            HEADER
+        ================================================== --}}
+
         <div class="admin-notification-menu-head">
 
             <div>
@@ -122,132 +143,192 @@
                     Notifications
                 </strong>
 
-                <span>
-                    {{ $adminUnreadNotificationCount ?? 0 }}
+
+                <span id="adminNotificationUnreadText">
+
+                    {{
+                        $adminUnreadNotificationCount
+                        ??
+                        0
+                    }}
+
                     unread
+
                 </span>
 
             </div>
 
 
-            @if (
-                ($adminUnreadNotificationCount ?? 0)
-                > 0
-            )
 
-                <form
-                    method="POST"
-                    action="{{ route('admin.notifications.read-all') }}"
-                >
-                    @csrf
+            <form
+                id="adminNotificationReadAllForm"
+                method="POST"
+                action="{{
+                    route(
+                        'admin.notifications.read-all'
+                    )
+                }}"
+                style="{{
+                    ($adminUnreadNotificationCount ?? 0) > 0
+                        ? ''
+                        : 'display:none;'
+                }}"
+            >
 
-                    <button type="submit">
-                        Mark all read
-                    </button>
+                @csrf
 
-                </form>
 
-            @endif
+                <button type="submit">
+
+                    Mark all read
+
+                </button>
+
+            </form>
 
         </div>
 
 
-        {{-- Notifications --}}
-        <div class="admin-notification-list">
 
-            @forelse (
-                $adminLatestNotifications ?? []
-                as $notification
+        {{-- =================================================
+            LIST
+        ================================================== --}}
+
+        <div
+            class="admin-notification-list"
+            id="adminNotificationList"
+        >
+
+            @if(
+                ($adminLatestNotifications ?? collect())
+                    ->count()
+                >
+                0
             )
 
-                <a
-                    href="{{ route(
-                        'admin.notifications.open',
-                        $notification->id
-                    ) }}"
-                    class="admin-notification-item
-                           {{ is_null($notification->read_at) ? 'unread' : '' }}"
-                >
+                @foreach($adminLatestNotifications as $notification)
 
-                    <span
-                        class="admin-notification-item-icon"
+                    <a
+                        href="{{
+                            route(
+                                'admin.notifications.open',
+                                $notification->id
+                            )
+                        }}"
+
+                        class="
+                            admin-notification-item
+
+                            {{
+                                is_null(
+                                    $notification->read_at
+                                )
+                                    ? 'unread'
+                                    : ''
+                            }}
+                        "
                     >
 
-                        <i
-                            class="fa-solid {{
-                                data_get(
-                                    $notification->data,
-                                    'icon',
-                                    'fa-bell'
-                                )
-                            }}"
-                        ></i>
+                        <span
+                            class="admin-notification-item-icon"
+                        >
 
-                    </span>
+                            <i
+                                class="
+                                    fa-solid
 
+                                    {{
+                                        data_get(
+                                            $notification->data,
+                                            'icon',
+                                            'fa-bell'
+                                        )
+                                    }}
+                                "
+                            ></i>
 
-                    <span
-                        class="admin-notification-item-content"
-                    >
-
-                        <strong>
-                            {{
-                                data_get(
-                                    $notification->data,
-                                    'title',
-                                    'Notification'
-                                )
-                            }}
-                        </strong>
-
-
-                        <span>
-                            {{
-                                data_get(
-                                    $notification->data,
-                                    'message',
-                                    ''
-                                )
-                            }}
                         </span>
 
 
-                        <small>
-                            {{
-                                $notification
-                                    ->created_at
-                                    ->diffForHumans()
-                            }}
-                        </small>
-
-                    </span>
-
-
-                    @if (
-                        is_null(
-                            $notification->read_at
-                        )
-                    )
 
                         <span
-                            class="admin-notification-unread-dot"
-                        ></span>
+                            class="admin-notification-item-content"
+                        >
 
-                    @endif
+                            <strong>
 
-                </a>
+                                {{
+                                    data_get(
+                                        $notification->data,
+                                        'title',
+                                        'Notification'
+                                    )
+                                }}
 
-            @empty
+                            </strong>
+
+
+                            <span>
+
+                                {{
+                                    data_get(
+                                        $notification->data,
+                                        'message',
+                                        ''
+                                    )
+                                }}
+
+                            </span>
+
+
+                            <small>
+
+                                {{
+                                    $notification
+                                        ->created_at
+                                        ->diffForHumans()
+                                }}
+
+                            </small>
+
+                        </span>
+
+
+
+                        @if(
+                            is_null(
+                                $notification->read_at
+                            )
+                        )
+
+                            <span
+                                class="
+                                    admin-notification-unread-dot
+                                "
+                            ></span>
+
+                        @endif
+
+                    </a>
+
+                @endforeach
+
+
+            @else
 
                 <div
                     class="admin-notification-empty"
                 >
 
-                    <i class="fa-regular fa-bell"></i>
+                    <i
+                        class="fa-regular fa-bell"
+                    ></i>
+
 
                     <strong>
                         No notifications
                     </strong>
+
 
                     <span>
                         You're all caught up.
@@ -255,20 +336,9 @@
 
                 </div>
 
-            @endforelse
+            @endif
 
         </div>
-
-
-        {{-- Footer --}}
-        <a
-            href="{{ route('admin.support-inquiries.contacts') }}"
-            class="admin-notification-footer"
-        >
-            View contact messages
-
-            <i class="fa-solid fa-arrow-right"></i>
-        </a>
 
     </div>
 

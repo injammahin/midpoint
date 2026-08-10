@@ -17,6 +17,9 @@ use App\Http\Controllers\SupportController;
 use App\Http\Controllers\SupportChatController;
 use App\Http\Controllers\DashboardRedirectController;
 use App\Http\Controllers\AccountViewController;
+use App\Http\Controllers\VerifiedSellerController;
+use App\Http\Controllers\SellerApplicationController;
+use App\Http\Controllers\SellerInvoicePaymentController;
 
 
 /*
@@ -37,6 +40,7 @@ use App\Http\Controllers\Auth\EmailVerificationController;
 */
 
 use App\Http\Controllers\Seller\DashboardController as SellerDashboardController;
+use App\Http\Controllers\Seller\SellerProductController;
 use App\Http\Controllers\Buyer\DashboardController as BuyerDashboardController;
 
 
@@ -57,6 +61,10 @@ use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Admin\UserImpersonationController;
 use App\Http\Controllers\Admin\LiveSupportController;
 use App\Http\Controllers\Admin\LiveSupportSettingsController;
+use App\Http\Controllers\Admin\SellerPackageController;
+
+use App\Http\Controllers\Admin\SellerApplicationController
+    as AdminSellerApplicationController;
 
 
 /*
@@ -80,7 +88,9 @@ Route::get(
         HomeController::class,
         'index',
     ]
-)->name('home');
+)->name(
+    'home'
+);
 
 
 /*
@@ -92,7 +102,9 @@ Route::get(
 Route::view(
     '/about',
     'frontend.pages.about'
-)->name('about');
+)->name(
+    'about'
+);
 
 
 /*
@@ -104,7 +116,9 @@ Route::view(
 Route::view(
     '/how-it-works',
     'frontend.pages.how-it-works'
-)->name('how-it-works');
+)->name(
+    'how-it-works'
+);
 
 
 /*
@@ -119,7 +133,9 @@ Route::get(
         PricingController::class,
         'index',
     ]
-)->name('pricing');
+)->name(
+    'pricing'
+);
 
 
 /*
@@ -131,19 +147,36 @@ Route::get(
 Route::view(
     '/featured-businesses',
     'frontend.pages.featured-businesses'
-)->name('featured-businesses');
+)->name(
+    'featured-businesses'
+);
 
 
 /*
 |--------------------------------------------------------------------------
 | Verified Sellers
 |--------------------------------------------------------------------------
+|
+| Public page.
+|
+| Guests can:
+| - See packages
+| - Select packages
+| - Be redirected to login before applying
+|
+| Logged-in users can additionally see their application/payment state.
+|
 */
 
-Route::view(
+Route::get(
     '/verified-sellers',
-    'frontend.pages.verified-sellers'
-)->name('verified-sellers');
+    [
+        VerifiedSellerController::class,
+        'index',
+    ]
+)->name(
+    'verified-sellers'
+);
 
 
 /*
@@ -158,7 +191,9 @@ Route::get(
         FaqController::class,
         'index',
     ]
-)->name('faqs');
+)->name(
+    'faqs'
+);
 
 
 /*
@@ -173,7 +208,9 @@ Route::get(
         ContactController::class,
         'create',
     ]
-)->name('contact');
+)->name(
+    'contact'
+);
 
 
 Route::post(
@@ -224,8 +261,7 @@ Route::get(
 | Live Support Availability
 |--------------------------------------------------------------------------
 |
-| This route is public because even logged-out visitors may need to know
-| whether support is currently available.
+| Public because a guest needs to know whether live support is available.
 |
 */
 
@@ -278,9 +314,9 @@ Route::view(
 |--------------------------------------------------------------------------
 */
 
-Route::middleware(
-    'guest'
-)->group(function () {
+Route::middleware([
+    'guest',
+])->group(function () {
 
 
     /*
@@ -364,9 +400,9 @@ Route::post(
         'logout',
     ]
 )
-    ->middleware(
-        'auth'
-    )
+    ->middleware([
+        'auth',
+    ])
     ->name(
         'logout'
     );
@@ -431,8 +467,8 @@ Route::post(
 | Verify Email
 |--------------------------------------------------------------------------
 |
-| We intentionally do not require auth here because the verification email
-| may be opened from another browser/device.
+| Auth is intentionally not required because users may open the
+| verification email in another browser/device.
 |
 */
 
@@ -485,10 +521,13 @@ Route::get(
 |--------------------------------------------------------------------------
 |--------------------------------------------------------------------------
 |
-| IMPORTANT:
-| This route must remain outside the admin middleware.
+| Must remain outside the admin middleware.
 |
-| While impersonating, Auth::user() is the customer account.
+| While impersonating:
+|
+| Auth::user()
+|
+| is the customer, not the administrator.
 |
 */
 
@@ -510,9 +549,95 @@ Route::post(
 /*
 |--------------------------------------------------------------------------
 |--------------------------------------------------------------------------
-| VERIFIED USER AREA
+| SHARED AUTHENTICATED LIVE SUPPORT ROUTES
 |--------------------------------------------------------------------------
 |--------------------------------------------------------------------------
+|
+| IMPORTANT:
+|
+| These routes are NOT behind "verified".
+|
+| Reason:
+|
+| Both customer and admin use the same conversation endpoints.
+| Admin accounts should not be blocked simply because their email_verified_at
+| field is null.
+|
+| Authorization is handled inside SupportChatController.
+|
+*/
+
+Route::middleware([
+    'auth',
+    'active',
+])->group(function () {
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Get Chat Session
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get(
+        '/support/chat/sessions/{session}',
+        [
+            SupportChatController::class,
+            'show',
+        ]
+    )->name(
+        'support.chat.sessions.show'
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Send Chat Message
+    |--------------------------------------------------------------------------
+    |
+    | Customer or assigned support agent.
+    |
+    */
+
+    Route::post(
+        '/support/chat/sessions/{session}/messages',
+        [
+            SupportChatController::class,
+            'storeMessage',
+        ]
+    )->name(
+        'support.chat.messages.store'
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Secure Attachment
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get(
+        '/support/chat/attachments/{attachment}',
+        [
+            SupportChatController::class,
+            'attachment',
+        ]
+    )->name(
+        'support.chat.attachments.show'
+    );
+
+});
+
+
+/*
+|--------------------------------------------------------------------------
+|--------------------------------------------------------------------------
+| VERIFIED CUSTOMER ACTIONS
+|--------------------------------------------------------------------------
+|--------------------------------------------------------------------------
+|
+| Actions that specifically require a verified user account.
+|
 */
 
 Route::middleware([
@@ -520,6 +645,47 @@ Route::middleware([
     'active',
     'verified',
 ])->group(function () {
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Seller Application
+    |--------------------------------------------------------------------------
+    |
+    | User must:
+    |
+    | - Be logged in
+    | - Be active
+    | - Have a verified email
+    |
+    */
+
+    Route::post(
+        '/verified-sellers/apply',
+        [
+            SellerApplicationController::class,
+            'store',
+        ]
+    )->name(
+        'seller-applications.store'
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Seller Invoice Demo Payment
+    |--------------------------------------------------------------------------
+    */
+
+    Route::post(
+        '/verified-sellers/invoices/{invoice}/pay',
+        [
+            SellerInvoicePaymentController::class,
+            'pay',
+        ]
+    )->name(
+        'seller-invoices.pay'
+    );
 
 
     /*
@@ -549,6 +715,60 @@ Route::middleware([
 
     /*
     |--------------------------------------------------------------------------
+    | Start Live Support Chat
+    |--------------------------------------------------------------------------
+    |
+    | Starting a brand-new conversation requires a verified user.
+    |
+    */
+
+    Route::post(
+        '/support/chat/start',
+        [
+            SupportChatController::class,
+            'start',
+        ]
+    )->name(
+        'support.chat.start'
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Rate Live Support
+    |--------------------------------------------------------------------------
+    */
+
+    Route::post(
+        '/support/chat/sessions/{session}/rating',
+        [
+            SupportChatController::class,
+            'rate',
+        ]
+    )->name(
+        'support.chat.rate'
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Skip Live Support Rating
+    |--------------------------------------------------------------------------
+    */
+
+    Route::post(
+        '/support/chat/sessions/{session}/skip-rating',
+        [
+            SupportChatController::class,
+            'skipRating',
+        ]
+    )->name(
+        'support.chat.skip-rating'
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
     |--------------------------------------------------------------------------
     | SELLER AREA
     |--------------------------------------------------------------------------
@@ -566,7 +786,7 @@ Route::middleware([
 
             /*
             |--------------------------------------------------------------------------
-            | Dashboard
+            | Seller Dashboard
             |--------------------------------------------------------------------------
             */
 
@@ -587,16 +807,36 @@ Route::middleware([
             |--------------------------------------------------------------------------
             */
 
-            Route::view(
+            Route::get(
                 '/products',
-                'account.coming-soon',
                 [
-                    'dashboardRole' => 'seller',
-                    'pageTitle' => 'Listed products',
-                    'pageIcon' => 'fa-bag-shopping',
+                    SellerProductController::class,
+                    'index',
                 ]
             )->name(
                 'products'
+            );
+
+
+            Route::post(
+                '/products',
+                [
+                    SellerProductController::class,
+                    'store',
+                ]
+            )->name(
+                'products.store'
+            );
+
+
+            Route::delete(
+                '/products/{sellerProduct}',
+                [
+                    SellerProductController::class,
+                    'destroy',
+                ]
+            )->name(
+                'products.destroy'
             );
 
 
@@ -610,9 +850,14 @@ Route::middleware([
                 '/transactions/create',
                 'account.coming-soon',
                 [
-                    'dashboardRole' => 'seller',
-                    'pageTitle' => 'Create transaction',
-                    'pageIcon' => 'fa-circle-plus',
+                    'dashboardRole' =>
+                        'seller',
+
+                    'pageTitle' =>
+                        'Create transaction',
+
+                    'pageIcon' =>
+                        'fa-circle-plus',
                 ]
             )->name(
                 'transactions.create'
@@ -629,9 +874,14 @@ Route::middleware([
                 '/transactions',
                 'account.coming-soon',
                 [
-                    'dashboardRole' => 'seller',
-                    'pageTitle' => 'Transactions',
-                    'pageIcon' => 'fa-file-lines',
+                    'dashboardRole' =>
+                        'seller',
+
+                    'pageTitle' =>
+                        'Transactions',
+
+                    'pageIcon' =>
+                        'fa-file-lines',
                 ]
             )->name(
                 'transactions'
@@ -648,9 +898,14 @@ Route::middleware([
                 '/notifications',
                 'account.coming-soon',
                 [
-                    'dashboardRole' => 'seller',
-                    'pageTitle' => 'Notifications',
-                    'pageIcon' => 'fa-bell',
+                    'dashboardRole' =>
+                        'seller',
+
+                    'pageTitle' =>
+                        'Notifications',
+
+                    'pageIcon' =>
+                        'fa-bell',
                 ]
             )->name(
                 'notifications'
@@ -667,9 +922,14 @@ Route::middleware([
                 '/business-profile',
                 'account.coming-soon',
                 [
-                    'dashboardRole' => 'seller',
-                    'pageTitle' => 'Business profile',
-                    'pageIcon' => 'fa-store',
+                    'dashboardRole' =>
+                        'seller',
+
+                    'pageTitle' =>
+                        'Business profile',
+
+                    'pageIcon' =>
+                        'fa-store',
                 ]
             )->name(
                 'business-profile'
@@ -686,9 +946,14 @@ Route::middleware([
                 '/profile-settings',
                 'account.coming-soon',
                 [
-                    'dashboardRole' => 'seller',
-                    'pageTitle' => 'Profile settings',
-                    'pageIcon' => 'fa-gear',
+                    'dashboardRole' =>
+                        'seller',
+
+                    'pageTitle' =>
+                        'Profile settings',
+
+                    'pageIcon' =>
+                        'fa-gear',
                 ]
             )->name(
                 'profile-settings'
@@ -716,7 +981,7 @@ Route::middleware([
 
             /*
             |--------------------------------------------------------------------------
-            | Dashboard
+            | Buyer Dashboard
             |--------------------------------------------------------------------------
             */
 
@@ -741,9 +1006,14 @@ Route::middleware([
                 '/transactions',
                 'account.coming-soon',
                 [
-                    'dashboardRole' => 'buyer',
-                    'pageTitle' => 'Transactions',
-                    'pageIcon' => 'fa-file-lines',
+                    'dashboardRole' =>
+                        'buyer',
+
+                    'pageTitle' =>
+                        'Transactions',
+
+                    'pageIcon' =>
+                        'fa-file-lines',
                 ]
             )->name(
                 'transactions'
@@ -760,9 +1030,14 @@ Route::middleware([
                 '/notifications',
                 'account.coming-soon',
                 [
-                    'dashboardRole' => 'buyer',
-                    'pageTitle' => 'Notifications',
-                    'pageIcon' => 'fa-bell',
+                    'dashboardRole' =>
+                        'buyer',
+
+                    'pageTitle' =>
+                        'Notifications',
+
+                    'pageIcon' =>
+                        'fa-bell',
                 ]
             )->name(
                 'notifications'
@@ -779,9 +1054,14 @@ Route::middleware([
                 '/seller-invite',
                 'account.coming-soon',
                 [
-                    'dashboardRole' => 'buyer',
-                    'pageTitle' => 'Open seller invite',
-                    'pageIcon' => 'fa-link',
+                    'dashboardRole' =>
+                        'buyer',
+
+                    'pageTitle' =>
+                        'Open seller invite',
+
+                    'pageIcon' =>
+                        'fa-link',
                 ]
             )->name(
                 'seller-invite'
@@ -798,126 +1078,20 @@ Route::middleware([
                 '/profile-settings',
                 'account.coming-soon',
                 [
-                    'dashboardRole' => 'buyer',
-                    'pageTitle' => 'Profile settings',
-                    'pageIcon' => 'fa-gear',
+                    'dashboardRole' =>
+                        'buyer',
+
+                    'pageTitle' =>
+                        'Profile settings',
+
+                    'pageIcon' =>
+                        'fa-gear',
                 ]
             )->name(
                 'profile-settings'
             );
 
         });
-
-
-    /*
-    |--------------------------------------------------------------------------
-    |--------------------------------------------------------------------------
-    | AUTHENTICATED LIVE SUPPORT
-    |--------------------------------------------------------------------------
-    |--------------------------------------------------------------------------
-    */
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Start Chat
-    |--------------------------------------------------------------------------
-    */
-
-    Route::post(
-        '/support/chat/start',
-        [
-            SupportChatController::class,
-            'start',
-        ]
-    )->name(
-        'support.chat.start'
-    );
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Get Chat Session
-    |--------------------------------------------------------------------------
-    */
-
-    Route::get(
-        '/support/chat/sessions/{session}',
-        [
-            SupportChatController::class,
-            'show',
-        ]
-    )->name(
-        'support.chat.sessions.show'
-    );
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Send Message
-    |--------------------------------------------------------------------------
-    */
-
-    Route::post(
-        '/support/chat/sessions/{session}/messages',
-        [
-            SupportChatController::class,
-            'storeMessage',
-        ]
-    )->name(
-        'support.chat.messages.store'
-    );
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | View / Download Attachment
-    |--------------------------------------------------------------------------
-    */
-
-    Route::get(
-        '/support/chat/attachments/{attachment}',
-        [
-            SupportChatController::class,
-            'attachment',
-        ]
-    )->name(
-        'support.chat.attachments.show'
-    );
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Rate Chat
-    |--------------------------------------------------------------------------
-    */
-
-    Route::post(
-        '/support/chat/sessions/{session}/rating',
-        [
-            SupportChatController::class,
-            'rate',
-        ]
-    )->name(
-        'support.chat.rate'
-    );
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Skip Rating
-    |--------------------------------------------------------------------------
-    */
-
-    Route::post(
-        '/support/chat/sessions/{session}/skip-rating',
-        [
-            SupportChatController::class,
-            'skipRating',
-        ]
-    )->name(
-        'support.chat.skip-rating'
-    );
 
 });
 
@@ -999,7 +1173,7 @@ Route::prefix(
 
                 /*
                 |--------------------------------------------------------------------------
-                | Activate / Deactivate User
+                | Activate / Deactivate
                 |--------------------------------------------------------------------------
                 */
 
@@ -1039,18 +1213,6 @@ Route::prefix(
         | LIVE SUPPORT
         |--------------------------------------------------------------------------
         |--------------------------------------------------------------------------
-        |
-        | IMPORTANT:
-        |
-        | This is intentionally OUTSIDE the users group.
-        |
-        | Route names therefore become:
-        |
-        | admin.live-support.index
-        | admin.live-support.feed
-        | admin.live-support.settings
-        | etc.
-        |
         */
 
         Route::prefix(
@@ -1081,7 +1243,7 @@ Route::prefix(
 
                 /*
                 |--------------------------------------------------------------------------
-                | Realtime Feed
+                | Inbox Feed
                 |--------------------------------------------------------------------------
                 */
 
@@ -1098,7 +1260,7 @@ Route::prefix(
 
                 /*
                 |--------------------------------------------------------------------------
-                | Agent Heartbeat
+                | Heartbeat
                 |--------------------------------------------------------------------------
                 */
 
@@ -1115,7 +1277,7 @@ Route::prefix(
 
                 /*
                 |--------------------------------------------------------------------------
-                | Agent Availability
+                | Availability
                 |--------------------------------------------------------------------------
                 */
 
@@ -1132,7 +1294,7 @@ Route::prefix(
 
                 /*
                 |--------------------------------------------------------------------------
-                | Claim Waiting Chat
+                | Claim Conversation
                 |--------------------------------------------------------------------------
                 */
 
@@ -1149,7 +1311,7 @@ Route::prefix(
 
                 /*
                 |--------------------------------------------------------------------------
-                | Resolve Chat
+                | Resolve Conversation
                 |--------------------------------------------------------------------------
                 */
 
@@ -1175,7 +1337,7 @@ Route::prefix(
 
                 /*
                 |--------------------------------------------------------------------------
-                | Settings Page
+                | Settings
                 |--------------------------------------------------------------------------
                 */
 
@@ -1209,7 +1371,7 @@ Route::prefix(
 
                 /*
                 |--------------------------------------------------------------------------
-                | Add Support Blackout
+                | Store Blackout
                 |--------------------------------------------------------------------------
                 */
 
@@ -1226,7 +1388,7 @@ Route::prefix(
 
                 /*
                 |--------------------------------------------------------------------------
-                | Delete Support Blackout
+                | Delete Blackout
                 |--------------------------------------------------------------------------
                 */
 
@@ -1297,6 +1459,109 @@ Route::prefix(
                 /*
                 |--------------------------------------------------------------------------
                 |--------------------------------------------------------------------------
+                | SELLER APPLICATIONS
+                |--------------------------------------------------------------------------
+                |--------------------------------------------------------------------------
+                |
+                | Sidebar may display these under "Users & Applications",
+                | but we keep the current route names for compatibility:
+                |
+                | admin.website-settings.seller-applications.*
+                |
+                */
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Seller Application List
+                |--------------------------------------------------------------------------
+                */
+
+                Route::get(
+                    '/seller-applications',
+                    [
+                        AdminSellerApplicationController::class,
+                        'index',
+                    ]
+                )->name(
+                    'seller-applications.index'
+                );
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Seller Application Details
+                |--------------------------------------------------------------------------
+                */
+
+                Route::get(
+                    '/seller-applications/{sellerApplication}',
+                    [
+                        AdminSellerApplicationController::class,
+                        'show',
+                    ]
+                )->name(
+                    'seller-applications.show'
+                );
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Approve Application
+                |--------------------------------------------------------------------------
+                |
+                | Approval generates the seller package invoice.
+                |
+                */
+
+                Route::post(
+                    '/seller-applications/{sellerApplication}/approve',
+                    [
+                        AdminSellerApplicationController::class,
+                        'approve',
+                    ]
+                )->name(
+                    'seller-applications.approve'
+                );
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Request Revision
+                |--------------------------------------------------------------------------
+                */
+
+                Route::post(
+                    '/seller-applications/{sellerApplication}/revision',
+                    [
+                        AdminSellerApplicationController::class,
+                        'requestRevision',
+                    ]
+                )->name(
+                    'seller-applications.revision'
+                );
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Secure Seller Application Document
+                |--------------------------------------------------------------------------
+                */
+
+                Route::get(
+                    '/seller-application-documents/{document}',
+                    [
+                        AdminSellerApplicationController::class,
+                        'document',
+                    ]
+                )->name(
+                    'seller-applications.documents'
+                );
+
+
+                /*
+                |--------------------------------------------------------------------------
+                |--------------------------------------------------------------------------
                 | FAQ MANAGEMENT
                 |--------------------------------------------------------------------------
                 |--------------------------------------------------------------------------
@@ -1356,7 +1621,7 @@ Route::prefix(
 
                 /*
                 |--------------------------------------------------------------------------
-                | Toggle FAQ Status
+                | Toggle FAQ
                 |--------------------------------------------------------------------------
                 */
 
@@ -1391,7 +1656,7 @@ Route::prefix(
                 /*
                 |--------------------------------------------------------------------------
                 |--------------------------------------------------------------------------
-                | PRICING
+                | PRICING PAGE
                 |--------------------------------------------------------------------------
                 |--------------------------------------------------------------------------
                 */
@@ -1420,18 +1685,94 @@ Route::prefix(
 
                 /*
                 |--------------------------------------------------------------------------
-                | Become Seller
+                |--------------------------------------------------------------------------
+                | SELLER PACKAGES
+                |--------------------------------------------------------------------------
+                |--------------------------------------------------------------------------
+                */
+
+                /*
+                |--------------------------------------------------------------------------
+                | Seller Package Page
                 |--------------------------------------------------------------------------
                 */
 
                 Route::get(
                     '/become-seller',
                     [
-                        WebsiteSettingsController::class,
-                        'becomeSeller',
+                        SellerPackageController::class,
+                        'index',
                     ]
                 )->name(
                     'become-seller'
+                );
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Create Seller Package
+                |--------------------------------------------------------------------------
+                */
+
+                Route::post(
+                    '/become-seller/packages',
+                    [
+                        SellerPackageController::class,
+                        'store',
+                    ]
+                )->name(
+                    'seller-packages.store'
+                );
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Update Seller Package
+                |--------------------------------------------------------------------------
+                */
+
+                Route::put(
+                    '/become-seller/packages/{sellerPackage}',
+                    [
+                        SellerPackageController::class,
+                        'update',
+                    ]
+                )->name(
+                    'seller-packages.update'
+                );
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Activate / Hide Seller Package
+                |--------------------------------------------------------------------------
+                */
+
+                Route::patch(
+                    '/become-seller/packages/{sellerPackage}/toggle',
+                    [
+                        SellerPackageController::class,
+                        'toggle',
+                    ]
+                )->name(
+                    'seller-packages.toggle'
+                );
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Delete Seller Package
+                |--------------------------------------------------------------------------
+                */
+
+                Route::delete(
+                    '/become-seller/packages/{sellerPackage}',
+                    [
+                        SellerPackageController::class,
+                        'destroy',
+                    ]
+                )->name(
+                    'seller-packages.destroy'
                 );
 
             });
@@ -1473,7 +1814,7 @@ Route::prefix(
 
                 /*
                 |--------------------------------------------------------------------------
-                | Contact Message Details
+                | Contact Details
                 |--------------------------------------------------------------------------
                 */
 
@@ -1490,7 +1831,7 @@ Route::prefix(
 
                 /*
                 |--------------------------------------------------------------------------
-                | Contact Message Status
+                | Contact Status
                 |--------------------------------------------------------------------------
                 */
 
@@ -1526,11 +1867,26 @@ Route::prefix(
 
         /*
         |--------------------------------------------------------------------------
-        |--------------------------------------------------------------------------
         | ADMIN NOTIFICATIONS
         |--------------------------------------------------------------------------
+        */
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Notification Feed
         |--------------------------------------------------------------------------
         */
+
+        Route::get(
+            '/notifications/feed',
+            [
+                AdminNotificationController::class,
+                'feed',
+            ]
+        )->name(
+            'notifications.feed'
+        );
 
 
         /*
@@ -1552,7 +1908,7 @@ Route::prefix(
 
         /*
         |--------------------------------------------------------------------------
-        | Mark All Notifications Read
+        | Mark All Read
         |--------------------------------------------------------------------------
         */
 

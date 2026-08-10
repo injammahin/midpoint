@@ -335,7 +335,9 @@ html[data-admin-theme="light"] {
 
 
 .admin-menu-link {
-
+    
+    font-size: 13px;
+    font-weight: 600;
     width: 100%;
 
     min-height: 52px;
@@ -2723,7 +2725,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-muted-2);
 
-    font-size: 8px;
+    font-size:12px;
 
 }
 
@@ -2864,7 +2866,7 @@ html[data-admin-theme="light"] {
 
     color: #fff;
 
-    font-size: 8px;
+    font-size:12px;
 
     font-weight: 700;
 
@@ -3234,7 +3236,7 @@ html[data-admin-theme="light"] {
 
     border-radius: 999px;
 
-    font-size: 8px;
+    font-size:12px;
 
     font-weight: 600;
 
@@ -3564,7 +3566,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-muted);
 
-    font-size: 8px;
+    font-size:12px;
 
 }
 
@@ -3774,7 +3776,7 @@ html[data-admin-theme="light"] {
 
 
 .admin-contact-read-info span {
-    font-size: 8px;
+    font-size:12px;
 }
 
 
@@ -4332,7 +4334,7 @@ html[data-admin-theme="light"] {
 
     border-radius: 999px;
 
-    font-size: 8px;
+    font-size:12px;
 
     font-weight: 600;
 
@@ -4738,7 +4740,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-muted);
 
-    font-size: 8px;
+    font-size:12px;
 
 }
 
@@ -4824,7 +4826,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-muted);
 
-    font-size: 8px;
+    font-size:12px;
 
 }
 
@@ -5204,7 +5206,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-muted);
 
-    font-size: 8px;
+    font-size:12px;
 
 }
 
@@ -5367,7 +5369,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-muted);
 
-    font-size: 8px;
+    font-size:12px;
 
 }
 
@@ -5429,7 +5431,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-muted);
 
-    font-size: 8px;
+    font-size:12px;
 
 }
 
@@ -5490,7 +5492,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-muted);
 
-    font-size: 8px;
+    font-size:12px;
 
 }
 
@@ -5551,7 +5553,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-muted);
 
-    font-size: 8px;
+    font-size:12px;
 
 }
 
@@ -5585,7 +5587,7 @@ html[data-admin-theme="light"] {
 
     color: #fff;
 
-    font-size: 8px;
+    font-size:12px;
 
 }
 
@@ -5988,7 +5990,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-muted);
 
-    font-size: 8px;
+    font-size:12px;
 }
 
 
@@ -7198,7 +7200,7 @@ html[data-admin-theme="light"] {
     display: block;
     margin-top: 6px;
     color: var(--admin-muted);
-    font-size: 8px;
+    font-size:12px;
 }
 
 .alss-field input,
@@ -7290,7 +7292,7 @@ html[data-admin-theme="light"] {
 .alss-toggle-row > div span {
     margin-top: 3px;
     color: var(--admin-muted);
-    font-size: 8px;
+    font-size:12px;
 }
 
 .alss-switch {
@@ -7374,7 +7376,7 @@ html[data-admin-theme="light"] {
     border-radius: 5px;
     color: transparent;
     background: var(--admin-surface);
-    font-size: 8px;
+    font-size:12px;
 }
 
 .alss-day input:checked + .alss-day-check {
@@ -7508,7 +7510,7 @@ html[data-admin-theme="light"] {
 .alss-blackout-info small {
     margin-top: 4px;
     color: var(--admin-muted);
-    font-size: 8px;
+    font-size:12px;
 }
 
 .alss-delete {
@@ -7587,7 +7589,7 @@ html[data-admin-theme="light"] {
     overflow: hidden;
     margin-top: 3px;
     color: var(--admin-muted);
-    font-size: 8px;
+    font-size:12px;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
@@ -8211,7 +8213,7 @@ html[data-admin-theme="light"] {
 
     color: var(--admin-muted);
 
-    font-size: 8px;
+    font-size:12px;
 
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -8308,7 +8310,7 @@ html[data-admin-theme="light"] {
 .als-list-empty span {
     margin-top: 4px;
 
-    font-size: 8px;
+    font-size:12px;
 }
 
 
@@ -8383,7 +8385,7 @@ html[data-admin-theme="light"] {
 
     color: var(--admin-muted);
 
-    font-size: 8px;
+    font-size:12px;
     line-height: 1.55;
 }
 
@@ -8458,7 +8460,7 @@ html[data-admin-theme="light"] {
 
     color: var(--admin-muted);
 
-    font-size: 8px;
+    font-size:12px;
 
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -8631,7 +8633,7 @@ html[data-admin-theme="light"] {
 
     color: var(--admin-muted);
 
-    font-size: 8px;
+    font-size:12px;
 
     text-align: center;
 }
@@ -8728,7 +8730,7 @@ html[data-admin-theme="light"] {
 
     flex: 1;
 
-    font-size: 8px;
+    font-size:12px;
 
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -8791,7 +8793,7 @@ html[data-admin-theme="light"] {
 
     color: var(--admin-text);
 
-    font-size: 8px;
+    font-size:12px;
 
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -9548,7 +9550,7 @@ html[data-admin-theme="light"] {
 
     color: var(--admin-accent);
 
-    font-size: 8px;
+    font-size:12px;
     font-weight: 700;
 
     letter-spacing: .13em;
@@ -9882,7 +9884,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-muted-2);
 
-    font-size: 8px;
+    font-size:12px;
 }
 
 
@@ -10043,7 +10045,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-muted);
 
-    font-size: 8px;
+    font-size:12px;
 }
 
 
@@ -10098,7 +10100,7 @@ html[data-admin-theme="light"] {
         var(--admin-muted) !important;
 
     font-family: inherit;
-    font-size: 8px;
+    font-size:12px;
     font-weight: 600;
 
     cursor: pointer;
@@ -10183,7 +10185,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-muted);
 
-    font-size: 8px;
+    font-size:12px;
 
     text-align: center;
 }
@@ -10289,7 +10291,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-muted);
 
-    font-size: 8px;
+    font-size:12px;
 
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -10426,7 +10428,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-muted);
 
-    font-size: 8px;
+    font-size:12px;
 
     line-height: 1.6;
 }
@@ -10577,7 +10579,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-muted);
 
-    font-size: 8px;
+    font-size:12px;
 
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -10620,7 +10622,7 @@ html[data-admin-theme="light"] {
 
     font-family: inherit;
 
-    font-size: 8px;
+    font-size:12px;
     font-weight: 700;
 
     cursor: pointer;
@@ -10884,7 +10886,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-accent);
 
-    font-size: 8px;
+    font-size:12px;
 
     text-decoration: none;
 
@@ -11041,7 +11043,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-muted);
 
-    font-size: 8px;
+    font-size:12px;
     font-weight: 600;
 
     cursor: pointer;
@@ -11083,7 +11085,7 @@ html[data-admin-theme="light"] {
 
     font-family: inherit;
 
-    font-size: 8px;
+    font-size:12px;
     font-weight: 700;
 
     cursor: pointer;
@@ -11242,7 +11244,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-muted);
 
-    font-size: 8px;
+    font-size:12px;
 
 }
 
@@ -11288,7 +11290,7 @@ html[data-admin-theme="light"] {
     color:
         var(--admin-heading);
 
-    font-size: 8px;
+    font-size:12px;
     font-weight: 600;
 
 }

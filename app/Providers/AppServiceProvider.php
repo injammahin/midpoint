@@ -2,52 +2,92 @@
 
 namespace App\Providers;
 
+use App\Models\SupportChatSession;
 use App\View\Composers\AdminLayoutComposer;
+
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
-use App\Models\SupportChatSession;
-use Illuminate\Support\Facades\Schema;
 
 class AppServiceProvider extends ServiceProvider
 {
+    /*
+    |--------------------------------------------------------------------------
+    | Register
+    |--------------------------------------------------------------------------
+    */
+
     public function register()
     {
         //
     }
 
 
-public function boot()
-{
-    View::composer(
-        'admin.partials.sidebar.modules.support-inquiries',
-        function ($view) {
+    /*
+    |--------------------------------------------------------------------------
+    | Boot
+    |--------------------------------------------------------------------------
+    */
 
-            $count =
-                0;
+    public function boot()
+    {
+        /*
+        |--------------------------------------------------------------------------
+        | Admin Layout Data
+        |--------------------------------------------------------------------------
+        |
+        | This is the important missing part.
+        |
+        | It provides:
+        |
+        | $adminUnreadContactCount
+        | $adminUnreadNotificationCount
+        | $adminLatestNotifications
+        |
+        | to the admin layout and therefore the header/sidebar.
+        |
+        */
+
+        View::composer(
+            'admin.layouts.app',
+            AdminLayoutComposer::class
+        );
 
 
-            if (
-                Schema::hasTable(
-                    'support_chat_sessions'
-                )
-            ) {
+        /*
+        |--------------------------------------------------------------------------
+        | Live Support Waiting Count
+        |--------------------------------------------------------------------------
+        */
 
-                $count =
-                    SupportChatSession::where(
-                        'status',
-                        'waiting'
+        View::composer(
+            'admin.partials.sidebar.modules.support-inquiries',
+            function ($view) {
+
+                $count = 0;
+
+
+                if (
+                    Schema::hasTable(
+                        'support_chat_sessions'
                     )
-                    ->count();
+                ) {
 
+                    $count =
+                        SupportChatSession::query()
+                            ->where(
+                                'status',
+                                'waiting'
+                            )
+                            ->count();
+                }
+
+
+                $view->with(
+                    'liveSupportWaitingCount',
+                    $count
+                );
             }
-
-
-            $view->with(
-                'liveSupportWaitingCount',
-                $count
-            );
-
-        }
-    );
-}
+        );
+    }
 }

@@ -1,105 +1,277 @@
 @php
 
+    /*
+    |--------------------------------------------------------------------------
+    | Website Settings Active
+    |--------------------------------------------------------------------------
+    |
+    | Seller Applications are intentionally EXCLUDED.
+    |
+    */
+
     $websiteSettingsActive =
         request()->routeIs(
-            'admin.website-settings.*'
+            'admin.website-settings.app-settings*'
+        )
+        ||
+        request()->routeIs(
+            'admin.website-settings.faqs*'
+        )
+        ||
+        request()->routeIs(
+            'admin.website-settings.pricing*'
+        )
+        ||
+        request()->routeIs(
+            'admin.website-settings.become-seller*'
+        )
+        ||
+        request()->routeIs(
+            'admin.website-settings.seller-packages.*'
         );
 
 @endphp
 
 
+
 <div
-    class="admin-menu-group
-           {{ $websiteSettingsActive ? 'is-open' : '' }}"
+    class="
+        admin-menu-group
+        {{
+            $websiteSettingsActive
+                ? 'is-open'
+                : ''
+        }}
+    "
 >
 
-    {{-- Main menu --}}
+
+    {{-- =====================================================
+        MAIN MENU
+    ====================================================== --}}
+
     <button
         type="button"
-        class="admin-menu-link
-               admin-menu-toggle
-               {{ $websiteSettingsActive ? 'active-parent' : '' }}"
+
+        class="
+            admin-menu-link
+            admin-menu-toggle
+
+            {{
+                $websiteSettingsActive
+                    ? 'active-parent'
+                    : ''
+            }}
+        "
+
         data-sidebar-group
+
         data-tooltip="Website Settings"
+
+        aria-expanded="{{
+            $websiteSettingsActive
+                ? 'true'
+                : 'false'
+        }}"
     >
 
         <span class="admin-menu-icon">
-            <i class="fa-solid fa-sliders"></i>
+
+            <i
+                class="
+                    fa-solid
+                    fa-sliders
+                "
+            ></i>
+
         </span>
 
 
         <span class="admin-menu-label">
+
             Website Settings
+
         </span>
 
 
         <span class="admin-menu-chevron">
-            <i class="fa-solid fa-chevron-down"></i>
+
+            <i
+                class="
+                    fa-solid
+                    fa-chevron-down
+                "
+            ></i>
+
         </span>
 
     </button>
 
 
-    {{-- Expanded submenu --}}
+
+    {{-- =====================================================
+        SUBMENU
+    ====================================================== --}}
+
     <div class="admin-submenu">
 
+
+        {{-- App Settings --}}
         <a
-            href="{{ route('admin.website-settings.app-settings') }}"
-            class="{{ request()->routeIs('admin.website-settings.app-settings') ? 'active' : '' }}"
+            href="{{
+                route(
+                    'admin.website-settings.app-settings'
+                )
+            }}"
+
+            class="{{
+                request()->routeIs(
+                    'admin.website-settings.app-settings*'
+                )
+                    ? 'active'
+                    : ''
+            }}"
         >
-            <i class="fa-solid fa-gear"></i>
+
+            <i
+                class="
+                    fa-solid
+                    fa-gear
+                "
+            ></i>
+
 
             <span>
                 App Settings
             </span>
+
         </a>
 
 
+
+        {{-- FAQ --}}
         <a
-            href="{{ route('admin.website-settings.faqs') }}"
-            class="{{ request()->routeIs('admin.website-settings.faqs') ? 'active' : '' }}"
+            href="{{
+                route(
+                    'admin.website-settings.faqs'
+                )
+            }}"
+
+            class="{{
+                request()->routeIs(
+                    'admin.website-settings.faqs*'
+                )
+                    ? 'active'
+                    : ''
+            }}"
         >
-            <i class="fa-regular fa-circle-question"></i>
+
+            <i
+                class="
+                    fa-regular
+                    fa-circle-question
+                "
+            ></i>
+
 
             <span>
                 FAQ Page
             </span>
+
         </a>
 
 
+
+        {{-- Pricing --}}
         <a
-            href="{{ route('admin.website-settings.pricing') }}"
-            class="{{ request()->routeIs('admin.website-settings.pricing') ? 'active' : '' }}"
+            href="{{
+                route(
+                    'admin.website-settings.pricing'
+                )
+            }}"
+
+            class="{{
+                request()->routeIs(
+                    'admin.website-settings.pricing*'
+                )
+                    ? 'active'
+                    : ''
+            }}"
         >
-            <i class="fa-solid fa-tags"></i>
+
+            <i
+                class="
+                    fa-solid
+                    fa-tags
+                "
+            ></i>
+
 
             <span>
                 Pricing Page
             </span>
+
         </a>
 
 
+
+        {{-- Become Seller --}}
         <a
-            href="{{ route('admin.website-settings.become-seller') }}"
-            class="{{ request()->routeIs('admin.website-settings.become-seller') ? 'active' : '' }}"
+            href="{{
+                route(
+                    'admin.website-settings.become-seller'
+                )
+            }}"
+
+            class="{{
+                request()->routeIs(
+                    'admin.website-settings.become-seller*'
+                )
+                ||
+                request()->routeIs(
+                    'admin.website-settings.seller-packages.*'
+                )
+                    ? 'active'
+                    : ''
+            }}"
         >
-            <i class="fa-solid fa-store"></i>
+
+            <i
+                class="
+                    fa-solid
+                    fa-store
+                "
+            ></i>
+
 
             <span>
                 Become Seller Page
             </span>
+
         </a>
 
     </div>
 
 
-    {{-- Collapsed flyout --}}
+
+    {{-- =====================================================
+        COLLAPSED FLYOUT
+    ====================================================== --}}
+
     <div class="admin-flyout">
+
 
         <div class="admin-flyout-head">
 
             <span class="admin-flyout-icon">
-                <i class="fa-solid fa-sliders"></i>
+
+                <i
+                    class="
+                        fa-solid
+                        fa-sliders
+                    "
+                ></i>
+
             </span>
 
 
@@ -108,6 +280,7 @@
                 <strong>
                     Website Settings
                 </strong>
+
 
                 <span>
                     4 submenus
@@ -118,37 +291,83 @@
         </div>
 
 
+
         <div class="admin-flyout-links">
 
+
             <a
-                href="{{ route('admin.website-settings.app-settings') }}"
+                href="{{
+                    route(
+                        'admin.website-settings.app-settings'
+                    )
+                }}"
             >
+
                 <i class="fa-solid fa-gear"></i>
-                App Settings
+
+                <span>
+                    App Settings
+                </span>
+
             </a>
 
 
+
             <a
-                href="{{ route('admin.website-settings.faqs') }}"
+                href="{{
+                    route(
+                        'admin.website-settings.faqs'
+                    )
+                }}"
             >
-                <i class="fa-regular fa-circle-question"></i>
-                FAQ Page
+
+                <i
+                    class="
+                        fa-regular
+                        fa-circle-question
+                    "
+                ></i>
+
+                <span>
+                    FAQ Page
+                </span>
+
             </a>
 
 
+
             <a
-                href="{{ route('admin.website-settings.pricing') }}"
+                href="{{
+                    route(
+                        'admin.website-settings.pricing'
+                    )
+                }}"
             >
+
                 <i class="fa-solid fa-tags"></i>
-                Pricing Page
+
+                <span>
+                    Pricing Page
+                </span>
+
             </a>
 
 
+
             <a
-                href="{{ route('admin.website-settings.become-seller') }}"
+                href="{{
+                    route(
+                        'admin.website-settings.become-seller'
+                    )
+                }}"
             >
+
                 <i class="fa-solid fa-store"></i>
-                Become Seller Page
+
+                <span>
+                    Become Seller Page
+                </span>
+
             </a>
 
         </div>

@@ -72,7 +72,7 @@
 
         {{-- Users --}}
         @include(
-            'admin.partials.sidebar.modules.users'
+            'admin.partials.sidebar.modules.users-applications'
         )
 
 

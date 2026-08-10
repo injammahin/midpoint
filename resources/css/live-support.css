@@ -1069,7 +1069,7 @@ input:checked + span::after {
 
     color: #12a36a;
 
-    font-size: 8px;
+    font-size:12px;
     font-weight: 700;
 }
 

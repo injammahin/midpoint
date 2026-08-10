@@ -1151,7 +1151,7 @@ USER MANAGEMENT STYLES
             color:
                 var(--admin-muted-2);
 
-            font-size: 8px;
+            font-size:12px;
 
         }
 
@@ -1460,7 +1460,7 @@ USER MANAGEMENT STYLES
             color:
                 var(--admin-muted);
 
-            font-size: 8px;
+            font-size:12px;
 
         }
 
@@ -1537,7 +1537,7 @@ USER MANAGEMENT STYLES
             color:
                 var(--admin-muted);
 
-            font-size: 8px;
+            font-size:12px;
 
             font-weight: 700;
 
@@ -1688,7 +1688,7 @@ USER MANAGEMENT STYLES
             color:
                 var(--admin-muted);
 
-            font-size: 8px;
+            font-size:12px;
 
         }
 
@@ -1700,7 +1700,7 @@ USER MANAGEMENT STYLES
             color:
                 var(--admin-muted-2);
 
-            font-size: 7px;
+            font-size:12px;
 
         }
 
@@ -1756,7 +1756,7 @@ USER MANAGEMENT STYLES
             color:
                 var(--admin-muted-2);
 
-            font-size: 8px;
+            font-size:12px;
 
             text-align: center;
 
@@ -1783,7 +1783,7 @@ USER MANAGEMENT STYLES
 
             border-radius: 999px;
 
-            font-size: 8px;
+            font-size:12px;
 
             font-weight: 600;
 
@@ -1849,7 +1849,7 @@ USER MANAGEMENT STYLES
 
             border-radius: 8px;
 
-            font-size: 8px;
+            font-size:12px;
 
         }
 
@@ -1877,7 +1877,7 @@ USER MANAGEMENT STYLES
             color:
                 var(--admin-muted);
 
-            font-size: 7px;
+            font-size:12px;
 
         }
 
@@ -1940,7 +1940,7 @@ USER MANAGEMENT STYLES
 
             border-radius: 999px;
 
-            font-size: 8px;
+            font-size:12px;
 
             font-weight: 600;
 
@@ -2045,7 +2045,7 @@ USER MANAGEMENT STYLES
             color:
                 var(--admin-muted);
 
-            font-size: 7px;
+            font-size:12px;
 
         }
 
@@ -2057,7 +2057,7 @@ USER MANAGEMENT STYLES
             color:
                 var(--admin-muted-2);
 
-            font-size: 7px;
+            font-size:12px;
 
         }
 
@@ -2126,7 +2126,7 @@ USER MANAGEMENT STYLES
 
             font-family: inherit;
 
-            font-size: 8px;
+            font-size:12px;
 
             font-weight: 600;
 

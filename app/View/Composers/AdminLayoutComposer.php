@@ -3,18 +3,51 @@
 namespace App\View\Composers;
 
 use App\Models\ContactMessage;
+
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 
 class AdminLayoutComposer
 {
+    /*
+    |--------------------------------------------------------------------------
+    | Compose
+    |--------------------------------------------------------------------------
+    */
+
     public function compose(
         View $view
     ) {
+        /*
+        |--------------------------------------------------------------------------
+        | Defaults
+        |--------------------------------------------------------------------------
+        */
+
+        $adminUnreadContactCount = 0;
+
+        $adminUnreadNotificationCount = 0;
+
+        $adminLatestNotifications =
+            collect();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Current User
+        |--------------------------------------------------------------------------
+        */
 
         $user =
             Auth::user();
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | Only Administrators
+        |--------------------------------------------------------------------------
+        */
 
         if (
             !$user
@@ -22,49 +55,89 @@ class AdminLayoutComposer
             $user->role !== 'admin'
         ) {
 
+            $view->with([
+                'adminUnreadContactCount' =>
+                    $adminUnreadContactCount,
+
+                'adminUnreadNotificationCount' =>
+                    $adminUnreadNotificationCount,
+
+                'adminLatestNotifications' =>
+                    $adminLatestNotifications,
+            ]);
+
+
             return;
         }
 
 
         /*
         |--------------------------------------------------------------------------
-        | Contact Count
+        | Contact Messages
         |--------------------------------------------------------------------------
         */
 
-        $adminUnreadContactCount =
-            ContactMessage::query()
-                ->whereNull(
-                    'read_at'
-                )
-                ->count();
+        if (
+            Schema::hasTable(
+                'contact_messages'
+            )
+        ) {
+
+            $adminUnreadContactCount =
+                ContactMessage::query()
+
+                    ->whereNull(
+                        'read_at'
+                    )
+
+                    ->count();
+        }
 
 
         /*
         |--------------------------------------------------------------------------
-        | Notification Count
+        | Database Notifications
         |--------------------------------------------------------------------------
         */
 
-        $adminUnreadNotificationCount =
-            $user
-                ->unreadNotifications()
-                ->count();
+        if (
+            Schema::hasTable(
+                'notifications'
+            )
+        ) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | Unread Count
+            |--------------------------------------------------------------------------
+            */
+
+            $adminUnreadNotificationCount =
+                $user
+                    ->unreadNotifications()
+                    ->count();
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Latest Notifications
+            |--------------------------------------------------------------------------
+            */
+
+            $adminLatestNotifications =
+                $user
+                    ->notifications()
+                    ->latest()
+                    ->limit(10)
+                    ->get();
+        }
 
 
         /*
         |--------------------------------------------------------------------------
-        | Latest Notifications
+        | Send To Layout
         |--------------------------------------------------------------------------
         */
-
-        $adminLatestNotifications =
-            $user
-                ->notifications()
-                ->latest()
-                ->limit(8)
-                ->get();
-
 
         $view->with([
 
