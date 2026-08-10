@@ -101,7 +101,17 @@
                     New to MidPoint?
 
                     <a
-                        href="{{ url('/register') }}"
+                        href="{{
+                            route(
+                                'register',
+                                request()->filled('redirect')
+                                    ? [
+                                        'redirect' =>
+                                            request('redirect')
+                                    ]
+                                    : []
+                            )
+                        }}"
                         class="font-semibold
                                text-[#7A5AF8]"
                     >

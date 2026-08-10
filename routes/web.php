@@ -21,6 +21,7 @@ use App\Http\Controllers\VerifiedSellerController;
 use App\Http\Controllers\SellerApplicationController;
 use App\Http\Controllers\SellerInvoicePaymentController;
 use App\Http\Controllers\FeaturedBusinessController;
+use App\Http\Controllers\SecureTransactionController;
 
 
 /*
@@ -46,7 +47,7 @@ use App\Http\Controllers\Seller\DashboardController as SellerDashboardController
 use App\Http\Controllers\Seller\SellerProductController;
 use App\Http\Controllers\Buyer\DashboardController as BuyerDashboardController;
 use App\Http\Controllers\Seller\SellerBusinessProfileController;
-
+use App\Http\Controllers\Seller\SellerSecureTransactionController;
 /*
 |--------------------------------------------------------------------------
 | Admin Controllers
@@ -101,7 +102,36 @@ Route::get(
 )->name(
     'home'
 );
+/*
+|--------------------------------------------------------------------------
+| Secure Buyer Transaction Link
+|--------------------------------------------------------------------------
+|
+| We intentionally handle authentication inside the controller.
+|
+| That allows:
+|
+| Guest
+|   ↓
+| Login
+|   ↓
+| 2FA if enabled
+|   ↓
+| Verification if needed
+|   ↓
+| Return to the exact transaction.
+|
+*/
 
+Route::get(
+    '/transaction/{secureTransaction}',
+    [
+        SecureTransactionController::class,
+        'show',
+    ]
+)->name(
+    'secure-transactions.show'
+);
 
 /*
 |--------------------------------------------------------------------------
@@ -1030,24 +1060,55 @@ Route::middleware([
             | Create Transaction
             |--------------------------------------------------------------------------
             */
+/*
+|--------------------------------------------------------------------------
+| Create Secure Transaction
+|--------------------------------------------------------------------------
+*/
 
-            Route::view(
-                '/transactions/create',
-                'account.coming-soon',
-                [
-                    'dashboardRole' =>
-                        'seller',
+Route::get(
+    '/transactions/create',
+    [
+        SellerSecureTransactionController::class,
+        'create',
+    ]
+)->name(
+    'transactions.create'
+);
 
-                    'pageTitle' =>
-                        'Create transaction',
 
-                    'pageIcon' =>
-                        'fa-circle-plus',
-                ]
-            )->name(
-                'transactions.create'
-            );
+/*
+|--------------------------------------------------------------------------
+| Generate Secure Transaction
+|--------------------------------------------------------------------------
+*/
 
+Route::post(
+    '/transactions',
+    [
+        SellerSecureTransactionController::class,
+        'store',
+    ]
+)->name(
+    'transactions.store'
+);
+
+
+/*
+|--------------------------------------------------------------------------
+| Generated Link
+|--------------------------------------------------------------------------
+*/
+
+Route::get(
+    '/transactions/{secureTransaction}/generated',
+    [
+        SellerSecureTransactionController::class,
+        'generated',
+    ]
+)->name(
+    'transactions.generated'
+);
 
             /*
             |--------------------------------------------------------------------------

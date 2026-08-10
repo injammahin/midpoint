@@ -19,8 +19,45 @@ class RegistrationController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    public function create()
+    public function create(
+        Request $request
+    )
     {
+        if (
+            $request->filled(
+                'redirect'
+            )
+        ) {
+
+            $redirect =
+                $request->input(
+                    'redirect'
+                );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Prevent Open Redirect
+            |--------------------------------------------------------------------------
+            */
+
+            if (
+                str_starts_with(
+                    $redirect,
+                    url('/')
+                )
+            ) {
+
+                $request
+                    ->session()
+                    ->put(
+                        'url.intended',
+                        $redirect
+                    );
+            }
+        }
+
+
         return view(
             'frontend.pages.register'
         );

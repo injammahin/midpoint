@@ -140,7 +140,17 @@
                     Already registered?
 
                     <a
-                        href="{{ route('login') }}"
+                        href="{{
+                            route(
+                                'login',
+                                request()->filled('redirect')
+                                    ? [
+                                        'redirect' =>
+                                            request('redirect')
+                                    ]
+                                    : []
+                            )
+                        }}"
                         class="font-semibold text-[#7A5AF8]"
                     >
                         Log in

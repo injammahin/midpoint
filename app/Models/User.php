@@ -476,4 +476,32 @@ class User extends Authenticatable implements MustVerifyEmailContract
             \App\Models\SellerBusinessProfile::class
         );
     }
+    /*
+|--------------------------------------------------------------------------
+| Secure Transactions As Seller
+|--------------------------------------------------------------------------
+*/
+
+public function secureTransactionsAsSeller()
+{
+    return $this->hasMany(
+        \App\Models\SecureTransaction::class,
+        'seller_id'
+    );
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Secure Transactions As Buyer
+|--------------------------------------------------------------------------
+*/
+
+public function secureTransactionsAsBuyer()
+{
+    return $this->hasMany(
+        \App\Models\SecureTransaction::class,
+        'buyer_id'
+    );
+}
 }

@@ -21,11 +21,15 @@ class EmailVerificationController extends Controller
             $request->user();
 
 
-        if ($user->hasVerifiedEmail()) {
+        if (
+            $user->hasVerifiedEmail()
+        ) {
 
             return redirect()
-                ->route(
-                    'dashboard'
+                ->intended(
+                    route(
+                        'dashboard'
+                    )
                 );
         }
 
@@ -122,10 +126,12 @@ class EmailVerificationController extends Controller
                 Auth::id() === $user->id
             ) {
 
-                return redirect()
-                    ->route(
+            return redirect()
+                ->intended(
+                    route(
                         'dashboard'
-                    );
+                    )
+                );
             }
 
 
@@ -236,14 +242,16 @@ class EmailVerificationController extends Controller
             Auth::id() === $user->id
         ) {
 
-            return redirect()
-                ->route(
+        return redirect()
+            ->intended(
+                route(
                     'dashboard'
                 )
-                ->with(
-                    'success',
-                    'Your email has been verified successfully.'
-                );
+            )
+            ->with(
+                'success',
+                'Your email has been verified successfully.'
+            );
 
         }
 

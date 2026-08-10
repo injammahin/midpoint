@@ -460,6 +460,10 @@
                     request()->routeIs(
                         'seller.transactions.create'
                     )
+                    ||
+                    request()->routeIs(
+                        'seller.transactions.generated'
+                    )
                         ? 'active'
                         : ''
                 }}
@@ -480,7 +484,6 @@
             </span>
 
         </a>
-
 
 
         {{-- =====================================================
