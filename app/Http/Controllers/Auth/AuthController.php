@@ -3,10 +3,15 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+
 use App\Models\User;
+
 use Illuminate\Http\Request;
+
 use Illuminate\Support\Facades\Auth;
+
 use Illuminate\Support\Facades\Hash;
+
 
 class AuthController extends Controller
 {
@@ -18,8 +23,7 @@ class AuthController extends Controller
 
     public function showLogin(
         Request $request
-    )
-    {
+    ) {
         if (
             $request->filled(
                 'redirect'
@@ -32,9 +36,6 @@ class AuthController extends Controller
                 );
 
 
-            /*
-            * Only accept local application URLs.
-            */
             if (
                 str_starts_with(
                     $redirect,
@@ -42,13 +43,12 @@ class AuthController extends Controller
                 )
             ) {
 
-                session(
-                    [
-                        'url.intended' =>
-                            $redirect,
-                    ]
-                );
+                session([
 
+                    'url.intended' =>
+                        $redirect,
+
+                ]);
             }
         }
 
@@ -57,6 +57,7 @@ class AuthController extends Controller
             'frontend.pages.login'
         );
     }
+
 
     /*
     |--------------------------------------------------------------------------
@@ -67,54 +68,56 @@ class AuthController extends Controller
     public function login(
         Request $request
     ) {
-
         $validated =
-            $request->validate(
-                [
+            $request->validate([
 
-                    'login' => [
-                        'required',
-                        'string',
-                    ],
+                'login' => [
+                    'required',
+                    'string',
+                ],
 
-                    'password' => [
-                        'required',
-                        'string',
-                    ],
+                'password' => [
+                    'required',
+                    'string',
+                ],
 
-                    'remember' => [
-                        'nullable',
-                        'boolean',
-                    ],
+                'remember' => [
+                    'nullable',
+                    'boolean',
+                ],
 
-                ]
-            );
+            ]);
 
 
         $login =
             trim(
-                $validated['login']
+                $validated[
+                    'login'
+                ]
             );
 
 
         /*
         |--------------------------------------------------------------------------
-        | Email or Phone
+        | Email Or Phone
         |--------------------------------------------------------------------------
         */
 
         $user =
             User::query()
+
                 ->where(
                     'email',
                     strtolower(
                         $login
                     )
                 )
+
                 ->orWhere(
                     'phone',
                     $login
                 )
+
                 ->first();
 
 
@@ -128,28 +131,31 @@ class AuthController extends Controller
             !$user
             ||
             !Hash::check(
-                $validated['password'],
+                $validated[
+                    'password'
+                ],
                 $user->password
             )
         ) {
 
             return back()
+
                 ->withErrors([
 
                     'login' =>
                         'The provided credentials do not match our records.',
 
                 ])
+
                 ->onlyInput(
                     'login'
                 );
-
         }
 
 
         /*
         |--------------------------------------------------------------------------
-        | Disabled
+        | Disabled Account
         |--------------------------------------------------------------------------
         */
 
@@ -158,33 +164,90 @@ class AuthController extends Controller
         ) {
 
             return back()
+
                 ->withErrors([
 
                     'login' =>
                         'Your account is currently inactive. Please contact MidPoint support.',
 
                 ])
+
                 ->onlyInput(
                     'login'
                 );
-
         }
 
 
         /*
         |--------------------------------------------------------------------------
-        | Login
+        | Two Factor Challenge
+        |--------------------------------------------------------------------------
+        |
+        | IMPORTANT:
+        |
+        | Do NOT authenticate the session until the second factor succeeds.
+        |
+        */
+
+        if (
+            $user->hasTwoFactorEnabled()
+        ) {
+
+            $request
+                ->session()
+                ->put([
+
+                    'two_factor.login_user_id' =>
+                        $user->id,
+
+                    'two_factor.remember' =>
+                        $request->boolean(
+                            'remember'
+                        ),
+
+                    'two_factor.started_at' =>
+                        now()->timestamp,
+
+                ]);
+
+
+            return redirect()
+                ->route(
+                    'two-factor.challenge'
+                );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Normal Login Without 2FA
         |--------------------------------------------------------------------------
         */
 
-        Auth::login(
-
+        return $this->completeLogin(
+            $request,
             $user,
-
             $request->boolean(
                 'remember'
             )
+        );
+    }
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Complete Login
+    |--------------------------------------------------------------------------
+    */
+
+    private function completeLogin(
+        Request $request,
+        User $user,
+        bool $remember
+    ) {
+        Auth::login(
+            $user,
+            $remember
         );
 
 
@@ -218,7 +281,7 @@ class AuthController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Verify First
+        | Email Verification
         |--------------------------------------------------------------------------
         */
 
@@ -232,7 +295,6 @@ class AuthController extends Controller
                 ->route(
                     'verification.notice'
                 );
-
         }
 
 
@@ -254,7 +316,6 @@ class AuthController extends Controller
     public function logout(
         Request $request
     ) {
-
         Auth::logout();
 
 

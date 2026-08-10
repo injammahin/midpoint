@@ -20,6 +20,7 @@ use App\Http\Controllers\AccountViewController;
 use App\Http\Controllers\VerifiedSellerController;
 use App\Http\Controllers\SellerApplicationController;
 use App\Http\Controllers\SellerInvoicePaymentController;
+use App\Http\Controllers\FeaturedBusinessController;
 
 
 /*
@@ -31,6 +32,7 @@ use App\Http\Controllers\SellerInvoicePaymentController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\RegistrationController;
 use App\Http\Controllers\Auth\EmailVerificationController;
+use App\Http\Controllers\Auth\TwoFactorChallengeController;
 
 
 /*
@@ -39,10 +41,11 @@ use App\Http\Controllers\Auth\EmailVerificationController;
 |--------------------------------------------------------------------------
 */
 
+use App\Http\Controllers\Seller\SellerProfileSettingsController;
 use App\Http\Controllers\Seller\DashboardController as SellerDashboardController;
 use App\Http\Controllers\Seller\SellerProductController;
 use App\Http\Controllers\Buyer\DashboardController as BuyerDashboardController;
-
+use App\Http\Controllers\Seller\SellerBusinessProfileController;
 
 /*
 |--------------------------------------------------------------------------
@@ -55,15 +58,21 @@ use App\Http\Controllers\Admin\WebsiteSettingsController;
 use App\Http\Controllers\Admin\SupportInquiryController;
 use App\Http\Controllers\Admin\ContactMessageController;
 use App\Http\Controllers\Admin\AdminNotificationController;
+
 use App\Http\Controllers\Admin\FaqController as AdminFaqController;
+
 use App\Http\Controllers\Admin\PricingController as AdminPricingController;
+
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Admin\UserImpersonationController;
+
 use App\Http\Controllers\Admin\LiveSupportController;
 use App\Http\Controllers\Admin\LiveSupportSettingsController;
+
 use App\Http\Controllers\Admin\SellerPackageController;
 use App\Http\Controllers\Admin\SellerInvoiceController;
 use App\Http\Controllers\Admin\SellerSubscriptionController;
+
 use App\Http\Controllers\Admin\SellerApplicationController
     as AdminSellerApplicationController;
 
@@ -145,9 +154,12 @@ Route::get(
 |--------------------------------------------------------------------------
 */
 
-Route::view(
+Route::get(
     '/featured-businesses',
-    'frontend.pages.featured-businesses'
+    [
+        FeaturedBusinessController::class,
+        'index',
+    ]
 )->name(
     'featured-businesses'
 );
@@ -155,18 +167,25 @@ Route::view(
 
 /*
 |--------------------------------------------------------------------------
+| Seller Business Profile
+|--------------------------------------------------------------------------
+*/
+
+Route::get(
+    '/featured-businesses/{seller}',
+    [
+        FeaturedBusinessController::class,
+        'show',
+    ]
+)->name(
+    'featured-businesses.show'
+);
+
+
+/*
+|--------------------------------------------------------------------------
 | Verified Sellers
 |--------------------------------------------------------------------------
-|
-| Public page.
-|
-| Guests can:
-| - See packages
-| - Select packages
-| - Be redirected to login before applying
-|
-| Logged-in users can additionally see their application/payment state.
-|
 */
 
 Route::get(
@@ -261,9 +280,6 @@ Route::get(
 |--------------------------------------------------------------------------
 | Live Support Availability
 |--------------------------------------------------------------------------
-|
-| Public because a guest needs to know whether live support is available.
-|
 */
 
 Route::get(
@@ -318,6 +334,38 @@ Route::view(
 Route::middleware([
     'guest',
 ])->group(function () {
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Two-Factor Challenge
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get(
+        '/two-factor-challenge',
+        [
+            TwoFactorChallengeController::class,
+            'show',
+        ]
+    )->name(
+        'two-factor.challenge'
+    );
+
+
+    Route::post(
+        '/two-factor-challenge',
+        [
+            TwoFactorChallengeController::class,
+            'store',
+        ]
+    )
+        ->middleware(
+            'throttle:10,1'
+        )
+        ->name(
+            'two-factor.challenge.store'
+        );
 
 
     /*
@@ -467,10 +515,6 @@ Route::post(
 |--------------------------------------------------------------------------
 | Verify Email
 |--------------------------------------------------------------------------
-|
-| Auth is intentionally not required because users may open the
-| verification email in another browser/device.
-|
 */
 
 Route::get(
@@ -495,11 +539,6 @@ Route::get(
 | MAIN DASHBOARD ROUTER
 |--------------------------------------------------------------------------
 |--------------------------------------------------------------------------
-|
-| Admin  -> Admin Dashboard
-| Seller -> Seller Dashboard
-| Buyer  -> Buyer Dashboard
-|
 */
 
 Route::get(
@@ -521,15 +560,6 @@ Route::get(
 | STOP ADMIN IMPERSONATION
 |--------------------------------------------------------------------------
 |--------------------------------------------------------------------------
-|
-| Must remain outside the admin middleware.
-|
-| While impersonating:
-|
-| Auth::user()
-|
-| is the customer, not the administrator.
-|
 */
 
 Route::post(
@@ -553,19 +583,6 @@ Route::post(
 | SHARED AUTHENTICATED LIVE SUPPORT ROUTES
 |--------------------------------------------------------------------------
 |--------------------------------------------------------------------------
-|
-| IMPORTANT:
-|
-| These routes are NOT behind "verified".
-|
-| Reason:
-|
-| Both customer and admin use the same conversation endpoints.
-| Admin accounts should not be blocked simply because their email_verified_at
-| field is null.
-|
-| Authorization is handled inside SupportChatController.
-|
 */
 
 Route::middleware([
@@ -595,9 +612,6 @@ Route::middleware([
     |--------------------------------------------------------------------------
     | Send Chat Message
     |--------------------------------------------------------------------------
-    |
-    | Customer or assigned support agent.
-    |
     */
 
     Route::post(
@@ -636,9 +650,6 @@ Route::middleware([
 | VERIFIED CUSTOMER ACTIONS
 |--------------------------------------------------------------------------
 |--------------------------------------------------------------------------
-|
-| Actions that specifically require a verified user account.
-|
 */
 
 Route::middleware([
@@ -652,13 +663,6 @@ Route::middleware([
     |--------------------------------------------------------------------------
     | Seller Application
     |--------------------------------------------------------------------------
-    |
-    | User must:
-    |
-    | - Be logged in
-    | - Be active
-    | - Have a verified email
-    |
     */
 
     Route::post(
@@ -674,7 +678,7 @@ Route::middleware([
 
     /*
     |--------------------------------------------------------------------------
-    | Seller Invoice Demo Payment
+    | Seller Invoice Payment
     |--------------------------------------------------------------------------
     */
 
@@ -718,9 +722,6 @@ Route::middleware([
     |--------------------------------------------------------------------------
     | Start Live Support Chat
     |--------------------------------------------------------------------------
-    |
-    | Starting a brand-new conversation requires a verified user.
-    |
     */
 
     Route::post(
@@ -802,72 +803,227 @@ Route::middleware([
             );
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | Listed Products
-        |--------------------------------------------------------------------------
-        */
-
-        Route::get(
-            '/products',
-            [
-                SellerProductController::class,
-                'index',
-            ]
-        )->name(
-            'products'
-        );
+            /*
+            |--------------------------------------------------------------------------
+            |--------------------------------------------------------------------------
+            | SELLER PROFILE SETTINGS
+            |--------------------------------------------------------------------------
+            |--------------------------------------------------------------------------
+            */
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | Store Product
-        |--------------------------------------------------------------------------
-        */
+            /*
+            |--------------------------------------------------------------------------
+            | Profile Settings Page
+            |--------------------------------------------------------------------------
+            */
 
-        Route::post(
-            '/products',
-            [
-                SellerProductController::class,
-                'store',
-            ]
-        )->name(
-            'products.store'
-        );
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Update Product
-        |--------------------------------------------------------------------------
-        */
-
-        Route::put(
-            '/products/{sellerProduct}',
-            [
-                SellerProductController::class,
-                'update',
-            ]
-        )->name(
-            'products.update'
-        );
+            Route::get(
+                '/profile-settings',
+                [
+                    SellerProfileSettingsController::class,
+                    'index',
+                ]
+            )->name(
+                'profile-settings'
+            );
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | Delete Product
-        |--------------------------------------------------------------------------
-        */
+            /*
+            |--------------------------------------------------------------------------
+            | Update Personal Details
+            |--------------------------------------------------------------------------
+            */
 
-        Route::delete(
-            '/products/{sellerProduct}',
-            [
-                SellerProductController::class,
-                'destroy',
-            ]
-        )->name(
-            'products.destroy'
-        );
+            Route::put(
+                '/profile-settings/personal',
+                [
+                    SellerProfileSettingsController::class,
+                    'updateProfile',
+                ]
+            )->name(
+                'profile-settings.personal'
+            );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Update Bank Details
+            |--------------------------------------------------------------------------
+            */
+
+            Route::put(
+                '/profile-settings/bank',
+                [
+                    SellerProfileSettingsController::class,
+                    'updateBank',
+                ]
+            )->name(
+                'profile-settings.bank'
+            );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Notification Preferences
+            |--------------------------------------------------------------------------
+            */
+
+            Route::put(
+                '/profile-settings/notifications',
+                [
+                    SellerProfileSettingsController::class,
+                    'updateNotifications',
+                ]
+            )->name(
+                'profile-settings.notifications'
+            );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Change Password
+            |--------------------------------------------------------------------------
+            */
+
+            Route::put(
+                '/profile-settings/password',
+                [
+                    SellerProfileSettingsController::class,
+                    'changePassword',
+                ]
+            )->name(
+                'profile-settings.password'
+            );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Begin Two-Factor Setup
+            |--------------------------------------------------------------------------
+            */
+
+            Route::post(
+                '/profile-settings/two-factor/setup',
+                [
+                    SellerProfileSettingsController::class,
+                    'setupTwoFactor',
+                ]
+            )->name(
+                'profile-settings.two-factor.setup'
+            );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Confirm Two-Factor Setup
+            |--------------------------------------------------------------------------
+            */
+
+            Route::post(
+                '/profile-settings/two-factor/confirm',
+                [
+                    SellerProfileSettingsController::class,
+                    'confirmTwoFactor',
+                ]
+            )->name(
+                'profile-settings.two-factor.confirm'
+            );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Disable Two-Factor Authentication
+            |--------------------------------------------------------------------------
+            */
+
+            Route::delete(
+                '/profile-settings/two-factor',
+                [
+                    SellerProfileSettingsController::class,
+                    'disableTwoFactor',
+                ]
+            )->name(
+                'profile-settings.two-factor.disable'
+            );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            |--------------------------------------------------------------------------
+            | SELLER PRODUCTS
+            |--------------------------------------------------------------------------
+            |--------------------------------------------------------------------------
+            */
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Listed Products
+            |--------------------------------------------------------------------------
+            */
+
+            Route::get(
+                '/products',
+                [
+                    SellerProductController::class,
+                    'index',
+                ]
+            )->name(
+                'products'
+            );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Store Product
+            |--------------------------------------------------------------------------
+            */
+
+            Route::post(
+                '/products',
+                [
+                    SellerProductController::class,
+                    'store',
+                ]
+            )->name(
+                'products.store'
+            );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Update Product
+            |--------------------------------------------------------------------------
+            */
+
+            Route::put(
+                '/products/{sellerProduct}',
+                [
+                    SellerProductController::class,
+                    'update',
+                ]
+            )->name(
+                'products.update'
+            );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Delete Product
+            |--------------------------------------------------------------------------
+            */
+
+            Route::delete(
+                '/products/{sellerProduct}',
+                [
+                    SellerProductController::class,
+                    'destroy',
+                ]
+            )->name(
+                'products.destroy'
+            );
+
 
             /*
             |--------------------------------------------------------------------------
@@ -941,24 +1097,18 @@ Route::middleware([
             );
 
 
+
             /*
             |--------------------------------------------------------------------------
             | Business Profile
             |--------------------------------------------------------------------------
             */
 
-            Route::view(
+            Route::get(
                 '/business-profile',
-                'account.coming-soon',
                 [
-                    'dashboardRole' =>
-                        'seller',
-
-                    'pageTitle' =>
-                        'Business profile',
-
-                    'pageIcon' =>
-                        'fa-store',
+                    SellerBusinessProfileController::class,
+                    'index',
                 ]
             )->name(
                 'business-profile'
@@ -967,26 +1117,47 @@ Route::middleware([
 
             /*
             |--------------------------------------------------------------------------
-            | Profile Settings
+            | Update Business Profile
             |--------------------------------------------------------------------------
             */
 
-            Route::view(
-                '/profile-settings',
-                'account.coming-soon',
+            Route::put(
+                '/business-profile',
                 [
-                    'dashboardRole' =>
-                        'seller',
-
-                    'pageTitle' =>
-                        'Profile settings',
-
-                    'pageIcon' =>
-                        'fa-gear',
+                    SellerBusinessProfileController::class,
+                    'update',
                 ]
             )->name(
-                'profile-settings'
+                'business-profile.update'
             );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Remove Business Profile Picture
+            |--------------------------------------------------------------------------
+            */
+
+            Route::delete(
+                '/business-profile/profile-image',
+                [
+                    SellerBusinessProfileController::class,
+                    'destroyProfileImage',
+                ]
+            )->name(
+                'business-profile.profile-image.destroy'
+            );
+            /*
+            |--------------------------------------------------------------------------
+            | IMPORTANT
+            |--------------------------------------------------------------------------
+            |
+            | DO NOT add another /profile-settings Route::view() here.
+            |
+            | The real profile settings route is already defined above
+            | using SellerProfileSettingsController@index.
+            |
+            */
 
         });
 
@@ -1099,8 +1270,11 @@ Route::middleware([
 
             /*
             |--------------------------------------------------------------------------
-            | Profile Settings
+            | Buyer Profile Settings
             |--------------------------------------------------------------------------
+            |
+            | Still coming soon for now.
+            |
             */
 
             Route::view(
@@ -1145,48 +1319,60 @@ Route::prefix(
         'admin',
     ])
     ->group(function () {
-Route::prefix(
-    'billing'
-)
-    ->name(
-        'billing.'
-    )
-    ->group(function () {
-
-        /*
-        |--------------------------------------------------------------------------
-        | Invoices
-        |--------------------------------------------------------------------------
-        */
-
-        Route::get(
-            '/invoices',
-            [
-                SellerInvoiceController::class,
-                'index',
-            ]
-        )->name(
-            'invoices.index'
-        );
 
 
         /*
         |--------------------------------------------------------------------------
-        | Purchased Packages
+        |--------------------------------------------------------------------------
+        | BILLING
+        |--------------------------------------------------------------------------
         |--------------------------------------------------------------------------
         */
 
-        Route::get(
-            '/subscriptions',
-            [
-                SellerSubscriptionController::class,
-                'index',
-            ]
-        )->name(
-            'subscriptions.index'
-        );
+        Route::prefix(
+            'billing'
+        )
+            ->name(
+                'billing.'
+            )
+            ->group(function () {
 
-    });
+
+                /*
+                |--------------------------------------------------------------------------
+                | Invoices
+                |--------------------------------------------------------------------------
+                */
+
+                Route::get(
+                    '/invoices',
+                    [
+                        SellerInvoiceController::class,
+                        'index',
+                    ]
+                )->name(
+                    'invoices.index'
+                );
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Purchased Packages
+                |--------------------------------------------------------------------------
+                */
+
+                Route::get(
+                    '/subscriptions',
+                    [
+                        SellerSubscriptionController::class,
+                        'index',
+                    ]
+                )->name(
+                    'subscriptions.index'
+                );
+
+            });
+
 
         /*
         |--------------------------------------------------------------------------
@@ -1398,16 +1584,7 @@ Route::prefix(
 
                 /*
                 |--------------------------------------------------------------------------
-                |--------------------------------------------------------------------------
-                | LIVE SUPPORT SETTINGS
-                |--------------------------------------------------------------------------
-                |--------------------------------------------------------------------------
-                */
-
-
-                /*
-                |--------------------------------------------------------------------------
-                | Settings
+                | Live Support Settings
                 |--------------------------------------------------------------------------
                 */
 
@@ -1532,12 +1709,6 @@ Route::prefix(
                 | SELLER APPLICATIONS
                 |--------------------------------------------------------------------------
                 |--------------------------------------------------------------------------
-                |
-                | Sidebar may display these under "Users & Applications",
-                | but we keep the current route names for compatibility:
-                |
-                | admin.website-settings.seller-applications.*
-                |
                 */
 
 
@@ -1579,9 +1750,6 @@ Route::prefix(
                 |--------------------------------------------------------------------------
                 | Approve Application
                 |--------------------------------------------------------------------------
-                |
-                | Approval generates the seller package invoice.
-                |
                 */
 
                 Route::post(
@@ -1614,7 +1782,7 @@ Route::prefix(
 
                 /*
                 |--------------------------------------------------------------------------
-                | Secure Seller Application Document
+                | Seller Application Document
                 |--------------------------------------------------------------------------
                 */
 
@@ -1637,13 +1805,6 @@ Route::prefix(
                 |--------------------------------------------------------------------------
                 */
 
-
-                /*
-                |--------------------------------------------------------------------------
-                | FAQ List
-                |--------------------------------------------------------------------------
-                */
-
                 Route::get(
                     '/faqs',
                     [
@@ -1654,12 +1815,6 @@ Route::prefix(
                     'faqs'
                 );
 
-
-                /*
-                |--------------------------------------------------------------------------
-                | Store FAQ
-                |--------------------------------------------------------------------------
-                */
 
                 Route::post(
                     '/faqs',
@@ -1672,12 +1827,6 @@ Route::prefix(
                 );
 
 
-                /*
-                |--------------------------------------------------------------------------
-                | Update FAQ
-                |--------------------------------------------------------------------------
-                */
-
                 Route::put(
                     '/faqs/{faq}',
                     [
@@ -1689,12 +1838,6 @@ Route::prefix(
                 );
 
 
-                /*
-                |--------------------------------------------------------------------------
-                | Toggle FAQ
-                |--------------------------------------------------------------------------
-                */
-
                 Route::patch(
                     '/faqs/{faq}/toggle-status',
                     [
@@ -1705,12 +1848,6 @@ Route::prefix(
                     'faqs.toggle-status'
                 );
 
-
-                /*
-                |--------------------------------------------------------------------------
-                | Delete FAQ
-                |--------------------------------------------------------------------------
-                */
 
                 Route::delete(
                     '/faqs/{faq}',
@@ -1726,7 +1863,7 @@ Route::prefix(
                 /*
                 |--------------------------------------------------------------------------
                 |--------------------------------------------------------------------------
-                | PRICING PAGE
+                | PRICING
                 |--------------------------------------------------------------------------
                 |--------------------------------------------------------------------------
                 */
@@ -1758,12 +1895,6 @@ Route::prefix(
                 |--------------------------------------------------------------------------
                 | SELLER PACKAGES
                 |--------------------------------------------------------------------------
-                |--------------------------------------------------------------------------
-                */
-
-                /*
-                |--------------------------------------------------------------------------
-                | Seller Package Page
                 |--------------------------------------------------------------------------
                 */
 
@@ -1937,7 +2068,9 @@ Route::prefix(
 
         /*
         |--------------------------------------------------------------------------
+        |--------------------------------------------------------------------------
         | ADMIN NOTIFICATIONS
+        |--------------------------------------------------------------------------
         |--------------------------------------------------------------------------
         */
 
