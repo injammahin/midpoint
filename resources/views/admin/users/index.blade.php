@@ -973,7 +973,7 @@ USER MANAGEMENT STYLES
             color:
                 var(--admin-muted);
 
-            font-size: 10px;
+            font-size:12px;
 
             line-height: 1.6;
 
@@ -1056,7 +1056,7 @@ USER MANAGEMENT STYLES
             color:
                 #ef5350;
 
-            font-size: 10px;
+            font-size:12px;
 
             line-height: 1.6;
 
@@ -1117,7 +1117,7 @@ USER MANAGEMENT STYLES
             color:
                 var(--admin-muted);
 
-            font-size: 10px;
+            font-size:12px;
 
         }
 
@@ -1256,7 +1256,7 @@ USER MANAGEMENT STYLES
             color:
                 var(--admin-muted-2);
 
-            font-size: 10px;
+            font-size:12px;
 
             pointer-events: none;
 
@@ -1281,7 +1281,7 @@ USER MANAGEMENT STYLES
 
             font-family: inherit;
 
-            font-size: 10px;
+            font-size:12px;
 
             outline: none;
 
@@ -1358,7 +1358,7 @@ USER MANAGEMENT STYLES
 
             font-family: inherit;
 
-            font-size: 10px;
+            font-size:12px;
 
             font-weight: 700;
 
@@ -1561,7 +1561,7 @@ USER MANAGEMENT STYLES
             color:
                 var(--admin-text);
 
-            font-size: 10px;
+            font-size:12px;
 
             vertical-align: middle;
 
@@ -1670,7 +1670,7 @@ USER MANAGEMENT STYLES
             color:
                 var(--admin-heading);
 
-            font-size: 10px;
+            font-size:12px;
 
             font-weight: 700;
 

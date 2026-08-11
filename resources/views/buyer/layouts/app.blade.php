@@ -137,7 +137,7 @@
 
             color: #98A49E;
 
-            font-size: 10px;
+            font-size:12px;
             font-weight: 700;
 
             text-transform: uppercase;

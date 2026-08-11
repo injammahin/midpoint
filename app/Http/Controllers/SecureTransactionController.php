@@ -346,24 +346,54 @@ class SecureTransactionController extends Controller
         |--------------------------------------------------------------------------
         */
 
+
+        $secureTransaction->load([
+
+            'seller.sellerBusinessProfile',
+
+            'seller.activeSellerSubscription.application',
+
+            'seller.activeSellerSubscription.package',
+
+            'product',
+
+            'buyer',
+
+            'successfulPayment',
+
+        ]);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Seller Package Is Optional
+        |--------------------------------------------------------------------------
+        */
+
         $sellerPlan =
             $secureTransaction
                 ->seller
                 ->activeSellerSubscription;
 
 
-        if (!$sellerPlan) {
+        /*
+        |--------------------------------------------------------------------------
+        | Buyer Transaction Page
+        |--------------------------------------------------------------------------
+        */
 
-            return response()
-                ->view(
-                    'frontend.pages.secure-transaction-unavailable',
-                    [
-                        'transaction' =>
-                            $secureTransaction,
-                    ],
-                    409
-                );
-        }
+        return view(
+            'frontend.pages.secure-transaction',
+            [
+
+                'transaction' =>
+                    $secureTransaction,
+
+                'sellerPlan' =>
+                    $sellerPlan,
+
+            ]
+        );
 
 
         return view(

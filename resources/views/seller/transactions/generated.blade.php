@@ -273,7 +273,7 @@
 
     color: #9A5B13;
 
-    font-size: 9px;
+    font-size:11px;
 }
 
 .tg-warning > i {
@@ -290,7 +290,7 @@
 
     color: #7A4610;
 
-    font-size: 9px;
+    font-size:11px;
 }
 
 .tg-warning span {
@@ -307,7 +307,7 @@
     border-radius: 10px;
     background: #ECFDF3;
     color: #067647;
-    font-size: 9px;
+    font-size:11px;
 }
 
 .tg-card {
@@ -353,7 +353,7 @@
     max-width: 520px;
     margin: 8px auto 20px;
     color: #69766F;
-    font-size: 10px;
+    font-size:12px;
     line-height: 1.65;
 }
 
@@ -406,13 +406,13 @@
 .tg-summary strong {
     margin-top: 3px;
     color: #26342D;
-    font-size: 9px;
+    font-size:11px;
 }
 
 .tg-link-label {
     margin: 19px 0 6px;
     color: #344139;
-    font-size: 9px;
+    font-size:11px;
     font-weight: 800;
     text-align: left;
 }
@@ -431,7 +431,7 @@
     border-radius: 10px;
     background: #F8FAF9;
     color: #526059;
-    font-size: 9px;
+    font-size:11px;
 }
 
 .tg-link-box button {
@@ -440,7 +440,7 @@
     border-radius: 10px;
     background: #0B3D2E;
     color: #FFFFFF;
-    font-size: 9px;
+    font-size:11px;
     font-weight: 800;
     cursor: pointer;
 }
@@ -459,7 +459,7 @@
     justify-content: center;
     gap: 6px;
     border-radius: 10px;
-    font-size: 9px;
+    font-size:11px;
     font-weight: 800;
     text-decoration: none;
 }
@@ -486,7 +486,7 @@
 }
 
 .tg-info strong {
-    font-size: 9px;
+    font-size:11px;
 }
 
 .tg-info p {

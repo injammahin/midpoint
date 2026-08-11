@@ -1651,7 +1651,7 @@
 
         color: #6F7C75;
 
-        font-size: 10px;
+        font-size:12px;
     }
 
 
@@ -1833,7 +1833,7 @@
 
         color: #067647;
 
-        font-size: 10px;
+        font-size:12px;
         font-weight: 800;
     }
 
@@ -1878,7 +1878,7 @@
 
         color: #101915;
 
-        font-size: 10px;
+        font-size:12px;
 
         outline: none;
     }
@@ -1896,7 +1896,7 @@
     .ps-readonly-label {
         color: #89958F;
 
-        font-size: 10px;
+        font-size:12px;
         font-weight: 600;
     }
 
@@ -1947,7 +1947,7 @@
 
         color: #087443;
 
-        font-size: 10px;
+        font-size:12px;
         font-weight: 700;
 
         transform:
@@ -2076,7 +2076,7 @@
 
         color: #7A8780;
 
-        font-size: 10px;
+        font-size:12px;
         line-height: 1.4;
     }
 
@@ -2248,7 +2248,7 @@
 
         color: #7C8982;
 
-        font-size: 10px;
+        font-size:12px;
     }
 
 
@@ -2313,7 +2313,7 @@
     .ps-two-factor-enabled small {
         color: #559176;
 
-        font-size: 10px;
+        font-size:12px;
     }
 
 
@@ -2482,7 +2482,7 @@
 
         color: #12B76A;
 
-        font-size: 10px;
+        font-size:12px;
         font-weight: 800;
 
         text-transform: uppercase;
@@ -2670,7 +2670,7 @@
 
         color: #76827C;
 
-        font-size: 10px;
+        font-size:12px;
     }
 
 
@@ -2679,7 +2679,7 @@
 
         color: #0B3D2E;
 
-        font-size: 10px;
+        font-size:12px;
         font-weight: 800;
 
         letter-spacing: .05em;
@@ -2735,7 +2735,7 @@
 
         color: #17251F;
 
-        font-size: 10px;
+        font-size:12px;
         font-weight: 800;
 
         text-align: center;

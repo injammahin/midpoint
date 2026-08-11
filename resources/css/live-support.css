@@ -91,7 +91,7 @@
     align-items: center;
     gap: 6px;
 
-    font-size: 10px;
+    font-size:12px;
     font-weight: 700;
 
     letter-spacing: .08em;
@@ -231,7 +231,7 @@
 
     color: #12b76a;
 
-    font-size: 10px;
+    font-size:12px;
     font-weight: 700;
 }
 
@@ -705,7 +705,7 @@ input:checked + span::after {
 
     color: #6b7d95;
 
-    font-size: 10px;
+    font-size:12px;
 }
 
 
@@ -838,7 +838,7 @@ input:checked + span::after {
 
     color: #75879c;
 
-    font-size: 10px;
+    font-size:12px;
 }
 
 
@@ -929,7 +929,7 @@ input:checked + span::after {
 
     margin: 4px auto 0;
 
-    font-size: 10px;
+    font-size:12px;
 }
 
 
@@ -968,7 +968,7 @@ input:checked + span::after {
 
     color: #75879c;
 
-    font-size: 10px;
+    font-size:12px;
 }
 
 
@@ -988,7 +988,7 @@ input:checked + span::after {
 
     color: #ffffff;
 
-    font-size: 10px;
+    font-size:12px;
     font-weight: 600;
 }
 
@@ -1138,7 +1138,7 @@ input:checked + span::after {
 .als-file-button {
     color: #64778e;
 
-    font-size: 10px;
+    font-size:12px;
 
     cursor: pointer;
 }
@@ -1153,7 +1153,7 @@ input:checked + span::after {
     background: #0d2746;
     color: #ffffff;
 
-    font-size: 10px;
+    font-size:12px;
     font-weight: 600;
 }
 
@@ -1217,7 +1217,7 @@ input:checked + span::after {
 
     color: #718398;
 
-    font-size: 10px;
+    font-size:12px;
 }
 
 
@@ -1237,7 +1237,7 @@ input:checked + span::after {
 
     margin: 12px 0 5px;
 
-    font-size: 10px;
+    font-size:12px;
     font-weight: 600;
 }
 
@@ -1297,7 +1297,7 @@ input:checked + span::after {
         0 15px 45px
         rgba(13,39,70,.25);
 
-    font-size: 10px;
+    font-size:12px;
     font-weight: 600;
 
     opacity: 0;

@@ -1559,7 +1559,7 @@
         gap: 6px;
         margin-bottom: 18px;
         color: #087443;
-        font-size: 10px;
+        font-size:12px;
         font-weight: 700;
         text-decoration: none;
     }
@@ -1643,7 +1643,7 @@
         gap: 7px;
         margin-top: 4px;
         color: #6C7972;
-        font-size: 9px;
+        font-size:11px;
     }
 
     .shop-tagline {
@@ -1657,7 +1657,7 @@
         max-width: 600px;
         margin-top: 8px;
         color: #49574F;
-        font-size: 10px;
+        font-size:12px;
         line-height: 1.7;
     }
 
@@ -1695,7 +1695,7 @@
         justify-content: center;
         gap: 7px;
         border-radius: 10px;
-        font-size: 10px;
+        font-size:12px;
         font-weight: 800;
         text-decoration: none;
     }
@@ -1740,7 +1740,7 @@
         display: block;
         margin-bottom: 5px;
         color: #6F7D76;
-        font-size: 9px;
+        font-size:11px;
     }
 
     .shop-metrics strong {
@@ -1776,7 +1776,7 @@
         padding: 8px 12px;
         border-radius: 8px;
         color: #536159;
-        font-size: 9px;
+        font-size:11px;
         font-weight: 700;
         text-decoration: none;
     }
@@ -1820,7 +1820,7 @@
     .shop-section-heading p {
         margin: 3px 0 0;
         color: #6C7972;
-        font-size: 9px;
+        font-size:11px;
     }
 
     .shop-product-count {
@@ -1905,7 +1905,7 @@
         border-radius: 50%;
         background: rgba(255,255,255,.95);
         color: #0B3D2E;
-        font-size: 9px;
+        font-size:11px;
         cursor: pointer;
         transform: translateY(-50%);
         box-shadow: 0 4px 15px rgba(0,0,0,.08);
@@ -1966,7 +1966,7 @@
         min-height: 49px;
         margin: 7px 0 10px;
         color: #637069;
-        font-size: 9px;
+        font-size:11px;
         line-height: 1.6;
     }
 
@@ -2012,7 +2012,7 @@
         justify-content: center;
         gap: 5px;
         border-radius: 9px;
-        font-size: 9px;
+        font-size:11px;
         font-weight: 800;
         text-decoration: none;
     }
@@ -2045,7 +2045,7 @@
 
     .shop-about-description {
         color: #526059;
-        font-size: 10px;
+        font-size:12px;
         line-height: 1.75;
     }
 
@@ -2061,7 +2061,7 @@
         gap: 20px;
         padding: 12px 0;
         border-bottom: 1px solid #EEF2F0;
-        font-size: 9px;
+        font-size:11px;
     }
 
     .shop-about-list span {
@@ -2085,7 +2085,7 @@
         display: block;
         margin-bottom: 8px;
         color: #344139;
-        font-size: 9px;
+        font-size:11px;
     }
 
     .shop-about-socials > div {
@@ -2127,7 +2127,7 @@
     .shop-info-grid p {
         margin: 0;
         color: #6A7770;
-        font-size: 9px;
+        font-size:11px;
     }
 
     .shop-package-pill {
@@ -2192,7 +2192,7 @@
 
     .shop-review-score span {
         color: #809089;
-        font-size: 9px;
+        font-size:11px;
     }
 
     .shop-reviews-list {
@@ -2217,7 +2217,7 @@
     .shop-review-top strong {
         display: block;
         color: #101915;
-        font-size: 10px;
+        font-size:12px;
     }
 
     .shop-review-top span {
@@ -2244,7 +2244,7 @@
     .shop-review p {
         margin: 11px 0;
         color: #536159;
-        font-size: 9px;
+        font-size:11px;
         line-height: 1.65;
     }
 
@@ -2277,7 +2277,7 @@
     .shop-no-reviews p,
     .shop-empty-products p {
         margin: 5px 0 0;
-        font-size: 9px;
+        font-size:11px;
     }
 
     .shop-modal[hidden] {
@@ -2468,7 +2468,7 @@
     .shop-modal-description-heading {
         margin: 17px 0 8px;
         color: #28362F;
-        font-size: 10px;
+        font-size:12px;
         font-weight: 800;
     }
 
@@ -2476,7 +2476,7 @@
         max-height: 270px;
         overflow-y: auto;
         color: #526059;
-        font-size: 10px;
+        font-size:12px;
         line-height: 1.72;
     }
 
@@ -2504,7 +2504,7 @@
         justify-content: center;
         gap: 7px;
         border-radius: 10px;
-        font-size: 10px;
+        font-size:12px;
         font-weight: 800;
         text-decoration: none;
     }

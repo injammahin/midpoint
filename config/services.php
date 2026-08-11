@@ -13,7 +13,31 @@ return [
     | a conventional file to locate the various service credentials.
     |
     */
+    'paystack' => [
 
+        'mode' =>
+            env(
+                'PAYSTACK_MODE',
+                'test'
+            ),
+
+        'public_key' =>
+            env(
+                'PAYSTACK_PUBLIC_KEY'
+            ),
+
+        'secret_key' =>
+            env(
+                'PAYSTACK_SECRET_KEY'
+            ),
+
+        'base_url' =>
+            env(
+                'PAYSTACK_BASE_URL',
+                'https://api.paystack.co'
+            ),
+
+    ],
     'mailgun' => [
         'domain' => env('MAILGUN_DOMAIN'),
         'secret' => env('MAILGUN_SECRET'),

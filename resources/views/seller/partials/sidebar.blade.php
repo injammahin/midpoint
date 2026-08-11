@@ -1,137 +1,69 @@
 @php
 
-    /*
-    |--------------------------------------------------------------------------
-    | Logged-in Seller
-    |--------------------------------------------------------------------------
-    */
+    $sidebarUser = auth()->user();
 
-    $sidebarUser =
-        auth()->user();
+    $sidebarNow = now();
 
+    $sidebarLatestPlan = null;
 
-    /*
-    |--------------------------------------------------------------------------
-    | Current Time
-    |--------------------------------------------------------------------------
-    */
+    $sidebarActivePlan = null;
 
-    $sidebarNow =
-        now();
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Latest Subscription
-    |--------------------------------------------------------------------------
-    |
-    | This can be:
-    |
-    | active
-    | expired
-    | or another historic subscription
-    |
-    */
-
-    $sidebarLatestPlan =
-        null;
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Valid Active Subscription
-    |--------------------------------------------------------------------------
-    */
-
-    $sidebarActivePlan =
-        null;
+    $sellerUnreadNotificationCount = 0;
 
 
     if ($sidebarUser) {
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Latest Subscription
-        |--------------------------------------------------------------------------
-        */
-
         $sidebarLatestPlan =
             \App\Models\SellerSubscription::query()
-
                 ->where(
                     'user_id',
                     $sidebarUser->id
                 )
-
                 ->latest('id')
-
                 ->first();
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | ACTIVE PLAN
-        |--------------------------------------------------------------------------
-        |
-        | IMPORTANT:
-        |
-        | We check all requirements explicitly.
-        |
-        | It MUST:
-        |
-        | 1. belong to this exact user
-        | 2. status = active
-        | 3. either have no expiry or expiry > NOW
-        |
-        | Therefore a brand-new user with no subscription can NEVER
-        | accidentally unlock Listed Products.
-        |
-        */
-
         $sidebarActivePlan =
             \App\Models\SellerSubscription::query()
-
                 ->where(
                     'user_id',
                     $sidebarUser->id
                 )
-
                 ->where(
                     'status',
                     \App\Models\SellerSubscription::STATUS_ACTIVE
                 )
+                ->where(function ($query) use ($sidebarNow) {
 
-                ->where(
-                    function ($query) use ($sidebarNow) {
+                    $query
+                        ->whereNull('expires_at')
+                        ->orWhere(
+                            'expires_at',
+                            '>',
+                            $sidebarNow
+                        );
 
-                        $query
-
-                            ->whereNull(
-                                'expires_at'
-                            )
-
-                            ->orWhere(
-                                'expires_at',
-                                '>',
-                                $sidebarNow
-                            );
-                    }
-                )
-
+                })
                 ->latest('id')
-
                 ->first();
 
+
+        $sellerUnreadNotificationCount =
+            \App\Models\TransactionNotification::query()
+                ->where(
+                    'user_id',
+                    $sidebarUser->id
+                )
+                ->where(
+                    'audience',
+                    'seller'
+                )
+                ->whereNull(
+                    'read_at'
+                )
+                ->count();
     }
 
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Listed Products Unlocked?
-    |--------------------------------------------------------------------------
-    */
 
     $sellerProductsUnlocked =
         !is_null(
@@ -139,25 +71,13 @@
         );
 
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Plan Expired?
-    |--------------------------------------------------------------------------
-    */
-
     $sellerPlanExpired =
         false;
 
 
-    if (
-        !$sellerProductsUnlocked
-        &&
-        $sidebarLatestPlan
-    ) {
+    if (!$sellerProductsUnlocked && $sidebarLatestPlan) {
 
         $sellerPlanExpired =
-
             $sidebarLatestPlan->status
             ===
             \App\Models\SellerSubscription::STATUS_EXPIRED
@@ -176,46 +96,18 @@
     }
 
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Product Destination
-    |--------------------------------------------------------------------------
-    |
-    | Active plan:
-    |
-    | /seller/products
-    |
-    | Locked:
-    |
-    | /verified-sellers
-    |
-    */
-
     $sellerProductUrl =
         $sellerProductsUnlocked
 
-            ? route(
-                'seller.products'
-            )
+            ? route('seller.products')
 
-            : route(
-                'verified-sellers'
-            );
+            : route('verified-sellers');
 
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Tooltip
-    |--------------------------------------------------------------------------
-    */
 
     if ($sellerPlanExpired) {
 
         $sellerProductTooltipTitle =
             'Your plan has expired';
-
 
         $sellerProductTooltip =
             'Renew or purchase another seller package to unlock Listed Products.';
@@ -225,13 +117,71 @@
         $sellerProductTooltipTitle =
             'Seller package required';
 
-
         $sellerProductTooltip =
             'Purchase a seller package to unlock Listed Products.';
     }
 
-@endphp
 
+    $sellerDashboardActive =
+        request()->routeIs(
+            'seller.dashboard'
+        );
+
+
+    $sellerProductsActive =
+        request()->routeIs(
+            'seller.products*'
+        );
+
+
+    $sellerCreateTransactionActive =
+        request()->routeIs(
+            'seller.transactions.create'
+        )
+        ||
+        request()->routeIs(
+            'seller.transactions.generated'
+        );
+
+
+    $sellerTransactionsActive =
+        request()->routeIs(
+            'seller.transactions'
+        )
+        ||
+        request()->routeIs(
+            'seller.transactions.show'
+        );
+
+
+    $sellerNotificationsActive =
+        request()->routeIs(
+            'seller.notifications*'
+        );
+
+
+    $sellerBusinessProfileActive =
+        request()->routeIs(
+            'seller.business-profile*'
+        );
+
+
+    $sellerProfileSettingsActive =
+        request()->routeIs(
+            'seller.profile-settings*'
+        );
+
+
+    $sellerSupportActive =
+        request()->routeIs(
+            'support'
+        )
+        ||
+        request()->routeIs(
+            'support.*'
+        );
+
+@endphp
 
 
 <aside
@@ -239,101 +189,55 @@
     class="seller-main-sidebar"
 >
 
-
-    {{-- =========================================================
-        SELLER MENU
-    ========================================================== --}}
-
     <div class="seller-sidebar-section-title">
-
         Seller Menu
-
     </div>
-
 
 
     <nav class="seller-sidebar-nav">
 
 
-        {{-- =====================================================
-            DASHBOARD
-        ====================================================== --}}
+        {{-- Dashboard --}}
 
         <a
             href="{{ route('seller.dashboard') }}"
-
-            class="
-                seller-sidebar-link
-
-                {{
-                    request()->routeIs(
-                        'seller.dashboard'
-                    )
-                        ? 'active'
-                        : ''
-                }}
-            "
+            class="seller-sidebar-link {{ $sellerDashboardActive ? 'active' : '' }}"
         >
 
             <span class="seller-sidebar-icon">
-
                 <i class="fa-solid fa-house"></i>
-
             </span>
 
-
             <span class="seller-sidebar-label">
-
                 Dashboard
-
             </span>
 
         </a>
 
 
 
-        {{-- =====================================================
-            LISTED PRODUCTS
-        ====================================================== --}}
+        {{-- Listed Products --}}
 
         <div class="seller-locked-menu-wrapper">
-
 
             <a
                 href="{{ $sellerProductUrl }}"
 
                 @if(!$sellerProductsUnlocked)
-
-                    aria-label="
-                        Listed Products locked.
-                        {{ $sellerProductTooltip }}
-                    "
-
+                    aria-label="Listed Products locked. {{ $sellerProductTooltip }}"
                 @endif
 
                 class="
                     seller-sidebar-link
 
-                    @if(
-                        $sellerProductsUnlocked
-                        &&
-                        request()->routeIs(
-                            'seller.products*'
-                        )
-                    )
-
+                    @if($sellerProductsUnlocked && $sellerProductsActive)
                         active
-
                     @elseif(!$sellerProductsUnlocked)
-
                         is-locked
-
                     @endif
                 "
             >
 
-
-                {{-- Icon --}}
                 <span class="seller-sidebar-icon">
 
                     @if($sellerProductsUnlocked)
@@ -353,34 +257,21 @@
                 </span>
 
 
-
-                {{-- Label --}}
                 <span class="seller-sidebar-label">
-
                     Listed products
-
                 </span>
 
 
-
-                {{-- Lock --}}
                 @if(!$sellerProductsUnlocked)
 
                     <span class="seller-sidebar-lock">
-
                         <i class="fa-solid fa-lock"></i>
-
                     </span>
 
                 @endif
 
             </a>
 
-
-
-            {{-- =================================================
-                LOCK TOOLTIP
-            ================================================== --}}
 
             @if(!$sellerProductsUnlocked)
 
@@ -393,21 +284,11 @@
 
                         @if($sellerPlanExpired)
 
-                            <i
-                                class="
-                                    fa-solid
-                                    fa-clock-rotate-left
-                                "
-                            ></i>
+                            <i class="fa-solid fa-clock-rotate-left"></i>
 
                         @else
 
-                            <i
-                                class="
-                                    fa-solid
-                                    fa-lock
-                                "
-                            ></i>
+                            <i class="fa-solid fa-lock"></i>
 
                         @endif
 
@@ -417,23 +298,15 @@
                     <div class="seller-plan-tooltip-content">
 
                         <strong>
-
                             {{ $sellerProductTooltipTitle }}
-
                         </strong>
 
-
                         <span>
-
                             {{ $sellerProductTooltip }}
-
                         </span>
 
-
                         <small>
-
                             Click to view seller packages →
-
                         </small>
 
                     </div>
@@ -446,101 +319,50 @@
 
 
 
-        {{-- =====================================================
-            CREATE TRANSACTION
-        ====================================================== --}}
+        {{-- Create Transaction --}}
 
         <a
             href="{{ route('seller.transactions.create') }}"
-
-            class="
-                seller-sidebar-link
-
-                {{
-                    request()->routeIs(
-                        'seller.transactions.create'
-                    )
-                    ||
-                    request()->routeIs(
-                        'seller.transactions.generated'
-                    )
-                        ? 'active'
-                        : ''
-                }}
-            "
+            class="seller-sidebar-link {{ $sellerCreateTransactionActive ? 'active' : '' }}"
         >
 
             <span class="seller-sidebar-icon">
-
                 <i class="fa-solid fa-circle-plus"></i>
-
             </span>
 
-
             <span class="seller-sidebar-label">
-
                 Create transaction
-
             </span>
 
         </a>
 
 
-        {{-- =====================================================
-            TRANSACTIONS
-        ====================================================== --}}
+
+        {{-- Transactions --}}
 
         <a
             href="{{ route('seller.transactions') }}"
-
-            class="
-                seller-sidebar-link
-
-                {{
-                    request()->routeIs(
-                        'seller.transactions'
-                    )
-                        ? 'active'
-                        : ''
-                }}
-            "
+            class="seller-sidebar-link {{ $sellerTransactionsActive ? 'active' : '' }}"
         >
 
             <span class="seller-sidebar-icon">
-
                 <i class="fa-solid fa-file-lines"></i>
-
             </span>
 
 
             <span class="seller-sidebar-label">
-
                 Transactions
-
             </span>
 
         </a>
 
 
 
-        {{-- =====================================================
-            NOTIFICATIONS
-        ====================================================== --}}
+        {{-- Notifications --}}
 
         <a
             href="{{ route('seller.notifications') }}"
-
-            class="
-                seller-sidebar-link
-
-                {{
-                    request()->routeIs(
-                        'seller.notifications'
-                    )
-                        ? 'active'
-                        : ''
-                }}
-            "
+            class="seller-sidebar-link {{ $sellerNotificationsActive ? 'active' : '' }}"
         >
 
             <span class="seller-sidebar-icon">
@@ -551,120 +373,85 @@
 
 
             <span class="seller-sidebar-label">
-
                 Notifications
-
             </span>
+
+
+            @if($sellerUnreadNotificationCount > 0)
+
+                <span
+                    class="seller-sidebar-notification-badge"
+                    title="{{ $sellerUnreadNotificationCount }} unread notification(s)"
+                >
+
+                    {{
+                        $sellerUnreadNotificationCount > 99
+                            ? '99+'
+                            : $sellerUnreadNotificationCount
+                    }}
+
+                </span>
+
+            @endif
 
         </a>
 
 
 
-        {{-- =====================================================
-            BUSINESS PROFILE
-        ====================================================== --}}
+        {{-- Business Profile --}}
 
         <a
             href="{{ route('seller.business-profile') }}"
-
-            class="
-                seller-sidebar-link
-
-                {{
-                    request()->routeIs(
-                        'seller.business-profile'
-                    )
-                        ? 'active'
-                        : ''
-                }}
-            "
+            class="seller-sidebar-link {{ $sellerBusinessProfileActive ? 'active' : '' }}"
         >
 
             <span class="seller-sidebar-icon">
-
                 <i class="fa-solid fa-store"></i>
-
             </span>
 
 
             <span class="seller-sidebar-label">
-
                 Business profile
-
             </span>
 
         </a>
 
 
 
-        {{-- =====================================================
-            PROFILE SETTINGS
-        ====================================================== --}}
+        {{-- Profile Settings --}}
 
         <a
             href="{{ route('seller.profile-settings') }}"
-
-            class="
-                seller-sidebar-link
-
-                {{
-                    request()->routeIs(
-                        'seller.profile-settings'
-                    )
-                        ? 'active'
-                        : ''
-                }}
-            "
+            class="seller-sidebar-link {{ $sellerProfileSettingsActive ? 'active' : '' }}"
         >
 
             <span class="seller-sidebar-icon">
-
                 <i class="fa-solid fa-gear"></i>
-
             </span>
 
 
             <span class="seller-sidebar-label">
-
                 Profile settings
-
             </span>
 
         </a>
 
 
 
-        {{-- =====================================================
-            SUPPORT
-        ====================================================== --}}
+        {{-- Support --}}
 
         <a
             href="{{ route('support') }}"
-
-            class="
-                seller-sidebar-link
-
-                {{
-                    request()->routeIs(
-                        'support'
-                    )
-                        ? 'active'
-                        : ''
-                }}
-            "
+            class="seller-sidebar-link {{ $sellerSupportActive ? 'active' : '' }}"
         >
 
             <span class="seller-sidebar-icon">
-
                 <i class="fa-regular fa-comments"></i>
-
             </span>
 
 
             <span class="seller-sidebar-label">
-
                 Support
-
             </span>
 
         </a>
@@ -673,26 +460,18 @@
 
 
 
-    {{-- =========================================================
-        SWITCH
-    ========================================================== --}}
-
     <div
         class="
             seller-sidebar-section-title
             seller-sidebar-switch-title
         "
     >
-
         Switch
-
     </div>
 
 
 
-    {{-- =========================================================
-        BUYER VIEW
-    ========================================================== --}}
+    {{-- Buyer View --}}
 
     <form
         method="POST"
@@ -709,20 +488,13 @@
 
             <span class="seller-sidebar-icon">
 
-                <i
-                    class="
-                        fa-solid
-                        fa-arrow-right-arrow-left
-                    "
-                ></i>
+                <i class="fa-solid fa-arrow-right-arrow-left"></i>
 
             </span>
 
 
             <span class="seller-sidebar-label">
-
                 Buyer view
-
             </span>
 
         </button>
@@ -731,9 +503,7 @@
 
 
 
-    {{-- =========================================================
-        LOGOUT
-    ========================================================== --}}
+    {{-- Logout --}}
 
     <form
         method="POST"
@@ -745,7 +515,6 @@
 
         <button
             type="submit"
-
             class="
                 seller-sidebar-link
                 seller-sidebar-logout
@@ -754,20 +523,13 @@
 
             <span class="seller-sidebar-icon">
 
-                <i
-                    class="
-                        fa-solid
-                        fa-arrow-right-from-bracket
-                    "
-                ></i>
+                <i class="fa-solid fa-arrow-right-from-bracket"></i>
 
             </span>
 
 
             <span class="seller-sidebar-label">
-
                 Log out
-
             </span>
 
         </button>
@@ -775,3 +537,63 @@
     </form>
 
 </aside>
+
+
+
+<style>
+
+.seller-sidebar-notification-badge {
+    min-width: 20px;
+    height: 20px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    margin-left: auto;
+
+    padding: 0 6px;
+
+    border: 2px solid #FFFFFF;
+    border-radius: 999px;
+
+    background: #F04438;
+
+    color: #FFFFFF;
+
+    font-size: 8px;
+    font-weight: 800;
+
+    line-height: 1;
+}
+
+
+.seller-sidebar-link.active
+.seller-sidebar-notification-badge {
+    border-color: #0B4B3C;
+
+    background: #FFFFFF;
+
+    color: #0B4B3C;
+}
+
+
+.seller-sidebar-link {
+    position: relative;
+}
+
+
+@media(max-width: 1024px) {
+
+    .seller-sidebar-notification-badge {
+        min-width: 18px;
+        height: 18px;
+
+        padding: 0 5px;
+
+        font-size: 7px;
+    }
+
+}
+
+</style>

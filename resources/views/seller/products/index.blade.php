@@ -1654,7 +1654,7 @@
 
         color: var(--sp-green-dark);
 
-        font-size: 10px;
+        font-size:12px;
         font-weight: 700;
 
         white-space: nowrap;
@@ -1731,7 +1731,7 @@
     .sp-upgrade {
         color: var(--sp-muted);
 
-        font-size: 9px;
+        font-size:11px;
     }
 
 
@@ -1827,7 +1827,7 @@
 
         color: var(--sp-muted);
 
-        font-size: 9px;
+        font-size:11px;
     }
 
 
@@ -1850,7 +1850,7 @@
 
         color: #26342D;
 
-        font-size: 10px;
+        font-size:12px;
         font-weight: 700;
     }
 
@@ -1860,7 +1860,7 @@
 
         color: var(--sp-muted);
 
-        font-size: 9px;
+        font-size:11px;
         line-height: 1.55;
     }
 
@@ -1880,7 +1880,7 @@
 
         color: var(--sp-ink);
 
-        font-size: 10px;
+        font-size:12px;
 
         outline: none;
     }
@@ -1961,14 +1961,14 @@
     .sp-image-add-button strong {
         color: #34423B;
 
-        font-size: 10px;
+        font-size:12px;
     }
 
 
     .sp-image-add-button span {
         max-width: 260px;
 
-        font-size: 9px;
+        font-size:11px;
 
         line-height: 1.5;
 
@@ -2041,7 +2041,7 @@
 
         cursor: pointer;
 
-        font-size: 9px;
+        font-size:11px;
     }
 
 
@@ -2157,7 +2157,7 @@
 
 
     .sp-delivery-box strong {
-        font-size: 10px;
+        font-size:12px;
     }
 
 
@@ -2166,7 +2166,7 @@
 
         color: var(--sp-muted);
 
-        font-size: 9px;
+        font-size:11px;
         line-height: 1.6;
     }
 
@@ -2262,7 +2262,7 @@
 
         color: #B54708;
 
-        font-size: 10px;
+        font-size:12px;
     }
 
 
@@ -2271,14 +2271,14 @@
 
         color: #7A5B28;
 
-        font-size: 9px;
+        font-size:11px;
     }
 
 
     .sp-limit-message a {
         color: var(--sp-purple);
 
-        font-size: 9px;
+        font-size:11px;
         font-weight: 700;
 
         text-decoration: none;
@@ -2580,7 +2580,7 @@
 
         color: var(--sp-muted);
 
-        font-size: 9px;
+        font-size:11px;
         line-height: 1.55;
     }
 
@@ -2737,7 +2737,7 @@
 
         color: var(--sp-muted);
 
-        font-size: 9px;
+        font-size:11px;
         line-height: 1.6;
     }
 
@@ -2925,7 +2925,7 @@
 
         border-radius: 9px;
 
-        font-size: 9px;
+        font-size:11px;
         font-weight: 800;
 
         cursor: pointer;
@@ -3003,7 +3003,7 @@
 
         color: var(--sp-muted);
 
-        font-size: 10px;
+        font-size:12px;
         line-height: 1.65;
     }
 

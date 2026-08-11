@@ -1,3 +1,91 @@
+@php
+
+    $sidebarUser =
+        auth()->user();
+
+
+    $buyerUnreadNotificationCount =
+        0;
+
+
+    if ($sidebarUser) {
+
+        $buyerUnreadNotificationCount =
+            \App\Models\TransactionNotification::query()
+
+                ->where(
+                    'user_id',
+                    $sidebarUser->id
+                )
+
+                ->where(
+                    'audience',
+                    'buyer'
+                )
+
+                ->whereNull(
+                    'read_at'
+                )
+
+                ->count();
+    }
+
+
+    $buyerDashboardActive =
+        request()->routeIs(
+            'buyer.dashboard'
+        );
+
+
+    $buyerTransactionsActive =
+        request()->routeIs(
+            'buyer.transactions'
+        )
+        ||
+        request()->routeIs(
+            'buyer.transactions.show'
+        )
+        ||
+        request()->routeIs(
+            'buyer.transactions.invoice'
+        );
+
+
+    $buyerNotificationsActive =
+        request()->routeIs(
+            'buyer.notifications*'
+        );
+
+
+    $buyerFeaturedBusinessesActive =
+        request()->routeIs(
+            'featured-businesses'
+        )
+        ||
+        request()->routeIs(
+            'featured-businesses.show'
+        );
+
+
+    $buyerProfileSettingsActive =
+        request()->routeIs(
+            'buyer.profile-settings*'
+        );
+
+
+    $buyerSupportActive =
+        request()->routeIs(
+            'support'
+        )
+        ||
+        request()->routeIs(
+            'support.*'
+        );
+
+@endphp
+
+
+
 <aside
     id="buyerMainSidebar"
     class="buyer-main-sidebar"
@@ -29,13 +117,7 @@
             class="
                 buyer-sidebar-link
 
-                {{
-                    request()->routeIs(
-                        'buyer.dashboard'
-                    )
-                        ? 'active'
-                        : ''
-                }}
+                {{ $buyerDashboardActive ? 'active' : '' }}
             "
         >
 
@@ -66,13 +148,7 @@
             class="
                 buyer-sidebar-link
 
-                {{
-                    request()->routeIs(
-                        'buyer.transactions*'
-                    )
-                        ? 'active'
-                        : ''
-                }}
+                {{ $buyerTransactionsActive ? 'active' : '' }}
             "
         >
 
@@ -103,13 +179,7 @@
             class="
                 buyer-sidebar-link
 
-                {{
-                    request()->routeIs(
-                        'buyer.notifications*'
-                    )
-                        ? 'active'
-                        : ''
-                }}
+                {{ $buyerNotificationsActive ? 'active' : '' }}
             "
         >
 
@@ -126,6 +196,27 @@
 
             </span>
 
+
+            @if($buyerUnreadNotificationCount > 0)
+
+                <span
+                    class="buyer-sidebar-notification-badge"
+
+                    title="{{
+                        $buyerUnreadNotificationCount
+                    }} unread notification(s)"
+                >
+
+                    {{
+                        $buyerUnreadNotificationCount > 99
+                            ? '99+'
+                            : $buyerUnreadNotificationCount
+                    }}
+
+                </span>
+
+            @endif
+
         </a>
 
 
@@ -140,13 +231,7 @@
             class="
                 buyer-sidebar-link
 
-                {{
-                    request()->routeIs(
-                        'featured-businesses'
-                    )
-                        ? 'active'
-                        : ''
-                }}
+                {{ $buyerFeaturedBusinessesActive ? 'active' : '' }}
             "
         >
 
@@ -177,13 +262,7 @@
             class="
                 buyer-sidebar-link
 
-                {{
-                    request()->routeIs(
-                        'buyer.profile-settings*'
-                    )
-                        ? 'active'
-                        : ''
-                }}
+                {{ $buyerProfileSettingsActive ? 'active' : '' }}
             "
         >
 
@@ -214,13 +293,7 @@
             class="
                 buyer-sidebar-link
 
-                {{
-                    request()->routeIs(
-                        'support'
-                    )
-                        ? 'active'
-                        : ''
-                }}
+                {{ $buyerSupportActive ? 'active' : '' }}
             "
         >
 
@@ -279,12 +352,7 @@
 
             <span class="buyer-sidebar-icon">
 
-                <i
-                    class="
-                        fa-solid
-                        fa-arrow-right-arrow-left
-                    "
-                ></i>
+                <i class="fa-solid fa-arrow-right-arrow-left"></i>
 
             </span>
 
@@ -324,12 +392,7 @@
 
             <span class="buyer-sidebar-icon">
 
-                <i
-                    class="
-                        fa-solid
-                        fa-arrow-right-from-bracket
-                    "
-                ></i>
+                <i class="fa-solid fa-arrow-right-from-bracket"></i>
 
             </span>
 
@@ -345,3 +408,87 @@
     </form>
 
 </aside>
+
+
+
+<style>
+
+/*
+|--------------------------------------------------------------------------
+| Buyer Notification Badge
+|--------------------------------------------------------------------------
+*/
+
+.buyer-sidebar-notification-badge {
+    min-width: 20px;
+    height: 20px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    margin-left: auto;
+
+    padding: 0 6px;
+
+    border: 2px solid #FFFFFF;
+    border-radius: 999px;
+
+    background: #F04438;
+
+    color: #FFFFFF;
+
+    font-size: 8px;
+    font-weight: 800;
+
+    line-height: 1;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Notification Badge Inside Active Menu
+|--------------------------------------------------------------------------
+*/
+
+.buyer-sidebar-link.active
+.buyer-sidebar-notification-badge {
+    border-color: #0B4B3C;
+
+    background: #FFFFFF;
+
+    color: #0B4B3C;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Link Position
+|--------------------------------------------------------------------------
+*/
+
+.buyer-sidebar-link {
+    position: relative;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Responsive
+|--------------------------------------------------------------------------
+*/
+
+@media(max-width: 1024px) {
+
+    .buyer-sidebar-notification-badge {
+        min-width: 18px;
+        height: 18px;
+
+        padding: 0 5px;
+
+        font-size: 7px;
+    }
+
+}
+
+</style>

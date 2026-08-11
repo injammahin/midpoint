@@ -1228,7 +1228,7 @@
     .bp-page-header p {
         margin: 4px 0 0;
         color: #6E7B74;
-        font-size: 9px;
+        font-size:11px;
     }
 
 
@@ -1416,7 +1416,7 @@
     .bp-profile-image-copy strong {
         display: block;
         color: #26342D;
-        font-size: 10px;
+        font-size:12px;
     }
 
 
@@ -1511,7 +1511,7 @@
     .bp-verified-box strong {
         display: block;
         color: #05603A;
-        font-size: 9px;
+        font-size:11px;
     }
 
 
@@ -1558,7 +1558,7 @@
         gap: 10px;
         margin-bottom: 6px;
         color: #26342D;
-        font-size: 9px;
+        font-size:11px;
         font-weight: 700;
     }
 
@@ -1578,7 +1578,7 @@
         background: #FFFFFF;
         color: #101915;
         font-family: inherit;
-        font-size: 9px;
+        font-size:11px;
         outline: none;
     }
 
@@ -1618,7 +1618,7 @@
 
     .bp-readonly i {
         color: #7D8983;
-        font-size: 9px;
+        font-size:11px;
     }
 
 
@@ -1627,7 +1627,7 @@
         flex: 1;
         overflow: hidden;
         color: #4C5952;
-        font-size: 9px;
+        font-size:11px;
         text-overflow: ellipsis;
         white-space: nowrap;
     }
@@ -1650,7 +1650,7 @@
         top: 50%;
         z-index: 2;
         color: #87938D;
-        font-size: 9px;
+        font-size:11px;
         transform: translateY(-50%);
     }
 
@@ -1712,7 +1712,7 @@
 
     .bp-public-email strong {
         color: #344139;
-        font-size: 9px;
+        font-size:11px;
     }
 
 
@@ -1732,7 +1732,7 @@
     .bp-mini-title {
         margin: 0 0 4px;
         color: #344139;
-        font-size: 9px;
+        font-size:11px;
     }
 
 
@@ -1750,7 +1750,7 @@
     .bp-toggle-row strong {
         display: block;
         color: #344139;
-        font-size: 9px;
+        font-size:11px;
     }
 
 
@@ -1859,7 +1859,7 @@
 
     .bp-whatsapp-info strong {
         color: #166534;
-        font-size: 9px;
+        font-size:11px;
     }
 
 

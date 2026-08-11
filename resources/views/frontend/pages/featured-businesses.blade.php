@@ -825,7 +825,7 @@
         gap: 15px;
         margin: 17px 0;
         color: #6A7770;
-        font-size: 10px;
+        font-size:12px;
     }
 
     .fb-result-bar strong {
@@ -856,7 +856,7 @@
         border: 1px solid #DCE5E0;
         border-radius: 8px;
         background: #FFFFFF;
-        font-size: 10px;
+        font-size:12px;
     }
 
     .fb-business-grid {
@@ -937,7 +937,7 @@
     .fb-business-title p {
         margin: 2px 0 0;
         color: #718078;
-        font-size: 9px;
+        font-size:11px;
     }
 
     .fb-verified-mini {
@@ -957,7 +957,7 @@
         flex: none;
         padding-top: 4px;
         color: #087443;
-        font-size: 10px;
+        font-size:12px;
         font-weight: 800;
     }
 
@@ -977,7 +977,7 @@
         min-height: 58px;
         margin: 16px 0;
         color: #59675F;
-        font-size: 10px;
+        font-size:12px;
         line-height: 1.65;
     }
 
@@ -1037,7 +1037,7 @@
         border-radius: 10px;
         background: #12B76A;
         color: #FFFFFF;
-        font-size: 10px;
+        font-size:12px;
         font-weight: 800;
         text-decoration: none;
     }
@@ -1052,11 +1052,11 @@
 
     .fb-pagination-meta {
         color: #718078;
-        font-size: 9px;
+        font-size:11px;
     }
 
     .fb-pagination-links nav {
-        font-size: 10px;
+        font-size:12px;
     }
 
     .fb-empty {
@@ -1086,12 +1086,12 @@
 
     .fb-empty p {
         color: #718078;
-        font-size: 10px;
+        font-size:12px;
     }
 
     .fb-empty a {
         color: #087443;
-        font-size: 10px;
+        font-size:12px;
         font-weight: 800;
     }
 
@@ -1115,7 +1115,7 @@
     .fb-seller-cta p {
         margin: 0;
         color: #E2DDFB;
-        font-size: 10px;
+        font-size:12px;
     }
 
     .fb-seller-cta a {
@@ -1126,7 +1126,7 @@
         border-radius: 10px;
         background: #FFFFFF;
         color: #0B3D2E;
-        font-size: 10px;
+        font-size:12px;
         font-weight: 800;
         text-decoration: none;
     }

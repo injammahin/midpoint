@@ -121,7 +121,7 @@
                     for="sellerApplicationStatus"
                     style="
                         color: var(--admin-muted);
-                        font-size: 10px;
+                        font-size:12px;
                         font-weight: 600;
                     "
                 >
@@ -207,7 +207,7 @@
                     background: var(--admin-accent-strong);
                     color: #052e2b;
                     font-family: inherit;
-                    font-size: 10px;
+                    font-size:12px;
                     font-weight: 700;
                     cursor: pointer;
                 "
@@ -237,7 +237,7 @@
                         border-radius: 9px;
                         background: var(--admin-surface-soft);
                         color: var(--admin-heading);
-                        font-size: 10px;
+                        font-size:12px;
                         font-weight: 600;
                         text-decoration: none;
                     "
@@ -578,7 +578,7 @@
                                             style="
                                                 display: block;
                                                 color: var(--admin-heading);
-                                                font-size: 10px;
+                                                font-size:12px;
                                                 font-weight: 600;
                                             "
                                         >
@@ -614,7 +614,7 @@
                                         <span
                                             style="
                                                 color: var(--admin-muted);
-                                                font-size: 10px;
+                                                font-size:12px;
                                             "
                                         >
                                             N/A
@@ -756,7 +756,7 @@
                 padding: 13px 14px;
                 border-bottom: 1px solid var(--admin-border);
                 color: var(--admin-text);
-                font-size: 10px;
+                font-size:12px;
                 vertical-align: middle;
             }
 
@@ -802,7 +802,7 @@
                 background: var(--admin-accent-soft);
                 color: var(--admin-accent);
 
-                font-size: 10px;
+                font-size:12px;
                 font-weight: 700;
             }
 
@@ -819,7 +819,7 @@
 
                 color: var(--admin-heading);
 
-                font-size: 10px;
+                font-size:12px;
                 font-weight: 600;
 
                 white-space: nowrap;

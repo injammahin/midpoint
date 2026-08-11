@@ -123,7 +123,7 @@
 
             color: #98A49E;
 
-            font-size: 10px;
+            font-size:12px;
             font-weight: 700;
 
             text-transform: uppercase;
@@ -432,7 +432,7 @@
 
             color: #69766F;
 
-            font-size: 10px;
+            font-size:12px;
             line-height: 1.55;
         }
 
@@ -444,7 +444,7 @@
 
             color: #12B76A;
 
-            font-size: 9px;
+            font-size:11px;
             font-weight: 700;
         }
 
