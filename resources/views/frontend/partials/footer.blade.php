@@ -6,9 +6,6 @@
         class="mx-auto max-w-[1160px] px-[22px]"
     >
 
-        {{-- ============================
-            MAIN FOOTER GRID
-        ============================= --}}
         <div
             class="grid grid-cols-1 gap-[30px]
                    border-b border-[#232A26]
@@ -17,13 +14,10 @@
                    lg:grid-cols-[1.5fr_1fr_1fr_1fr_1fr]"
         >
 
-            {{-- ===================================
-                BRAND COLUMN
-            ==================================== --}}
             <div>
 
                 <a
-                    href="{{ url('/') }}"
+                    href="{{ route('home') }}"
                     class="mb-3 inline-flex items-center gap-[9px]
                            font-['Bricolage_Grotesque']
                            text-[20px] font-extrabold"
@@ -50,23 +44,25 @@
 
 
                 <p
-                    class="max-w-[280px] text-[13px] leading-[1.6] text-[#8E9B94]"
+                    class="max-w-[280px]
+                           text-[13px]
+                           leading-[1.6]
+                           text-[#8E9B94]"
                 >
                     The trusted middle for online transactions in Nigeria.
                     Buy with confidence. Sell with confidence.
                 </p>
 
 
-                {{-- Store buttons --}}
                 <div
                     class="mt-5 flex flex-wrap gap-[10px]"
                 >
 
-                    {{-- App Store --}}
                     <a
                         href="javascript:void(0)"
                         class="inline-flex items-center gap-[9px]
-                               rounded-xl border border-[#2E3833]
+                               rounded-xl
+                               border border-[#2E3833]
                                bg-[#1A211D]
                                px-[14px] py-2
                                transition duration-150
@@ -76,14 +72,19 @@
                     >
 
                         <span
-                            class="text-[20px] leading-none text-[#7EF0B6]"
+                            class="text-[20px]
+                                   leading-none
+                                   text-[#7EF0B6]"
                         >
                             &#63743;
                         </span>
 
                         <span>
+
                             <small
-                                class="block text-[9.5px] leading-[1.3]
+                                class="block
+                                       text-[9.5px]
+                                       leading-[1.3]
                                        tracking-[0.04em]
                                        text-[#8E9B94]"
                             >
@@ -91,23 +92,25 @@
                             </small>
 
                             <strong
-                                class="block font-['Bricolage_Grotesque']
+                                class="block
+                                       font-['Bricolage_Grotesque']
                                        text-[14px]
                                        leading-[1.2]
                                        text-white"
                             >
                                 App Store
                             </strong>
+
                         </span>
 
                     </a>
 
 
-                    {{-- Google Play --}}
                     <a
                         href="javascript:void(0)"
                         class="inline-flex items-center gap-[9px]
-                               rounded-xl border border-[#2E3833]
+                               rounded-xl
+                               border border-[#2E3833]
                                bg-[#1A211D]
                                px-[14px] py-2
                                transition duration-150
@@ -117,14 +120,18 @@
                     >
 
                         <span
-                            class="text-[18px] leading-none text-[#7EF0B6]"
+                            class="text-[18px]
+                                   leading-none
+                                   text-[#7EF0B6]"
                         >
                             ▶
                         </span>
 
                         <span>
+
                             <small
-                                class="block text-[9.5px]
+                                class="block
+                                       text-[9.5px]
                                        leading-[1.3]
                                        tracking-[0.04em]
                                        text-[#8E9B94]"
@@ -133,13 +140,15 @@
                             </small>
 
                             <strong
-                                class="block font-['Bricolage_Grotesque']
+                                class="block
+                                       font-['Bricolage_Grotesque']
                                        text-[14px]
                                        leading-[1.2]
                                        text-white"
                             >
                                 Google Play
                             </strong>
+
                         </span>
 
                     </a>
@@ -149,9 +158,6 @@
             </div>
 
 
-            {{-- ===================================
-                PRODUCT
-            ==================================== --}}
             <div>
 
                 <h4
@@ -167,41 +173,56 @@
                 <div class="flex flex-col">
 
                     <a
-                        href="{{ url('/how-it-works') }}"
-                        class="py-1 text-[13.5px] text-[#8E9B94]
-                               transition hover:text-[#7EF0B6]"
+                        href="{{ route('how-it-works') }}"
+                        class="py-1
+                               text-[13.5px]
+                               text-[#8E9B94]
+                               transition
+                               hover:text-[#7EF0B6]"
                     >
                         How it works
                     </a>
 
                     <a
-                        href="{{ url('/pricing') }}"
-                        class="py-1 text-[13.5px] text-[#8E9B94]
-                               transition hover:text-[#7EF0B6]"
+                        href="{{ route('pricing') }}"
+                        class="py-1
+                               text-[13.5px]
+                               text-[#8E9B94]
+                               transition
+                               hover:text-[#7EF0B6]"
                     >
                         Pricing
                     </a>
 
                     <a
-                        href="{{ url('/featured-businesses') }}"
-                        class="py-1 text-[13.5px] text-[#8E9B94]
-                               transition hover:text-[#7EF0B6]"
+                        href="{{ route('featured-businesses') }}"
+                        class="py-1
+                               text-[13.5px]
+                               text-[#8E9B94]
+                               transition
+                               hover:text-[#7EF0B6]"
                     >
                         Featured businesses
                     </a>
 
                     <a
-                        href="{{ url('/verified-sellers') }}"
-                        class="py-1 text-[13.5px] text-[#8E9B94]
-                               transition hover:text-[#7EF0B6]"
+                        href="{{ route('verified-sellers') }}"
+                        class="py-1
+                               text-[13.5px]
+                               text-[#8E9B94]
+                               transition
+                               hover:text-[#7EF0B6]"
                     >
                         Become a verified seller
                     </a>
 
                     <a
-                        href="{{ url('/faqs') }}"
-                        class="py-1 text-[13.5px] text-[#8E9B94]
-                               transition hover:text-[#7EF0B6]"
+                        href="{{ route('faqs') }}"
+                        class="py-1
+                               text-[13.5px]
+                               text-[#8E9B94]
+                               transition
+                               hover:text-[#7EF0B6]"
                     >
                         FAQs
                     </a>
@@ -211,16 +232,14 @@
             </div>
 
 
-            {{-- ===================================
-                COMPANY
-            ==================================== --}}
             <div>
 
                 <h4
                     class="mb-[14px]
                            font-['Bricolage_Grotesque']
                            text-[14px]
-                           font-bold text-white"
+                           font-bold
+                           text-white"
                 >
                     Company
                 </h4>
@@ -228,24 +247,33 @@
                 <div class="flex flex-col">
 
                     <a
-                        href="{{ url('/about') }}"
-                        class="py-1 text-[13.5px] text-[#8E9B94]
+                        href="{{ route('about') }}"
+                        class="py-1
+                               text-[13.5px]
+                               text-[#8E9B94]
+                               transition
                                hover:text-[#7EF0B6]"
                     >
                         About
                     </a>
 
                     <a
-                        href="{{ url('/contact') }}"
-                        class="py-1 text-[13.5px] text-[#8E9B94]
+                        href="{{ route('contact') }}"
+                        class="py-1
+                               text-[13.5px]
+                               text-[#8E9B94]
+                               transition
                                hover:text-[#7EF0B6]"
                     >
                         Contact
                     </a>
 
                     <a
-                        href="{{ url('/support') }}"
-                        class="py-1 text-[13.5px] text-[#8E9B94]
+                        href="{{ route('support') }}"
+                        class="py-1
+                               text-[13.5px]
+                               text-[#8E9B94]
+                               transition
                                hover:text-[#7EF0B6]"
                     >
                         Support Centre
@@ -256,16 +284,14 @@
             </div>
 
 
-            {{-- ===================================
-                LEGAL
-            ==================================== --}}
             <div>
 
                 <h4
                     class="mb-[14px]
                            font-['Bricolage_Grotesque']
                            text-[14px]
-                           font-bold text-white"
+                           font-bold
+                           text-white"
                 >
                     Legal
                 </h4>
@@ -273,32 +299,44 @@
                 <div class="flex flex-col">
 
                     <a
-                        href="{{ url('/terms-and-conditions') }}"
-                        class="py-1 text-[13.5px] text-[#8E9B94]
+                        href="{{ route('terms-and-conditions') }}"
+                        class="py-1
+                               text-[13.5px]
+                               text-[#8E9B94]
+                               transition
                                hover:text-[#7EF0B6]"
                     >
                         Terms & Conditions
                     </a>
 
                     <a
-                        href="{{ url('/privacy-policy') }}"
-                        class="py-1 text-[13.5px] text-[#8E9B94]
+                        href="{{ route('privacy-policy') }}"
+                        class="py-1
+                               text-[13.5px]
+                               text-[#8E9B94]
+                               transition
                                hover:text-[#7EF0B6]"
                     >
                         Privacy Policy
                     </a>
 
                     <a
-                        href="{{ url('/escrow-policy') }}"
-                        class="py-1 text-[13.5px] text-[#8E9B94]
+                        href="{{ route('escrow-policy') }}"
+                        class="py-1
+                               text-[13.5px]
+                               text-[#8E9B94]
+                               transition
                                hover:text-[#7EF0B6]"
                     >
                         Escrow Policy
                     </a>
 
                     <a
-                        href="{{ url('/faqs') }}"
-                        class="py-1 text-[13.5px] text-[#8E9B94]
+                        href="{{ route('faqs') }}"
+                        class="py-1
+                               text-[13.5px]
+                               text-[#8E9B94]
+                               transition
                                hover:text-[#7EF0B6]"
                     >
                         FAQs
@@ -309,53 +347,182 @@
             </div>
 
 
-            {{-- ===================================
-                ACCOUNT
-            ==================================== --}}
             <div>
 
                 <h4
                     class="mb-[14px]
                            font-['Bricolage_Grotesque']
                            text-[14px]
-                           font-bold text-white"
+                           font-bold
+                           text-white"
                 >
                     Account
                 </h4>
 
+
                 <div class="flex flex-col">
 
-                    <a
-                        href="{{ url('/login') }}"
-                        class="py-1 text-[13.5px] text-[#8E9B94]
-                               hover:text-[#7EF0B6]"
-                    >
-                        Log in
-                    </a>
+                    @guest
 
-                    <a
-                        href="{{ url('/register') }}"
-                        class="py-1 text-[13.5px] text-[#8E9B94]
-                               hover:text-[#7EF0B6]"
-                    >
-                        Register
-                    </a>
+                        <a
+                            href="{{ route('login') }}"
+                            class="group
+                                   flex items-center gap-[8px]
+                                   py-1.5
+                                   text-[13.5px]
+                                   text-[#8E9B94]
+                                   transition
+                                   hover:text-[#7EF0B6]"
+                        >
 
-                    <a
-                        href="{{ url('/seller/dashboard') }}"
-                        class="py-1 text-[13.5px] text-[#8E9B94]
-                               hover:text-[#7EF0B6]"
-                    >
-                        Seller dashboard
-                    </a>
+                            <i
+                                class="fa-solid
+                                       fa-arrow-right-to-bracket
+                                       w-[15px]
+                                       text-[11px]
+                                       text-[#66756D]
+                                       transition
+                                       group-hover:text-[#7EF0B6]"
+                            ></i>
 
-                    <a
-                        href="{{ url('/user/dashboard') }}"
-                        class="py-1 text-[13.5px] text-[#8E9B94]
-                               hover:text-[#7EF0B6]"
-                    >
-                        Buyer dashboard
-                    </a>
+                            <span>
+                                Log in
+                            </span>
+
+                        </a>
+
+
+                        <a
+                            href="{{ route('register') }}"
+                            class="group
+                                   flex items-center gap-[8px]
+                                   py-1.5
+                                   text-[13.5px]
+                                   text-[#8E9B94]
+                                   transition
+                                   hover:text-[#7EF0B6]"
+                        >
+
+                            <i
+                                class="fa-solid
+                                       fa-user-plus
+                                       w-[15px]
+                                       text-[11px]
+                                       text-[#66756D]
+                                       transition
+                                       group-hover:text-[#7EF0B6]"
+                            ></i>
+
+                            <span>
+                                Register
+                            </span>
+
+                        </a>
+
+                    @else
+
+                        <a
+                            href="{{ route('seller.dashboard') }}"
+                            class="group
+                                   flex items-center gap-[8px]
+                                   py-1.5
+                                   text-[13.5px]
+                                   text-[#8E9B94]
+                                   transition
+                                   hover:text-[#7EF0B6]"
+                        >
+
+                            <i
+                                class="fa-solid
+                                       fa-store
+                                       w-[15px]
+                                       text-[11px]
+                                       text-[#66756D]
+                                       transition
+                                       group-hover:text-[#7EF0B6]"
+                            ></i>
+
+                            <span>
+                                Seller dashboard
+                            </span>
+
+                        </a>
+
+
+                        <a
+                            href="{{ route('buyer.dashboard') }}"
+                            class="group
+                                   flex items-center gap-[8px]
+                                   py-1.5
+                                   text-[13.5px]
+                                   text-[#8E9B94]
+                                   transition
+                                   hover:text-[#7EF0B6]"
+                        >
+
+                            <i
+                                class="fa-solid
+                                       fa-bag-shopping
+                                       w-[15px]
+                                       text-[11px]
+                                       text-[#66756D]
+                                       transition
+                                       group-hover:text-[#7EF0B6]"
+                            ></i>
+
+                            <span>
+                                Buyer dashboard
+                            </span>
+
+                        </a>
+
+
+
+
+
+                        <form
+                            method="POST"
+                            action="{{ route('logout') }}"
+                            class="m-0"
+                        >
+
+                            @csrf
+
+                            <button
+                                type="submit"
+                                class="group
+                                       flex w-full
+                                       items-center gap-[8px]
+                                       border-0
+                                       bg-transparent
+                                       py-1.5
+                                       text-left
+                                       font-inherit
+                                       text-[13.5px]
+                                       text-[#8E9B94]
+                                       transition
+                                       hover:text-[#7EF0B6]"
+                            >
+
+                                <i
+                                    class="fa-solid
+                                           fa-arrow-right-from-bracket
+                                           w-[15px]
+                                           text-[11px]
+                                           text-[#66756D]
+                                           transition
+                                           group-hover:text-[#7EF0B6]"
+                                ></i>
+
+                                <span>
+                                    Log out
+                                </span>
+
+                            </button>
+
+                        </form>
+
+                    @endguest
 
                 </div>
 
@@ -364,11 +531,9 @@
         </div>
 
 
-        {{-- ============================
-            FOOTER BOTTOM
-        ============================= --}}
         <div
-            class="flex flex-col gap-[10px]
+            class="flex flex-col
+                   gap-[10px]
                    pt-[22px]
                    text-[12.5px]
                    text-[#6E7A74]
@@ -387,21 +552,21 @@
             >
 
                 <a
-                    href="{{ url('/terms-and-conditions') }}"
+                    href="{{ route('terms-and-conditions') }}"
                     class="transition hover:text-[#7EF0B6]"
                 >
                     Terms & Conditions
                 </a>
 
                 <a
-                    href="{{ url('/privacy-policy') }}"
+                    href="{{ route('privacy-policy') }}"
                     class="transition hover:text-[#7EF0B6]"
                 >
                     Privacy Policy
                 </a>
 
                 <a
-                    href="{{ url('/escrow-policy') }}"
+                    href="{{ route('escrow-policy') }}"
                     class="transition hover:text-[#7EF0B6]"
                 >
                     Escrow Policy
