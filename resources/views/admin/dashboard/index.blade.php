@@ -1660,7 +1660,7 @@
     .mp-dashboard-kicker,
     .mp-card-eyebrow {
         color: var(--admin-accent-strong);
-        font-size: 9px;
+        font-size: 11px;
         font-weight: 700;
         letter-spacing: .12em;
         text-transform: uppercase;
@@ -1696,7 +1696,7 @@
         max-width: 730px;
         margin: 0;
         color: var(--admin-muted);
-        font-size: 11px;
+        font-size: 13px;
         line-height: 1.7;
     }
 
@@ -1707,7 +1707,7 @@
         gap: 16px;
         margin-top: 14px;
         color: var(--admin-muted);
-        font-size: 9px;
+        font-size: 11px;
     }
 
 
@@ -1729,7 +1729,7 @@
         display: block;
         margin-bottom: 6px;
         color: var(--admin-muted);
-        font-size: 9px;
+        font-size: 11px;
         font-weight: 600;
     }
 
@@ -1744,7 +1744,7 @@
         background: var(--admin-surface);
         color: var(--admin-text);
         font: inherit;
-        font-size: 10px;
+        font-size: 12px;
         cursor: pointer;
     }
 
@@ -1853,7 +1853,7 @@
         gap: 5px;
         padding: 5px 8px;
         border-radius: 999px;
-        font-size: 9px;
+        font-size: 11px;
         font-weight: 700;
     }
 
@@ -1873,7 +1873,7 @@
     .mp-kpi-label {
         display: block;
         color: var(--admin-muted);
-        font-size: 10px;
+        font-size: 12px;
         font-weight: 600;
     }
 
@@ -1893,7 +1893,7 @@
         display: block;
         margin-top: 8px;
         color: var(--admin-muted);
-        font-size: 9px;
+        font-size: 11px;
         line-height: 1.5;
     }
 
@@ -1942,7 +1942,7 @@
     .mp-mini-stat > span:not(.mp-mini-stat-icon) {
         grid-area: label;
         color: var(--admin-muted);
-        font-size: 9px;
+        font-size: 11px;
         font-weight: 600;
     }
 
@@ -1958,7 +1958,7 @@
     .mp-mini-stat > small {
         grid-area: small;
         color: var(--admin-muted-2);
-        font-size: 8px;
+        font-size: 10px;
     }
 
 
@@ -2018,14 +2018,14 @@
     .mp-card-heading p {
         margin: 5px 0 0;
         color: var(--admin-muted);
-        font-size: 9px;
+        font-size: 11px;
         line-height: 1.6;
     }
 
 
     .mp-card-heading > a {
         color: var(--admin-accent-strong);
-        font-size: 9px;
+        font-size: 11px;
         font-weight: 700;
         text-decoration: none;
         white-space: nowrap;
@@ -2038,7 +2038,7 @@
         justify-content: flex-end;
         gap: 10px;
         color: var(--admin-muted);
-        font-size: 8px;
+        font-size: 10px;
     }
 
 
@@ -2116,21 +2116,21 @@
 
     .mp-margin-breakdown span {
         color: var(--admin-muted);
-        font-size: 8px;
+        font-size: 10px;
     }
 
 
     .mp-margin-breakdown strong {
         margin-top: 5px;
         color: var(--admin-heading);
-        font-size: 11px;
+        font-size: 13px;
     }
 
 
     .mp-accounting-note {
         margin: 10px 0 0;
         color: var(--admin-muted-2);
-        font-size: 8px;
+        font-size: 10px;
         line-height: 1.5;
         text-align: center;
     }
@@ -2154,13 +2154,13 @@
         align-items: center;
         gap: 7px;
         color: var(--admin-muted);
-        font-size: 9px;
+        font-size: 11px;
     }
 
 
     .mp-inline-values strong {
         color: var(--admin-heading);
-        font-size: 9px;
+        font-size: 11px;
     }
 
 
@@ -2222,7 +2222,7 @@
         place-items: center;
         border-radius: 10px;
         background: var(--admin-surface);
-        font-size: 12px;
+        font-size: 14px;
     }
 
 
@@ -2242,7 +2242,7 @@
     .mp-operation-item div > span {
         margin-top: 2px;
         color: var(--admin-muted);
-        font-size: 8px;
+        font-size: 10px;
     }
 
 
@@ -2323,14 +2323,14 @@
 
     .mp-queue-row strong {
         color: var(--admin-heading);
-        font-size: 9px;
+        font-size: 11px;
     }
 
 
     .mp-queue-row small {
         margin-top: 3px;
         color: var(--admin-muted);
-        font-size: 8px;
+        font-size: 10px;
     }
 
 
@@ -2339,7 +2339,7 @@
         padding: 5px 7px;
         border-radius: 999px;
         text-align: center;
-        font-size: 9px;
+        font-size: 11px;
     }
 
 
@@ -2381,13 +2381,13 @@
         border-radius: 10px;
         background: var(--admin-surface-soft);
         color: var(--admin-muted);
-        font-size: 9px;
+        font-size: 11px;
     }
 
 
     .mp-dispute-state strong {
         color: var(--admin-heading);
-        font-size: 10px;
+        font-size: 12px;
     }
 
 
@@ -2454,7 +2454,7 @@
         padding: 10px 11px;
         border-bottom: 1px solid var(--admin-border);
         color: var(--admin-muted);
-        font-size: 8px;
+        font-size: 10px;
         font-weight: 700;
         letter-spacing: .06em;
         text-align: left;
@@ -2466,7 +2466,7 @@
         padding: 12px 11px;
         border-bottom: 1px solid var(--admin-border-soft);
         color: var(--admin-text);
-        font-size: 9px;
+        font-size: 11px;
         vertical-align: middle;
     }
 
@@ -2490,7 +2490,7 @@
     .mp-dashboard-table td small {
         margin-top: 3px;
         color: var(--admin-muted);
-        font-size: 8px;
+        font-size: 10px;
     }
 
 
@@ -2511,7 +2511,7 @@
         align-items: center;
         padding: 5px 7px;
         border-radius: 999px;
-        font-size: 8px;
+        font-size: 10px;
         font-weight: 700;
         white-space: nowrap;
     }
@@ -2576,7 +2576,7 @@
 
     .mp-rank {
         color: var(--admin-muted-2);
-        font-size: 8px;
+        font-size: 10px;
         font-weight: 700;
     }
 
@@ -2589,7 +2589,7 @@
         border-radius: 9px;
         background: var(--admin-accent-soft);
         color: var(--admin-accent-strong);
-        font-size: 10px;
+        font-size: 12px;
         font-weight: 800;
     }
 
@@ -2604,7 +2604,7 @@
 
     .mp-top-seller-info strong {
         color: var(--admin-heading);
-        font-size: 9px;
+        font-size: 11px;
     }
 
 
@@ -2623,7 +2623,7 @@
 
     .mp-top-seller-money strong {
         color: var(--admin-heading);
-        font-size: 10px;
+        font-size: 12px;
     }
 
 
@@ -2659,7 +2659,7 @@
         border-radius: 9px;
         background: #F4F3FF;
         color: #7A5AF8;
-        font-size: 12px;
+        font-size: 14px;
     }
 
 
@@ -2674,14 +2674,14 @@
 
     .mp-package-payment-item > div:nth-child(2) strong {
         color: var(--admin-heading);
-        font-size: 9px;
+        font-size: 11px;
     }
 
 
     .mp-package-payment-item > div:nth-child(2) span {
         margin-top: 3px;
         color: var(--admin-text);
-        font-size: 8px;
+        font-size: 10px;
     }
 
 
@@ -2705,7 +2705,7 @@
 
     .mp-package-payment-value strong {
         color: #067647;
-        font-size: 11px;
+        font-size: 13px;
     }
 
 
@@ -2746,12 +2746,12 @@
 
     .mp-empty-state strong {
         color: var(--admin-heading);
-        font-size: 10px;
+        font-size: 12px;
     }
 
 
     .mp-empty-state span {
-        font-size: 8px;
+        font-size: 10px;
     }
 
 
