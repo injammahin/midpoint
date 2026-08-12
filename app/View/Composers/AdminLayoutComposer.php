@@ -7,7 +7,6 @@ use App\Models\TransactionDispute;
 
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
-
 use Illuminate\View\View;
 
 class AdminLayoutComposer
@@ -37,7 +36,22 @@ class AdminLayoutComposer
 
         $adminOpenDisputeCount =
             0;
+        if (
+            Schema::hasTable(
+                'transaction_disputes'
+            )
+        ) {
 
+            $adminOpenDisputeCount =
+                TransactionDispute::query()
+
+                    ->where(
+                        'status',
+                        TransactionDispute::STATUS_OPEN
+                    )
+
+                    ->count();
+        }
 
         $adminLatestNotifications =
             collect();

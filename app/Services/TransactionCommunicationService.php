@@ -9,7 +9,8 @@ use App\Models\TransactionNotification;
 use App\Models\User;
 use App\Notifications\AdminTransactionDisputeOpenedNotification;
 use Illuminate\Support\Facades\Log;
-
+use App\Models\TransactionDispute;
+use App\Models\TransactionDisputeStatusHistory;
 use Throwable;
 
 class TransactionCommunicationService
@@ -23,16 +24,29 @@ class TransactionCommunicationService
         SecureTransaction $transaction,
         string $event,
         string $title,
-        string $message
+        string $message,
+        ?string $badgeText = null,
+        array $extraData = []
     ): void {
+
         $transaction->loadMissing([
             'buyer',
             'seller',
         ]);
 
-        if (!$transaction->buyer) {
+
+        if (
+            !$transaction->buyer
+        ) {
             return;
         }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Unique Event
+        |--------------------------------------------------------------------------
+        */
 
         $eventKey =
             'transaction:'
@@ -42,6 +56,13 @@ class TransactionCommunicationService
             ':buyer:'
             .
             $event;
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | In-App Notification
+        |--------------------------------------------------------------------------
+        */
 
         TransactionNotification::firstOrCreate(
             [
@@ -69,24 +90,42 @@ class TransactionCommunicationService
                 'message' =>
                     $message,
 
-                'data' => [
-                    'reference' =>
-                        $transaction->reference,
+                'data' =>
+                    array_merge(
+                        [
+                            'reference' =>
+                                $transaction->reference,
 
-                    'public_token' =>
-                        $transaction->public_token,
+                            'public_token' =>
+                                $transaction->public_token,
 
-                    'status' =>
-                        $transaction->status,
-                ],
+                            'status' =>
+                                $transaction->status,
+                        ],
+                        $extraData
+                    ),
             ]
         );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | No Email
+        |--------------------------------------------------------------------------
+        */
 
         if (
             !$transaction->buyer->email
         ) {
             return;
         }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Subject
+        |--------------------------------------------------------------------------
+        */
 
         $subject =
             $title
@@ -95,6 +134,13 @@ class TransactionCommunicationService
             .
             $transaction->reference;
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | Email
+        |--------------------------------------------------------------------------
+        */
+
         $this->emailDelivery->send(
             $transaction,
             $eventKey,
@@ -102,17 +148,25 @@ class TransactionCommunicationService
             $transaction->buyer->email,
             $subject,
             new TransactionStatusUpdateMail(
+
                 $transaction,
+
                 $title,
+
                 $message,
+
                 'View transaction',
+
                 route(
                     'buyer.transactions.show',
                     [
                         'secureTransaction' =>
                             $transaction->public_token,
                     ]
-                )
+                ),
+
+                $badgeText
+
             )
         );
     }
@@ -121,14 +175,21 @@ class TransactionCommunicationService
         SecureTransaction $transaction,
         string $event,
         string $title,
-        string $message
+        string $message,
+        ?string $badgeText = null,
+        array $extraData = []
     ): void {
+
         $transaction->loadMissing([
             'seller',
             'buyer',
         ]);
 
-        if (!$transaction->seller) {
+
+        if (
+            !$transaction->seller
+        ) {
+
             Log::warning(
                 'Seller communication skipped because seller relation is missing.',
                 [
@@ -140,8 +201,16 @@ class TransactionCommunicationService
                 ]
             );
 
+
             return;
         }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Event Key
+        |--------------------------------------------------------------------------
+        */
 
         $eventKey =
             'transaction:'
@@ -151,6 +220,13 @@ class TransactionCommunicationService
             ':seller:'
             .
             $event;
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | In-App Notification
+        |--------------------------------------------------------------------------
+        */
 
         TransactionNotification::firstOrCreate(
             [
@@ -178,22 +254,34 @@ class TransactionCommunicationService
                 'message' =>
                     $message,
 
-                'data' => [
-                    'reference' =>
-                        $transaction->reference,
+                'data' =>
+                    array_merge(
+                        [
+                            'reference' =>
+                                $transaction->reference,
 
-                    'public_token' =>
-                        $transaction->public_token,
+                            'public_token' =>
+                                $transaction->public_token,
 
-                    'status' =>
-                        $transaction->status,
-                ],
+                            'status' =>
+                                $transaction->status,
+                        ],
+                        $extraData
+                    ),
             ]
         );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | No Email
+        |--------------------------------------------------------------------------
+        */
 
         if (
             !$transaction->seller->email
         ) {
+
             Log::warning(
                 'Seller transaction email skipped because seller email is empty.',
                 [
@@ -205,8 +293,16 @@ class TransactionCommunicationService
                 ]
             );
 
+
             return;
         }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Subject
+        |--------------------------------------------------------------------------
+        */
 
         $subject =
             $title
@@ -215,6 +311,13 @@ class TransactionCommunicationService
             .
             $transaction->reference;
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | Email
+        |--------------------------------------------------------------------------
+        */
+
         $this->emailDelivery->send(
             $transaction,
             $eventKey,
@@ -222,17 +325,25 @@ class TransactionCommunicationService
             $transaction->seller->email,
             $subject,
             new TransactionStatusUpdateMail(
+
                 $transaction,
+
                 $title,
+
                 $message,
+
                 'View transaction',
+
                 route(
                     'seller.transactions.show',
                     [
                         'secureTransaction' =>
                             $transaction->public_token,
                     ]
-                )
+                ),
+
+                $badgeText
+
             )
         );
     }
@@ -497,6 +608,298 @@ class TransactionCommunicationService
                     )
 
                 );
+        }
+    }
+
+        /*
+    |--------------------------------------------------------------------------
+    | Dispute Status Changed
+    |--------------------------------------------------------------------------
+    */
+
+    public function disputeStatusChanged(
+        SecureTransaction $transaction,
+        TransactionDispute $dispute,
+        TransactionDisputeStatusHistory $history
+    ): void {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Load
+        |--------------------------------------------------------------------------
+        */
+
+        $transaction->loadMissing([
+            'buyer',
+            'seller',
+        ]);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Status
+        |--------------------------------------------------------------------------
+        */
+
+        $status =
+            $history->to_status;
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Event
+        |--------------------------------------------------------------------------
+        |
+        | History ID makes every status-change communication unique.
+        |
+        */
+
+        $event =
+            'dispute-status-'
+            .
+            $history->id
+            .
+            '-'
+            .
+            $status;
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Extra Notification Data
+        |--------------------------------------------------------------------------
+        */
+
+        $extraData = [
+
+            'dispute_id' =>
+                $dispute->id,
+
+            'dispute_status' =>
+                $status,
+
+            'dispute_status_label' =>
+                $dispute->status_label,
+
+        ];
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Admin Message
+        |--------------------------------------------------------------------------
+        */
+
+        $note =
+            trim(
+                (string) $history->note
+            );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | UNDER REVIEW
+        |--------------------------------------------------------------------------
+        |
+        | Buyer receives email.
+        |
+        */
+
+        if (
+            $status
+            ===
+            TransactionDispute::STATUS_UNDER_REVIEW
+        ) {
+
+            $message =
+                'MidPoint has started reviewing your dispute for transaction '
+                .
+                $transaction->reference
+                .
+                '. Seller payout remains paused while the case is being reviewed.';
+
+
+            if (
+                $note !== ''
+            ) {
+
+                $message .=
+                    ' MidPoint message: '
+                    .
+                    $note;
+            }
+
+
+            $this->buyer(
+                $transaction,
+                $event,
+                'Your dispute is now under review',
+                $message,
+                'Under Review',
+                $extraData
+            );
+
+
+            return;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | AWAITING BUYER
+        |--------------------------------------------------------------------------
+        |
+        | Buyer receives email.
+        |
+        */
+
+        if (
+            $status
+            ===
+            TransactionDispute::STATUS_AWAITING_BUYER
+        ) {
+
+            $message =
+                'MidPoint needs additional information or action from you before reviewing this dispute further.';
+
+
+            if (
+                $note !== ''
+            ) {
+
+                $message .=
+                    ' Request from MidPoint: '
+                    .
+                    $note;
+            }
+
+
+            $this->buyer(
+                $transaction,
+                $event,
+                'Action required for your dispute',
+                $message,
+                'Awaiting Buyer',
+                $extraData
+            );
+
+
+            return;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | AWAITING SELLER
+        |--------------------------------------------------------------------------
+        |
+        | Seller receives email.
+        |
+        */
+
+        if (
+            $status
+            ===
+            TransactionDispute::STATUS_AWAITING_SELLER
+        ) {
+
+            $message =
+                'MidPoint needs additional information or action from you regarding the buyer dispute on transaction '
+                .
+                $transaction->reference
+                .
+                '. Seller payout remains paused.';
+
+
+            if (
+                $note !== ''
+            ) {
+
+                $message .=
+                    ' Request from MidPoint: '
+                    .
+                    $note;
+            }
+
+
+            $this->seller(
+                $transaction,
+                $event,
+                'Action required for a transaction dispute',
+                $message,
+                'Awaiting Seller',
+                $extraData
+            );
+
+
+            return;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | RESOLVED
+        |--------------------------------------------------------------------------
+        |
+        | Both buyer and seller receive email.
+        |
+        */
+
+        if (
+            $status
+            ===
+            TransactionDispute::STATUS_RESOLVED
+        ) {
+
+            $message =
+                'MidPoint has completed the review of the dispute for transaction '
+                .
+                $transaction->reference
+                .
+                '.';
+
+
+            if (
+                $note !== ''
+            ) {
+
+                $message .=
+                    ' Resolution note: '
+                    .
+                    $note;
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Buyer
+            |--------------------------------------------------------------------------
+            */
+
+            $this->buyer(
+                $transaction,
+                $event,
+                'Your dispute review has been resolved',
+                $message,
+                'Resolved',
+                $extraData
+            );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Seller
+            |--------------------------------------------------------------------------
+            */
+
+            $this->seller(
+                $transaction,
+                $event,
+                'Transaction dispute review resolved',
+                $message,
+                'Resolved',
+                $extraData
+            );
         }
     }
 

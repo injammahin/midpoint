@@ -13,6 +13,7 @@ class TransactionStatusUpdateMail extends Mailable
     use Queueable;
     use SerializesModels;
 
+
     public SecureTransaction $transaction;
 
     public string $heading;
@@ -23,27 +24,41 @@ class TransactionStatusUpdateMail extends Mailable
 
     public string $actionUrl;
 
+    public ?string $badgeText;
+
+
     public function __construct(
         SecureTransaction $transaction,
         string $heading,
         string $statusMessage,
         string $actionText,
-        string $actionUrl
+        string $actionUrl,
+        ?string $badgeText = null
     ) {
+
         $this->transaction =
             $transaction;
+
 
         $this->heading =
             $heading;
 
+
         $this->statusMessage =
             $statusMessage;
+
 
         $this->actionText =
             $actionText;
 
+
         $this->actionUrl =
             $actionUrl;
+
+
+        $this->badgeText =
+            $badgeText;
+
 
         $this->transaction
             ->loadMissing([
@@ -52,9 +67,11 @@ class TransactionStatusUpdateMail extends Mailable
             ]);
     }
 
+
     public function build()
     {
         return $this
+
             ->subject(
                 $this->heading
                 .
@@ -63,6 +80,7 @@ class TransactionStatusUpdateMail extends Mailable
                 $this->transaction
                     ->reference
             )
+
             ->view(
                 'emails.transactions.status-update'
             );

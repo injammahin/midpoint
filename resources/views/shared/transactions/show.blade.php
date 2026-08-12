@@ -6,6 +6,39 @@
     $isSeller =
         $mode === 'seller';
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Dispute State
+    |--------------------------------------------------------------------------
+    */
+
+    $dispute =
+        $transaction->dispute;
+
+
+    $hasDispute =
+        !is_null(
+            $dispute
+        );
+
+
+    $isActiveDispute =
+        $hasDispute
+        &&
+        $dispute->status
+        !==
+        \App\Models\TransactionDispute::STATUS_RESOLVED;
+
+
+    $isResolvedDispute =
+        $hasDispute
+        &&
+        $dispute->status
+        ===
+        \App\Models\TransactionDispute::STATUS_RESOLVED;
+
+
     $totalPaid =
         $transaction->paid_amount
         ?:
@@ -146,25 +179,136 @@
 
 
 
-    @if(
-        $transaction->status
-        ===
-        \App\Models\SecureTransaction::STATUS_DISPUTED
-    )
+    {{-- =========================================================
+        ACTIVE / RESOLVED DISPUTE NOTICE
+    ========================================================== --}}
+
+    @if($isActiveDispute)
 
         <div class="tm-dispute-banner">
 
             <i class="fa-solid fa-triangle-exclamation"></i>
 
+
             <div>
 
                 <strong>
-                    Transaction disputed
+
+                    @if(
+                        $dispute->status
+                        ===
+                        \App\Models\TransactionDispute::STATUS_AWAITING_BUYER
+                    )
+
+                        Dispute awaiting buyer
+
+                    @elseif(
+                        $dispute->status
+                        ===
+                        \App\Models\TransactionDispute::STATUS_AWAITING_SELLER
+                    )
+
+                        Dispute awaiting seller
+
+                    @elseif(
+                        $dispute->status
+                        ===
+                        \App\Models\TransactionDispute::STATUS_UNDER_REVIEW
+                    )
+
+                        Dispute under review
+
+                    @else
+
+                        Transaction disputed
+
+                    @endif
+
                 </strong>
 
+
                 <span>
-                    Automatic completion and seller payout are paused while MidPoint reviews this case.
+
+                    @if(
+                        $dispute->status
+                        ===
+                        \App\Models\TransactionDispute::STATUS_AWAITING_BUYER
+                    )
+
+                        MidPoint is waiting for additional information from the buyer.
+                        Automatic completion and seller payout remain paused.
+
+                    @elseif(
+                        $dispute->status
+                        ===
+                        \App\Models\TransactionDispute::STATUS_AWAITING_SELLER
+                    )
+
+                        MidPoint is waiting for additional information from the seller.
+                        Automatic completion and seller payout remain paused.
+
+                    @else
+
+                        Automatic completion and seller payout are paused while
+                        MidPoint reviews this case.
+
+                    @endif
+
                 </span>
+
+            </div>
+
+        </div>
+
+
+    @elseif($isResolvedDispute)
+
+        <div class="tm-dispute-resolved-banner">
+
+            <i class="fa-solid fa-circle-check"></i>
+
+
+            <div>
+
+                <strong>
+                    Dispute resolved
+                </strong>
+
+
+                <span>
+                    MidPoint has completed the dispute review.
+                    This transaction has resumed its normal protection and settlement workflow.
+
+                    @if($dispute->resolved_at)
+
+                        Resolved
+
+                        {{
+                            $dispute
+                                ->resolved_at
+                                ->format(
+                                    'd M Y, h:i A'
+                                )
+                        }}.
+
+                    @endif
+
+                </span>
+
+
+                @if($dispute->admin_note)
+
+                    <small>
+
+                        <strong>
+                            MidPoint resolution:
+                        </strong>
+
+                        {{ $dispute->admin_note }}
+
+                    </small>
+
+                @endif
 
             </div>
 
@@ -580,9 +724,7 @@
             @if(
                 $isSeller
                 &&
-                $transaction->status
-                !==
-                \App\Models\SecureTransaction::STATUS_DISPUTED
+                !$isActiveDispute
             )
 
                 <div class="tm-card">
@@ -696,6 +838,10 @@
                     </h3>
 
 
+                    {{-- =================================================
+                        DELIVERED
+                    ================================================== --}}
+
                     @if(
                         $transaction->status
                         ===
@@ -715,21 +861,46 @@
                         </button>
 
 
-                        <a
-                            href="{{
-                                route(
-                                    'buyer.transactions.dispute.create',
-                                    $transaction
-                                )
-                            }}"
-                            class="tm-dispute-action"
-                        >
+                        @if(!$hasDispute)
 
-                            <i class="fa-solid fa-scale-balanced"></i>
+                            <a
+                                href="{{
+                                    route(
+                                        'buyer.transactions.dispute.create',
+                                        $transaction
+                                    )
+                                }}"
+                                class="tm-dispute-action"
+                            >
 
-                            Open a dispute
+                                <i class="fa-solid fa-scale-balanced"></i>
 
-                        </a>
+                                Open a dispute
+
+                            </a>
+
+
+                        @elseif($isResolvedDispute)
+
+                            <div class="tm-resolved-small">
+
+                                <strong>
+                                    Previous dispute resolved
+                                </strong>
+
+                                <span>
+                                    MidPoint has completed the dispute review.
+                                    You can now continue with the normal transaction actions above.
+                                </span>
+
+                            </div>
+
+                        @endif
+
+
+                    {{-- =================================================
+                        INSPECTION
+                    ================================================== --}}
 
                     @elseif(
                         $transaction->status
@@ -764,36 +935,111 @@
                         </form>
 
 
-                        <a
-                            href="{{
-                                route(
-                                    'buyer.transactions.dispute.create',
-                                    $transaction
-                                )
-                            }}"
-                            class="tm-dispute-action"
-                        >
+                        @if(!$hasDispute)
 
-                            <i class="fa-solid fa-scale-balanced"></i>
+                            <a
+                                href="{{
+                                    route(
+                                        'buyer.transactions.dispute.create',
+                                        $transaction
+                                    )
+                                }}"
+                                class="tm-dispute-action"
+                            >
 
-                            Open a dispute
+                                <i class="fa-solid fa-scale-balanced"></i>
 
-                        </a>
+                                Open a dispute
 
-                    @elseif(
-                        $transaction->status
-                        ===
-                        \App\Models\SecureTransaction::STATUS_DISPUTED
-                    )
+                            </a>
+
+
+                        @elseif($isResolvedDispute)
+
+                            <div class="tm-resolved-small">
+
+                                <strong>
+                                    Previous dispute resolved
+                                </strong>
+
+                                <span>
+                                    MidPoint has completed the dispute review.
+                                    You may accept the item and release funds when you are ready.
+                                </span>
+
+                            </div>
+
+                        @endif
+
+
+                    {{-- =================================================
+                        ACTIVE DISPUTE
+                    ================================================== --}}
+
+                    @elseif($isActiveDispute)
 
                         <div class="tm-dispute-small">
 
                             <strong>
-                                Dispute under review
+
+                                @if(
+                                    $dispute->status
+                                    ===
+                                    \App\Models\TransactionDispute::STATUS_AWAITING_BUYER
+                                )
+
+                                    Action required from buyer
+
+                                @elseif(
+                                    $dispute->status
+                                    ===
+                                    \App\Models\TransactionDispute::STATUS_AWAITING_SELLER
+                                )
+
+                                    Awaiting seller response
+
+                                @elseif(
+                                    $dispute->status
+                                    ===
+                                    \App\Models\TransactionDispute::STATUS_UNDER_REVIEW
+                                )
+
+                                    Dispute under review
+
+                                @else
+
+                                    Transaction disputed
+
+                                @endif
+
                             </strong>
 
+
                             <span>
-                                Seller payout is currently paused.
+
+                                @if(
+                                    $dispute->status
+                                    ===
+                                    \App\Models\TransactionDispute::STATUS_AWAITING_BUYER
+                                )
+
+                                    MidPoint needs information or action from you.
+                                    Please check your email and notifications.
+
+                                @elseif(
+                                    $dispute->status
+                                    ===
+                                    \App\Models\TransactionDispute::STATUS_AWAITING_SELLER
+                                )
+
+                                    MidPoint is waiting for additional information from the seller.
+
+                                @else
+
+                                    Seller payout is currently paused while MidPoint reviews the dispute.
+
+                                @endif
+
                             </span>
 
                         </div>
@@ -1044,6 +1290,82 @@
 
 .tm-dispute-banner span {
     margin-top: 3px;
+    font-size: 10px;
+    line-height: 1.55;
+}
+
+/*
+|--------------------------------------------------------------------------
+| Resolved Dispute
+|--------------------------------------------------------------------------
+*/
+
+.tm-dispute-resolved-banner {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding: 15px;
+    border: 1px solid #ABEFC6;
+    border-radius: 12px;
+    background: #ECFDF3;
+    color: #067647;
+}
+
+.tm-dispute-resolved-banner > i {
+    margin-top: 2px;
+    font-size: 16px;
+}
+
+.tm-dispute-resolved-banner strong,
+.tm-dispute-resolved-banner span,
+.tm-dispute-resolved-banner small {
+    display: block;
+}
+
+.tm-dispute-resolved-banner strong {
+    font-size: 13px;
+}
+
+.tm-dispute-resolved-banner span {
+    margin-top: 3px;
+    font-size: 10px;
+    line-height: 1.6;
+}
+
+.tm-dispute-resolved-banner small {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #CDEDD9;
+    color: #46715C;
+    font-size: 10px;
+    line-height: 1.6;
+}
+
+.tm-dispute-resolved-banner small strong {
+    display: inline;
+    font-size: inherit;
+}
+
+.tm-resolved-small {
+    margin-top: 10px;
+    padding: 13px;
+    border: 1px solid #ABEFC6;
+    border-radius: 9px;
+    background: #ECFDF3;
+    color: #067647;
+}
+
+.tm-resolved-small strong,
+.tm-resolved-small span {
+    display: block;
+}
+
+.tm-resolved-small strong {
+    font-size: 11px;
+}
+
+.tm-resolved-small span {
+    margin-top: 4px;
     font-size: 10px;
     line-height: 1.55;
 }

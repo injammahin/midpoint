@@ -123,7 +123,11 @@
         "
     >
 
-        {{ strtoupper($transaction->status_label) }}
+        {{
+    $badgeText
+        ? strtoupper($badgeText)
+        : strtoupper($transaction->status_label)
+}}
 
     </div>
 
