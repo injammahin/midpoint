@@ -7,7 +7,7 @@ use App\Mail\TransactionStatusUpdateMail;
 use App\Models\SecureTransaction;
 use App\Models\TransactionNotification;
 use App\Models\User;
-
+use App\Notifications\AdminTransactionDisputeOpenedNotification;
 use Illuminate\Support\Facades\Log;
 
 use Throwable;
@@ -240,25 +240,92 @@ class TransactionCommunicationService
     public function adminsForDispute(
         SecureTransaction $transaction
     ): void {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Load
+        |--------------------------------------------------------------------------
+        */
+
         $transaction->loadMissing([
+
             'buyer',
+
             'seller',
+
             'dispute',
+
         ]);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | No Dispute
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            !$transaction->dispute
+        ) {
+
+            Log::warning(
+                'Admin dispute notification skipped because dispute record is missing.',
+                [
+
+                    'transaction_id' =>
+                        $transaction->id,
+
+                    'reference' =>
+                        $transaction->reference,
+
+                ]
+            );
+
+
+            return;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Active Admins
+        |--------------------------------------------------------------------------
+        */
 
         $admins =
             User::query()
+
                 ->where(
                     'role',
                     'admin'
                 )
+
                 ->where(
                     'status',
                     true
                 )
+
                 ->get();
 
-        foreach ($admins as $admin) {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Notify Every Admin
+        |--------------------------------------------------------------------------
+        */
+
+        foreach (
+            $admins
+            as
+            $admin
+        ) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | Unique Transaction Event
+            |--------------------------------------------------------------------------
+            */
+
             $eventKey =
                 'transaction:'
                 .
@@ -270,12 +337,26 @@ class TransactionCommunicationService
                 .
                 ':dispute-opened';
 
+
+            /*
+            |--------------------------------------------------------------------------
+            | Existing MidPoint Transaction Notification
+            |--------------------------------------------------------------------------
+            |
+            | Keep this because buyer/seller transaction notifications already use
+            | the transaction_notifications architecture.
+            |
+            */
+
             TransactionNotification::firstOrCreate(
                 [
+
                     'event_key' =>
                         $eventKey,
+
                 ],
                 [
+
                     'user_id' =>
                         $admin->id,
 
@@ -299,37 +380,123 @@ class TransactionCommunicationService
                         '.',
 
                     'data' => [
+
                         'reference' =>
                             $transaction->reference,
 
                         'public_token' =>
                             $transaction->public_token,
+
+                        'dispute_id' =>
+                            $transaction
+                                ->dispute
+                                ->id,
+
+                        'url' =>
+                            route(
+                                'admin.disputes.show',
+                                $transaction->dispute
+                            ),
+
                     ],
+
                 ]
             );
 
-            if (!$admin->email) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | ADMIN HEADER BELL NOTIFICATION
+            |--------------------------------------------------------------------------
+            |
+            | Your admin header uses Laravel's "notifications" table, therefore we
+            | also create a database notification here.
+            |
+            */
+
+            $alreadyNotified =
+                $admin
+
+                    ->notifications()
+
+                    ->where(
+                        'type',
+                        AdminTransactionDisputeOpenedNotification::class
+                    )
+
+                    ->where(
+                        'data->dispute_id',
+                        $transaction
+                            ->dispute
+                            ->id
+                    )
+
+                    ->exists();
+
+
+            if (
+                !$alreadyNotified
+            ) {
+
+                $admin->notify(
+
+                    new AdminTransactionDisputeOpenedNotification(
+                        $transaction,
+                        $transaction->dispute
+                    )
+
+                );
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Email
+            |--------------------------------------------------------------------------
+            */
+
+            if (
+                !$admin->email
+            ) {
+
                 continue;
             }
 
-            $this->emailDelivery->send(
-                $transaction,
-                $eventKey,
-                'admin',
-                $admin->email,
-                'New transaction dispute - '
-                .
-                $transaction->reference,
-                new TransactionStatusUpdateMail(
+
+            $this
+                ->emailDelivery
+                ->send(
+
                     $transaction,
-                    'New transaction dispute',
-                    'A buyer opened a dispute for this transaction. Automatic seller payout has been paused until MidPoint reviews the case.',
-                    'Open admin dashboard',
-                    route(
-                        'admin.dashboard'
+
+                    $eventKey,
+
+                    'admin',
+
+                    $admin->email,
+
+                    'New transaction dispute - '
+                    .
+                    $transaction->reference,
+
+                    new TransactionStatusUpdateMail(
+
+                        $transaction,
+
+                        'New transaction dispute',
+
+                        'A buyer opened a dispute for this transaction. Automatic seller payout has been paused until MidPoint reviews the case.',
+
+                        'Review dispute',
+
+                        route(
+                            'admin.disputes.show',
+                            $transaction->dispute
+                        )
+
                     )
-                )
-            );
+
+                );
         }
     }
 

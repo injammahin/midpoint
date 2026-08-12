@@ -28,6 +28,7 @@
     "
 >
 
+
 <table
     width="100%"
     cellpadding="0"
@@ -59,7 +60,7 @@
 >
 
 
-    {{-- Header --}}
+    {{-- HEADER --}}
     <tr>
 
         <td
@@ -100,7 +101,7 @@
                             "
                         >
 
-                            Payment Confirmation
+                            Seller Package Payment Confirmation
 
                         </div>
 
@@ -137,6 +138,7 @@
 
 
 
+    {{-- BODY --}}
     <tr>
 
         <td style="padding:38px;">
@@ -155,7 +157,9 @@
                     font-weight:800;
                 "
             >
+
                 ✓
+
             </div>
 
 
@@ -173,6 +177,7 @@
             </h1>
 
 
+
             <p
                 style="
                     margin:0 0 14px;
@@ -187,25 +192,35 @@
             </p>
 
 
+
             <p
                 style="
-                    margin:0 0 25px;
+                    margin:0 0 24px;
                     color:#5A6660;
                     font-size:14px;
                     line-height:1.8;
                 "
             >
 
-                Your payment has been received successfully.
+                We successfully verified your seller package
+                payment with Paystack.
 
-                Your MidPoint Verified Seller account is now
-                active and you can begin listing products.
+                Your
+
+                <strong>
+                    {{ $application->package_name }}
+                </strong>
+
+                Verified Seller package is now active.
+
+                Your official paid invoice is attached
+                to this email as a PDF.
 
             </p>
 
 
 
-            {{-- Active Seller --}}
+            {{-- ACTIVE PACKAGE --}}
             <div
                 style="
                     padding:18px;
@@ -237,12 +252,19 @@
                     "
                 >
 
-                    Your {{ $application->package_name }}
-                    package allows you to list up to
+                    Your package allows you to list
+                    up to
 
                     <strong>
-                        {{ number_format($application->product_limit) }}
+
+                        {{
+                            number_format(
+                                $application->product_limit
+                            )
+                        }}
+
                         products.
+
                     </strong>
 
                 </div>
@@ -251,328 +273,366 @@
 
 
 
-            {{-- =================================================
-                PAYMENT RECEIPT
-            ================================================== --}}
+            {{-- RECEIPT --}}
+            <div
+                style="
+                    margin-top:25px;
+                    padding:24px;
+                    border:1px solid #DDE7E1;
+                    border-radius:16px;
+                    background:#FAFCFB;
+                "
+            >
 
-            @if($invoice)
+                <table
+                    width="100%"
+                    cellpadding="0"
+                    cellspacing="0"
+                >
+
+                    <tr>
+
+                        <td>
+
+                            <div
+                                style="
+                                    color:#17211D;
+                                    font-size:15px;
+                                    font-weight:700;
+                                "
+                            >
+
+                                Payment Receipt
+
+                            </div>
+
+                        </td>
+
+
+                        <td align="right">
+
+                            <span
+                                style="
+                                    display:inline-block;
+                                    padding:6px 10px;
+                                    border-radius:999px;
+                                    background:#DDF8E9;
+                                    color:#087443;
+                                    font-size:10px;
+                                    font-weight:700;
+                                "
+                            >
+
+                                PAID
+
+                            </span>
+
+                        </td>
+
+                    </tr>
+
+                </table>
+
+
 
                 <div
                     style="
-                        margin-top:25px;
-                        padding:24px;
-                        border:1px solid #DDE7E1;
-                        border-radius:16px;
-                        background:#FAFCFB;
+                        margin-top:18px;
+                        color:#0B3D2E;
+                        font-size:36px;
+                        font-weight:800;
                     "
                 >
 
-                    <table
-                        width="100%"
-                        cellpadding="0"
-                        cellspacing="0"
-                    >
-
-                        <tr>
-
-                            <td>
-
-                                <div
-                                    style="
-                                        color:#17211D;
-                                        font-size:15px;
-                                        font-weight:700;
-                                    "
-                                >
-
-                                    Payment Receipt
-
-                                </div>
-
-                            </td>
-
-
-                            <td align="right">
-
-                                <span
-                                    style="
-                                        padding:6px 10px;
-                                        border-radius:999px;
-                                        background:#DDF8E9;
-                                        color:#087443;
-                                        font-size:10px;
-                                        font-weight:700;
-                                    "
-                                >
-                                    PAID
-                                </span>
-
-                            </td>
-
-                        </tr>
-
-                    </table>
-
-
-
-                    <div
-                        style="
-                            margin-top:18px;
-                            color:#0B3D2E;
-                            font-size:36px;
-                            font-weight:800;
-                        "
-                    >
-
-                        ₦{{
-                            number_format(
-                                (float) $invoice->amount,
-                                0
-                            )
-                        }}
-
-                    </div>
-
-
-                    <div
-                        style="
-                            margin-top:3px;
-                            color:#718078;
-                            font-size:12px;
-                        "
-                    >
-
-                        {{ $application->package_name }}
-                        seller package
-
-                    </div>
-
-
-
-                    <table
-                        width="100%"
-                        cellpadding="0"
-                        cellspacing="0"
-                        style="
-                            margin-top:21px;
-                            border-top:1px solid #E4EBE7;
-                        "
-                    >
-
-                        <tr>
-
-                            <td
-                                style="
-                                    padding-top:14px;
-                                    color:#718078;
-                                    font-size:11px;
-                                "
-                            >
-                                Invoice number
-                            </td>
-
-
-                            <td
-                                align="right"
-                                style="
-                                    padding-top:14px;
-                                    font-size:11px;
-                                    font-weight:700;
-                                "
-                            >
-
-                                {{ $invoice->invoice_number }}
-
-                            </td>
-
-                        </tr>
-
-
-                        @if($invoice->payment_reference)
-
-                            <tr>
-
-                                <td
-                                    style="
-                                        padding-top:9px;
-                                        color:#718078;
-                                        font-size:11px;
-                                    "
-                                >
-                                    Payment reference
-                                </td>
-
-
-                                <td
-                                    align="right"
-                                    style="
-                                        padding-top:9px;
-                                        font-size:11px;
-                                        font-weight:700;
-                                    "
-                                >
-
-                                    {{ $invoice->payment_reference }}
-
-                                </td>
-
-                            </tr>
-
-                        @endif
-
-
-                        @if($invoice->payment_method)
-
-                            <tr>
-
-                                <td
-                                    style="
-                                        padding-top:9px;
-                                        color:#718078;
-                                        font-size:11px;
-                                    "
-                                >
-                                    Payment method
-                                </td>
-
-
-                                <td
-                                    align="right"
-                                    style="
-                                        padding-top:9px;
-                                        font-size:11px;
-                                        font-weight:700;
-                                    "
-                                >
-
-                                    {{
-                                        ucwords(
-                                            str_replace(
-                                                '_',
-                                                ' ',
-                                                $invoice->payment_method
-                                            )
-                                        )
-                                    }}
-
-                                </td>
-
-                            </tr>
-
-                        @endif
-
-
-                        @if($invoice->paid_at)
-
-                            <tr>
-
-                                <td
-                                    style="
-                                        padding-top:9px;
-                                        color:#718078;
-                                        font-size:11px;
-                                    "
-                                >
-                                    Payment date
-                                </td>
-
-
-                                <td
-                                    align="right"
-                                    style="
-                                        padding-top:9px;
-                                        font-size:11px;
-                                        font-weight:700;
-                                    "
-                                >
-
-                                    {{
-                                        $invoice
-                                            ->paid_at
-                                            ->format(
-                                                'd M Y, h:i A'
-                                            )
-                                    }}
-
-                                </td>
-
-                            </tr>
-
-                        @endif
-
-
-                        <tr>
-
-                            <td
-                                style="
-                                    padding-top:9px;
-                                    color:#718078;
-                                    font-size:11px;
-                                "
-                            >
-                                Business
-                            </td>
-
-
-                            <td
-                                align="right"
-                                style="
-                                    padding-top:9px;
-                                    font-size:11px;
-                                    font-weight:700;
-                                "
-                            >
-
-                                {{ $application->business_name }}
-
-                            </td>
-
-                        </tr>
-
-
-                        <tr>
-
-                            <td
-                                style="
-                                    padding-top:9px;
-                                    color:#718078;
-                                    font-size:11px;
-                                "
-                            >
-                                Package
-                            </td>
-
-
-                            <td
-                                align="right"
-                                style="
-                                    padding-top:9px;
-                                    font-size:11px;
-                                    font-weight:700;
-                                "
-                            >
-
-                                {{ $application->package_name }}
-
-                            </td>
-
-                        </tr>
-
-                    </table>
+                    ₦{{
+                        number_format(
+                            (float) $invoice->amount,
+                            2
+                        )
+                    }}
 
                 </div>
 
-            @endif
+
+                <div
+                    style="
+                        margin-top:3px;
+                        color:#718078;
+                        font-size:12px;
+                    "
+                >
+
+                    {{ $application->package_name }}
+
+                    seller package
+
+                </div>
 
 
 
-            {{-- Button --}}
+                <table
+                    width="100%"
+                    cellpadding="0"
+                    cellspacing="0"
+                    style="
+                        margin-top:21px;
+                        border-top:1px solid #E4EBE7;
+                    "
+                >
+
+
+                    <tr>
+
+                        <td
+                            style="
+                                padding-top:14px;
+                                color:#718078;
+                                font-size:11px;
+                            "
+                        >
+
+                            Invoice number
+
+                        </td>
+
+
+                        <td
+                            align="right"
+                            style="
+                                padding-top:14px;
+                                font-size:11px;
+                                font-weight:700;
+                            "
+                        >
+
+                            {{ $invoice->invoice_number }}
+
+                        </td>
+
+                    </tr>
+
+
+
+                    @if($invoice->payment_reference)
+
+                        <tr>
+
+                            <td
+                                style="
+                                    padding-top:9px;
+                                    color:#718078;
+                                    font-size:11px;
+                                "
+                            >
+
+                                Payment reference
+
+                            </td>
+
+
+                            <td
+                                align="right"
+                                style="
+                                    padding-top:9px;
+                                    font-size:11px;
+                                    font-weight:700;
+                                "
+                            >
+
+                                {{ $invoice->payment_reference }}
+
+                            </td>
+
+                        </tr>
+
+                    @endif
+
+
+
+                    @if($invoice->payment_method)
+
+                        <tr>
+
+                            <td
+                                style="
+                                    padding-top:9px;
+                                    color:#718078;
+                                    font-size:11px;
+                                "
+                            >
+
+                                Payment method
+
+                            </td>
+
+
+                            <td
+                                align="right"
+                                style="
+                                    padding-top:9px;
+                                    font-size:11px;
+                                    font-weight:700;
+                                "
+                            >
+
+                                {{
+                                    ucwords(
+                                        str_replace(
+                                            '_',
+                                            ' ',
+                                            $invoice->payment_method
+                                        )
+                                    )
+                                }}
+
+                            </td>
+
+                        </tr>
+
+                    @endif
+
+
+
+                    @if($invoice->paid_at)
+
+                        <tr>
+
+                            <td
+                                style="
+                                    padding-top:9px;
+                                    color:#718078;
+                                    font-size:11px;
+                                "
+                            >
+
+                                Payment date
+
+                            </td>
+
+
+                            <td
+                                align="right"
+                                style="
+                                    padding-top:9px;
+                                    font-size:11px;
+                                    font-weight:700;
+                                "
+                            >
+
+                                {{
+                                    $invoice
+                                        ->paid_at
+                                        ->format(
+                                            'd M Y, h:i A'
+                                        )
+                                }}
+
+                            </td>
+
+                        </tr>
+
+                    @endif
+
+
+
+                    <tr>
+
+                        <td
+                            style="
+                                padding-top:9px;
+                                color:#718078;
+                                font-size:11px;
+                            "
+                        >
+
+                            Business
+
+                        </td>
+
+
+                        <td
+                            align="right"
+                            style="
+                                padding-top:9px;
+                                font-size:11px;
+                                font-weight:700;
+                            "
+                        >
+
+                            {{ $application->business_name }}
+
+                        </td>
+
+                    </tr>
+
+
+
+                    <tr>
+
+                        <td
+                            style="
+                                padding-top:9px;
+                                color:#718078;
+                                font-size:11px;
+                            "
+                        >
+
+                            Package
+
+                        </td>
+
+
+                        <td
+                            align="right"
+                            style="
+                                padding-top:9px;
+                                font-size:11px;
+                                font-weight:700;
+                            "
+                        >
+
+                            {{ $application->package_name }}
+
+                        </td>
+
+                    </tr>
+
+                </table>
+
+            </div>
+
+
+
+            {{-- ATTACHMENT NOTICE --}}
+            <div
+                style="
+                    margin-top:18px;
+                    padding:14px;
+                    border-radius:12px;
+                    background:#F5F7F6;
+                    color:#5A6660;
+                    font-size:12px;
+                    line-height:1.7;
+                "
+            >
+
+                <strong style="color:#17211D;">
+
+                    PDF invoice attached:
+
+                </strong>
+
+                {{ $invoice->invoice_number }}.pdf
+
+            </div>
+
+
+
+            {{-- BUTTON --}}
             <table
                 cellpadding="0"
                 cellspacing="0"
-                style="
-                    margin-top:28px;
-                "
+                style="margin-top:28px;"
             >
 
                 <tr>
@@ -617,8 +677,8 @@
                 "
             >
 
-                Keep this email as your payment confirmation
-                and seller package receipt.
+                Keep this email and the attached
+                invoice for your payment records.
 
             </p>
 
@@ -628,7 +688,7 @@
 
 
 
-    {{-- Footer --}}
+    {{-- FOOTER --}}
     <tr>
 
         <td
@@ -648,7 +708,10 @@
             <br>
 
             Receipt sent to
-            <strong>{{ $user->email }}</strong>
+
+            <strong>
+                {{ $user->email }}
+            </strong>
 
             <br>
 
@@ -658,6 +721,7 @@
 
     </tr>
 
+
 </table>
 
 
@@ -666,6 +730,7 @@
 </tr>
 
 </table>
+
 
 </body>
 

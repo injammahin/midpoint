@@ -66,7 +66,8 @@ use App\Http\Controllers\Buyer\BuyerTransactionDisputeController;
 | Admin Controllers
 |--------------------------------------------------------------------------
 */
-
+use App\Http\Controllers\Admin\AdminTransactionController;
+use App\Http\Controllers\Admin\AdminDisputeController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\WebsiteSettingsController;
 use App\Http\Controllers\Admin\SupportInquiryController;
@@ -250,6 +251,13 @@ Route::get(
     ]
 )->name('payments.paystack.callback');
 
+Route::get(
+    '/seller-invoices/paystack/callback',
+    [
+        SellerInvoicePaymentController::class,
+        'callback',
+    ]
+)->name('seller-invoices.paystack.callback');
 
 Route::post(
     '/webhooks/paystack',
@@ -516,10 +524,17 @@ Route::middleware([
         '/verified-sellers/invoices/{invoice}/pay',
         [
             SellerInvoicePaymentController::class,
-            'pay',
+            'initialize',
         ]
     )->name('seller-invoices.pay');
 
+    Route::get(
+        '/verified-sellers/invoices/{invoice}/download',
+        [
+            SellerInvoicePaymentController::class,
+            'download',
+        ]
+    )->name('seller-invoices.download');
 
     /*
     |--------------------------------------------------------------------------
@@ -1081,7 +1096,89 @@ Route::prefix('admin')
             ]
         )->name('dashboard');
 
+        /*
+        |--------------------------------------------------------------------------
+        | Secure Transactions
+        |--------------------------------------------------------------------------
+        |
+        | Only buyer-paid transactions are returned by the controller.
+        |
+        */
 
+        Route::prefix('transactions')
+            ->name('transactions.')
+            ->group(function () {
+
+                /*
+                |--------------------------------------------------------------------------
+                | List Paid Transactions
+                |--------------------------------------------------------------------------
+                */
+
+                Route::get(
+                    '/',
+                    [
+                        AdminTransactionController::class,
+                        'index',
+                    ]
+                )->name('index');
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | View Paid Transaction
+                |--------------------------------------------------------------------------
+                */
+
+                Route::get(
+                    '/{secureTransaction}',
+                    [
+                        AdminTransactionController::class,
+                        'show',
+                    ]
+                )->name('show');
+            });
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Transaction Disputes
+        |--------------------------------------------------------------------------
+        */
+
+        Route::prefix('disputes')
+            ->name('disputes.')
+            ->group(function () {
+
+                /*
+                |--------------------------------------------------------------------------
+                | Dispute List
+                |--------------------------------------------------------------------------
+                */
+
+                Route::get(
+                    '/',
+                    [
+                        AdminDisputeController::class,
+                        'index',
+                    ]
+                )->name('index');
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Dispute Details
+                |--------------------------------------------------------------------------
+                */
+
+                Route::get(
+                    '/{dispute}',
+                    [
+                        AdminDisputeController::class,
+                        'show',
+                    ]
+                )->name('show');
+            });
         /*
         |--------------------------------------------------------------------------
         | Billing

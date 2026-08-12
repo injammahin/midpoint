@@ -1067,7 +1067,7 @@
 
         color:var(--admin-muted);
 
-        font-size:10px;
+        font-size:12px;
     }
 
 
@@ -1078,7 +1078,7 @@
 
         color:var(--admin-muted);
 
-        font-size:9px;
+        font-size:11px;
         font-weight:600;
 
         text-decoration:none;
@@ -1106,7 +1106,7 @@
 
         border-radius:999px;
 
-        font-size:9px;
+        font-size:11px;
         font-weight:700;
 
         white-space:nowrap;
@@ -1235,7 +1235,7 @@
 
         color:var(--admin-muted);
 
-        font-size:9px;
+        font-size:11px;
         line-height:1.5;
     }
 
@@ -1270,7 +1270,7 @@
     .seller-detail-label {
         color:var(--admin-muted);
 
-        font-size:9px;
+        font-size:11px;
         font-weight:600;
     }
 
@@ -1280,7 +1280,7 @@
 
         color:var(--admin-heading);
 
-        font-size:10px;
+        font-size:12px;
         font-weight:600;
 
         word-break:break-word;
@@ -1311,7 +1311,7 @@
 
         color:var(--admin-text);
 
-        font-size:10px;
+        font-size:12px;
         line-height:1.7;
 
         white-space:pre-wrap;
@@ -1390,7 +1390,7 @@
 
         color:var(--admin-heading);
 
-        font-size:9px;
+        font-size:11px;
 
         white-space:nowrap;
         text-overflow:ellipsis;
@@ -1404,14 +1404,14 @@
 
         color:var(--admin-muted);
 
-        font-size:8px;
+        font-size:10px;
     }
 
 
     .seller-document-action {
         color:var(--admin-muted);
 
-        font-size:10px;
+        font-size:12px;
     }
 
 
@@ -1483,7 +1483,7 @@
 
         color:var(--admin-muted);
 
-        font-size:9px;
+        font-size:11px;
     }
 
 
@@ -1507,14 +1507,14 @@
     .seller-meta-list span {
         color:var(--admin-muted);
 
-        font-size:9px;
+        font-size:11px;
     }
 
 
     .seller-meta-list strong {
         color:var(--admin-heading);
 
-        font-size:9px;
+        font-size:11px;
 
         text-align:right;
     }
@@ -1544,7 +1544,7 @@
         color:#FFFFFF;
 
         font-family:inherit;
-        font-size:10px;
+        font-size:12px;
         font-weight:700;
 
         cursor:pointer;
@@ -1564,7 +1564,7 @@
 
         color:var(--admin-muted);
 
-        font-size:8px;
+        font-size:10px;
     }
 
 
@@ -1594,7 +1594,7 @@
     .seller-review-field label {
         color:var(--admin-heading);
 
-        font-size:10px;
+        font-size:12px;
         font-weight:600;
     }
 
@@ -1617,7 +1617,7 @@
         color:var(--admin-text);
 
         font-family:inherit;
-        font-size:10px;
+        font-size:12px;
 
         resize:vertical;
         outline:none;
@@ -1632,7 +1632,7 @@
     .seller-review-field small {
         color:var(--admin-muted);
 
-        font-size:8px;
+        font-size:10px;
         line-height:1.5;
     }
 
@@ -1655,7 +1655,7 @@
         color:#B54708;
 
         font-family:inherit;
-        font-size:10px;
+        font-size:12px;
         font-weight:700;
 
         cursor:pointer;
@@ -1684,7 +1684,7 @@
 
         color:var(--admin-muted);
 
-        font-size:9px;
+        font-size:11px;
     }
 
 
@@ -1706,7 +1706,7 @@
 
         color:var(--admin-muted);
 
-        font-size:8px;
+        font-size:10px;
     }
 
 
@@ -1726,7 +1726,7 @@
         background:#FFF7E8;
         color:#7A5B28;
 
-        font-size:10px;
+        font-size:12px;
         line-height:1.6;
 
         white-space:pre-wrap;
@@ -1765,7 +1765,7 @@
     .seller-invoice-detail span {
         color:var(--admin-muted);
 
-        font-size:8px;
+        font-size:10px;
     }
 
 
@@ -1773,7 +1773,7 @@
     .seller-invoice-detail strong {
         color:var(--admin-heading);
 
-        font-size:9px;
+        font-size:11px;
 
         text-align:right;
     }

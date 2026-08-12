@@ -4,47 +4,36 @@ namespace App\Http\Controllers;
 
 use App\Models\SellerApplication;
 use App\Models\SellerInvoice;
-use App\Models\User;
+use App\Models\SellerInvoicePayment;
 
-use App\Notifications\SellerApplicationUserNotification;
-use App\Notifications\SellerPaymentReceivedAdminNotification;
+use App\Services\PaystackService;
+use App\Services\SellerInvoicePaymentService;
 
-use App\Services\SellerSubscriptionService;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
 
+use RuntimeException;
 use Throwable;
 
 class SellerInvoicePaymentController extends Controller
 {
     /*
     |--------------------------------------------------------------------------
-    | Pay Seller Invoice
+    | Initialize Paystack Seller Invoice Payment
     |--------------------------------------------------------------------------
     */
 
-    public function pay(
+    public function initialize(
         Request $request,
         SellerInvoice $invoice,
-        SellerSubscriptionService $subscriptions
+        PaystackService $paystack
     ) {
-        /*
-        |--------------------------------------------------------------------------
-        | Demo Payment Enabled
-        |--------------------------------------------------------------------------
-        */
 
-        abort_unless(
-            config(
-                'seller.demo_payment_enabled'
-            ),
-            404
-        );
+        $user =
+            $request->user();
 
 
         /*
@@ -54,15 +43,21 @@ class SellerInvoicePaymentController extends Controller
         */
 
         abort_unless(
-            (int)
-            $invoice->user_id
+            (int) $invoice->user_id
             ===
-            (int)
-            $request
-                ->user()
-                ->id,
-            403
+            (int) $user->id,
+            403,
+            'This seller invoice does not belong to your account.'
         );
+
+
+        $invoice->loadMissing([
+
+            'application',
+
+            'user',
+
+        ]);
 
 
         /*
@@ -85,498 +80,608 @@ class SellerInvoicePaymentController extends Controller
 
                 ->with(
                     'success',
-                    'This invoice has already been paid.'
+                    'This seller invoice has already been paid and your seller package is active.'
                 );
         }
 
 
         /*
         |--------------------------------------------------------------------------
-        | Demo Card Validation
-        |--------------------------------------------------------------------------
-        */
-
-        $validated =
-            $request->validate([
-
-                'cardholder_name' => [
-                    'required',
-                    'string',
-                    'max:150',
-                ],
-
-                'card_number' => [
-                    'required',
-                    'string',
-                    'max:30',
-                ],
-
-                'expiry' => [
-                    'required',
-                    'regex:/^\d{2}\/\d{2}$/',
-                ],
-
-                'cvv' => [
-                    'required',
-                    'digits_between:3,4',
-                ],
-
-            ]);
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Normalize Card
-        |--------------------------------------------------------------------------
-        */
-
-        $cardNumber =
-            preg_replace(
-                '/\D/',
-                '',
-                $validated[
-                    'card_number'
-                ]
-            );
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Demo Card
-        |--------------------------------------------------------------------------
-        */
-
-        if (
-            $cardNumber
-            !==
-            '4242424242424242'
-        ) {
-
-            throw ValidationException::withMessages([
-
-                'card_number' =>
-                    'Use demo card 4242 4242 4242 4242.',
-
-            ]);
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Payment Database Transaction
+        | Application
         |--------------------------------------------------------------------------
         */
 
         $application =
-            DB::transaction(
-                function () use (
-                    $invoice
-                ) {
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Lock Invoice
-                    |--------------------------------------------------------------------------
-                    */
-
-                    $lockedInvoice =
-                        SellerInvoice::query()
-
-                            ->whereKey(
-                                $invoice
-                                    ->id
-                            )
-
-                            ->lockForUpdate()
-
-                            ->firstOrFail();
+            $invoice->application;
 
 
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Already Paid By Concurrent Request
-                    |--------------------------------------------------------------------------
-                    */
-
-                    if (
-                        $lockedInvoice
-                            ->status
-                        ===
-                        'paid'
-                    ) {
-
-                        return $lockedInvoice
-                            ->application;
-                    }
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Lock Application
-                    |--------------------------------------------------------------------------
-                    */
-
-                    $application =
-                        SellerApplication::query()
-
-                            ->whereKey(
-                                $lockedInvoice
-                                    ->seller_application_id
-                            )
-
-                            ->lockForUpdate()
-
-                            ->firstOrFail();
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Must Be Waiting For Payment
-                    |--------------------------------------------------------------------------
-                    */
-
-                    abort_unless(
-                        $application
-                            ->status
-                        ===
-                        SellerApplication::STATUS_PAYMENT_PENDING,
-                        409,
-                        'This application is not waiting for payment.'
-                    );
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Payment Reference
-                    |--------------------------------------------------------------------------
-                    */
-
-                    $paymentReference =
-                        'DEMO-'
-                        .
-                        Str::upper(
-                            Str::random(12)
-                        );
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Mark Invoice Paid
-                    |--------------------------------------------------------------------------
-                    |
-                    | Never save:
-                    |
-                    | card number
-                    | CVV
-                    |
-                    */
-
-                    $lockedInvoice->update([
-
-                        'status' =>
-                            'paid',
-
-                        'payment_method' =>
-                            'demo_card',
-
-                        'payment_reference' =>
-                            $paymentReference,
-
-                        'paid_at' =>
-                            now(),
-
-                    ]);
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Activate Application
-                    |--------------------------------------------------------------------------
-                    */
-
-                    $application->update([
-
-                        'status' =>
-                            SellerApplication::STATUS_ACTIVE,
-
-                        'activated_at' =>
-                            now(),
-
-                    ]);
-
-
-                    return $application;
-                }
-            );
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Reload Invoice
-        |--------------------------------------------------------------------------
-        */
-
-        $invoice->refresh();
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Activate Seller Subscription
-        |--------------------------------------------------------------------------
-        */
-
-        $subscriptions
-            ->activateFromApplication(
-                $application,
-                $invoice
-                    ->payment_reference
-            );
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Reload Complete Application
-        |--------------------------------------------------------------------------
-        */
-
-        $application->refresh();
-
-
-        $application->load([
-            'user',
-            'invoice',
-        ]);
-
-
-        /*
-        |--------------------------------------------------------------------------
-        |--------------------------------------------------------------------------
-        | USER PAYMENT CONFIRMATION EMAIL
-        |--------------------------------------------------------------------------
-        |--------------------------------------------------------------------------
-        */
-
-        $customerEmailSent =
-            false;
-
-
-        try {
-
-            /*
-            |--------------------------------------------------------------------------
-            | User Check
-            |--------------------------------------------------------------------------
-            */
-
-            if (
-                !$application->user
-            ) {
-
-                throw new \RuntimeException(
-                    'Seller application user not found.'
-                );
-            }
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Email Check
-            |--------------------------------------------------------------------------
-            */
-
-            if (
-                empty(
-                    $application
-                        ->user
-                        ->email
-                )
-            ) {
-
-                throw new \RuntimeException(
-                    'Seller application user email is missing.'
-                );
-            }
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Send Payment Confirmation
-            |--------------------------------------------------------------------------
-            */
-
+        abort_unless(
             $application
-                ->user
-                ->notify(
-
-                    new SellerApplicationUserNotification(
-                        $application,
-                        'payment_successful'
-                    )
-
-                );
-
-
-            $customerEmailSent =
-                true;
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Log Success
-            |--------------------------------------------------------------------------
-            */
-
-            Log::info(
-                'Seller payment confirmation email sent.',
-                [
-                    'application_id' =>
-                        $application->id,
-
-                    'invoice_id' =>
-                        $invoice->id,
-
-                    'user_id' =>
-                        $application
-                            ->user
-                            ->id,
-
-                    'email' =>
-                        $application
-                            ->user
-                            ->email,
-
-                    'payment_reference' =>
-                        $invoice
-                            ->payment_reference,
-                ]
-            );
-
-        } catch (
-            Throwable $exception
-        ) {
-
-            Log::error(
-                'Seller payment confirmation email failed.',
-                [
-                    'application_id' =>
-                        $application->id,
-
-                    'invoice_id' =>
-                        $invoice->id,
-
-                    'user_id' =>
-                        $application
-                            ->user_id,
-
-                    'email' =>
-                        $application->user
-                            ? $application
-                                ->user
-                                ->email
-                            : null,
-
-                    'exception' =>
-                        get_class(
-                            $exception
-                        ),
-
-                    'message' =>
-                        $exception
-                            ->getMessage(),
-
-                    'file' =>
-                        $exception
-                            ->getFile(),
-
-                    'line' =>
-                        $exception
-                            ->getLine(),
-                ]
-            );
-
-
-            report(
-                $exception
-            );
-        }
+            &&
+            (int) $application->user_id
+            ===
+            (int) $user->id,
+            403,
+            'This seller application does not belong to your account.'
+        );
 
 
         /*
         |--------------------------------------------------------------------------
-        |--------------------------------------------------------------------------
-        | ADMIN PAYMENT NOTIFICATION
-        |--------------------------------------------------------------------------
+        | Must Be Waiting For Payment
         |--------------------------------------------------------------------------
         */
 
-        try {
-
-            $admins =
-                User::query()
-
-                    ->where(
-                        'role',
-                        'admin'
-                    )
-
-                    ->where(
-                        'status',
-                        true
-                    )
-
-                    ->get();
-
-
-            if (
-                $admins->isNotEmpty()
-            ) {
-
-                Notification::send(
-
-                    $admins,
-
-                    new SellerPaymentReceivedAdminNotification(
-                        $application,
-                        $invoice
-                    )
-
-                );
-            }
-
-        } catch (
-            Throwable $exception
-        ) {
-
-            Log::error(
-                'Admin seller payment notification failed.',
-                [
-                    'application_id' =>
-                        $application->id,
-
-                    'invoice_id' =>
-                        $invoice->id,
-
-                    'message' =>
-                        $exception
-                            ->getMessage(),
-                ]
-            );
-
-
-            report(
-                $exception
-            );
-        }
+        abort_unless(
+            $application->status
+            ===
+            SellerApplication::STATUS_PAYMENT_PENDING,
+            409,
+            'This seller application is not waiting for payment.'
+        );
 
 
         /*
         |--------------------------------------------------------------------------
-        | Redirect
+        | Existing Checkout Attempt
+        |--------------------------------------------------------------------------
+        */
+
+        $activeAttempt =
+            SellerInvoicePayment::query()
+
+                ->where(
+                    'seller_invoice_id',
+                    $invoice->id
+                )
+
+                ->where(
+                    'user_id',
+                    $user->id
+                )
+
+                ->whereIn(
+                    'status',
+                    [
+
+                        SellerInvoicePayment::STATUS_INITIALIZED,
+
+                        SellerInvoicePayment::STATUS_PENDING,
+
+                    ]
+                )
+
+                ->whereNotNull(
+                    'authorization_url'
+                )
+
+                ->latest('id')
+
+                ->first();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Re-use Checkout
         |--------------------------------------------------------------------------
         */
 
         if (
-            $customerEmailSent
+            $activeAttempt
+            &&
+            $activeAttempt->authorization_url
+        ) {
+
+            return redirect()
+
+                ->away(
+                    $activeAttempt
+                        ->authorization_url
+                );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Amount
+        |--------------------------------------------------------------------------
+        |
+        | DATABASE AMOUNT ONLY.
+        |
+        | Never take this from request input.
+        |
+        */
+
+        $amount =
+            round(
+                (float) $invoice->amount,
+                2
+            );
+
+
+        $amountSubunit =
+            (int) round(
+                $amount
+                *
+                100
+            );
+
+
+        if (
+            $amountSubunit <= 0
+        ) {
+
+            return redirect()
+
+                ->route(
+                    'verified-sellers'
+                )
+
+                ->with(
+                    'error',
+                    'The seller invoice amount is invalid.'
+                );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Currency
+        |--------------------------------------------------------------------------
+        */
+
+        $currency =
+            strtoupper(
+                $invoice->currency
+                ?:
+                'NGN'
+            );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Generate Reference
+        |--------------------------------------------------------------------------
+        */
+
+        $reference =
+            $this->generatePaymentReference(
+                $invoice
+            );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Create Local Payment Attempt
+        |--------------------------------------------------------------------------
+        */
+
+        $payment =
+            SellerInvoicePayment::create([
+
+                'seller_invoice_id' =>
+                    $invoice->id,
+
+                'seller_application_id' =>
+                    $application->id,
+
+                'user_id' =>
+                    $user->id,
+
+                'provider' =>
+                    'paystack',
+
+                'reference' =>
+                    $reference,
+
+                'amount' =>
+                    $amount,
+
+                'amount_subunit' =>
+                    $amountSubunit,
+
+                'currency' =>
+                    $currency,
+
+                'status' =>
+                    SellerInvoicePayment::STATUS_CREATED,
+
+            ]);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Initialize Paystack
+        |--------------------------------------------------------------------------
+        */
+
+        try {
+
+            $paystackData =
+                $paystack
+                    ->initializeTransaction([
+
+                        /*
+                        |--------------------------------------------------------------------------
+                        | Customer
+                        |--------------------------------------------------------------------------
+                        */
+
+                        'email' =>
+                            $user->email,
+
+
+                        /*
+                        |--------------------------------------------------------------------------
+                        | Amount In Kobo
+                        |--------------------------------------------------------------------------
+                        */
+
+                        'amount' =>
+                            (string) $amountSubunit,
+
+
+                        /*
+                        |--------------------------------------------------------------------------
+                        | Currency
+                        |--------------------------------------------------------------------------
+                        */
+
+                        'currency' =>
+                            $currency,
+
+
+                        /*
+                        |--------------------------------------------------------------------------
+                        | Unique Reference
+                        |--------------------------------------------------------------------------
+                        */
+
+                        'reference' =>
+                            $reference,
+
+
+                        /*
+                        |--------------------------------------------------------------------------
+                        | Callback
+                        |--------------------------------------------------------------------------
+                        */
+
+                        'callback_url' =>
+                            route(
+                                'seller-invoices.paystack.callback'
+                            ),
+
+
+                        /*
+                        |--------------------------------------------------------------------------
+                        | Metadata
+                        |--------------------------------------------------------------------------
+                        */
+
+                        'metadata' =>
+                            json_encode(
+                                [
+
+                                    'payment_type' =>
+                                        'seller_package_invoice',
+
+                                    'seller_invoice_id' =>
+                                        $invoice->id,
+
+                                    'seller_application_id' =>
+                                        $application->id,
+
+                                    'seller_user_id' =>
+                                        $user->id,
+
+                                    'invoice_number' =>
+                                        $invoice
+                                            ->invoice_number,
+
+                                    'application_reference' =>
+                                        $application
+                                            ->reference,
+
+                                    'business_name' =>
+                                        $application
+                                            ->business_name,
+
+                                    'package_name' =>
+                                        $application
+                                            ->package_name,
+
+                                ],
+                                JSON_UNESCAPED_SLASHES
+                            ),
+
+                    ]);
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Paystack Checkout Response
+            |--------------------------------------------------------------------------
+            */
+
+            $authorizationUrl =
+                $paystackData[
+                    'authorization_url'
+                ]
+                ??
+                null;
+
+
+            $accessCode =
+                $paystackData[
+                    'access_code'
+                ]
+                ??
+                null;
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Validate Paystack Response
+            |--------------------------------------------------------------------------
+            */
+
+            if (
+                !$authorizationUrl
+                ||
+                !$accessCode
+            ) {
+
+                throw new RuntimeException(
+                    'Paystack did not return a valid seller checkout URL.'
+                );
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Save Checkout
+            |--------------------------------------------------------------------------
+            */
+
+            $payment->update([
+
+                'access_code' =>
+                    $accessCode,
+
+                'authorization_url' =>
+                    $authorizationUrl,
+
+                'status' =>
+                    SellerInvoicePayment::STATUS_INITIALIZED,
+
+                'initialized_at' =>
+                    now(),
+
+            ]);
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Redirect Seller To Paystack
+            |--------------------------------------------------------------------------
+            */
+
+            return redirect()
+
+                ->away(
+                    $authorizationUrl
+                );
+
+
+        } catch (
+            Throwable $exception
+        ) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | Mark Attempt Failed
+            |--------------------------------------------------------------------------
+            */
+
+            $payment->update([
+
+                'status' =>
+                    SellerInvoicePayment::STATUS_FAILED,
+
+                'gateway_response' =>
+                    Str::limit(
+                        $exception
+                            ->getMessage(),
+                        255,
+                        ''
+                    ),
+
+            ]);
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Log
+            |--------------------------------------------------------------------------
+            */
+
+            Log::error(
+                'Paystack seller invoice initialization failed.',
+                [
+
+                    'seller_invoice_id' =>
+                        $invoice->id,
+
+                    'seller_application_id' =>
+                        $application->id,
+
+                    'user_id' =>
+                        $user->id,
+
+                    'reference' =>
+                        $reference,
+
+                    'error' =>
+                        $exception
+                            ->getMessage(),
+
+                ]
+            );
+
+
+            report(
+                $exception
+            );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Return
+            |--------------------------------------------------------------------------
+            */
+
+            return redirect()
+
+                ->route(
+                    'verified-sellers'
+                )
+
+                ->with(
+                    'error',
+                    'We could not start Paystack checkout. Please try again.'
+                );
+        }
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Paystack Callback
+    |--------------------------------------------------------------------------
+    */
+
+    public function callback(
+        Request $request,
+        PaystackService $paystack,
+        SellerInvoicePaymentService $sellerPayments
+    ) {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Reference
+        |--------------------------------------------------------------------------
+        */
+
+        $reference =
+            trim(
+                (string) (
+                    $request->query(
+                        'reference'
+                    )
+                    ?:
+                    $request->query(
+                        'trxref'
+                    )
+                )
+            );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Missing Reference
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            $reference === ''
+        ) {
+
+            return redirect()
+
+                ->route(
+                    'verified-sellers'
+                )
+
+                ->with(
+                    'error',
+                    'Paystack did not return a seller payment reference.'
+                );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Find Payment Attempt
+        |--------------------------------------------------------------------------
+        */
+
+        $payment =
+            SellerInvoicePayment::query()
+
+                ->with([
+
+                    'invoice.application',
+
+                    'invoice.user',
+
+                ])
+
+                ->where(
+                    'reference',
+                    $reference
+                )
+
+                ->first();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Invalid Reference
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            !$payment
+        ) {
+
+            return redirect()
+
+                ->route(
+                    'verified-sellers'
+                )
+
+                ->with(
+                    'error',
+                    'The returned seller payment reference is not recognized by MidPoint.'
+                );
+        }
+
+
+        $invoice =
+            $payment->invoice;
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Already Completed
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            $payment->status
+            ===
+            SellerInvoicePayment::STATUS_SUCCESS
+
+            &&
+
+            $invoice
+
+            &&
+
+            $invoice->status
+            ===
+            'paid'
         ) {
 
             return redirect()
@@ -587,26 +692,315 @@ class SellerInvoicePaymentController extends Controller
 
                 ->with(
                     'success',
-                    'Payment successful. Your seller package is active and a payment confirmation email has been sent to your verified email address.'
+                    'Payment already confirmed. Your verified seller package is active.'
                 );
         }
 
 
         /*
         |--------------------------------------------------------------------------
-        | Payment Worked But Mail Failed
+        | VERIFY WITH PAYSTACK SERVER
         |--------------------------------------------------------------------------
         */
 
-        return redirect()
+        try {
 
-            ->route(
-                'verified-sellers'
+            $verifiedData =
+                $paystack
+                    ->verifyTransaction(
+                        $reference
+                    );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Process Verified Result
+            |--------------------------------------------------------------------------
+            */
+
+            $result =
+                $sellerPayments
+                    ->processVerifiedPayment(
+                        $payment,
+                        $verifiedData
+                    );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Successful + Email Sent
+            |--------------------------------------------------------------------------
+            */
+
+            if (
+                $result['successful']
+            ) {
+
+                if (
+                    $result['newly_paid']
+                    &&
+                    $result['email_sent']
+                    ===
+                    true
+                ) {
+
+                    return redirect()
+
+                        ->route(
+                            'verified-sellers'
+                        )
+
+                        ->with(
+                            'success',
+                            'Payment successful. Your seller package is active. A confirmation email with your PDF invoice has been sent to your verified email address.'
+                        );
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Successful But Mail Failed
+                |--------------------------------------------------------------------------
+                */
+
+                if (
+                    $result['newly_paid']
+                    &&
+                    $result['email_sent']
+                    ===
+                    false
+                ) {
+
+                    return redirect()
+
+                        ->route(
+                            'verified-sellers'
+                        )
+
+                        ->with(
+                            'success',
+                            'Payment successful and your seller package is active. The confirmation email could not be delivered, so please contact support if you need the invoice resent.'
+                        );
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Already Processed By Webhook
+                |--------------------------------------------------------------------------
+                */
+
+                return redirect()
+
+                    ->route(
+                        'verified-sellers'
+                    )
+
+                    ->with(
+                        'success',
+                        'Payment already confirmed. Your verified seller package is active.'
+                    );
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Not Successful Yet
+            |--------------------------------------------------------------------------
+            */
+
+            return redirect()
+
+                ->route(
+                    'verified-sellers'
+                )
+
+                ->with(
+                    'error',
+                    'Paystack has not confirmed this seller invoice payment as successful yet. If money left your account, do not pay again yet.'
+                );
+
+
+        } catch (
+            Throwable $exception
+        ) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | Verification Error
+            |--------------------------------------------------------------------------
+            */
+
+            Log::error(
+                'Paystack seller invoice callback verification failed.',
+                [
+
+                    'reference' =>
+                        $reference,
+
+                    'seller_invoice_payment_id' =>
+                        $payment->id,
+
+                    'error' =>
+                        $exception
+                            ->getMessage(),
+
+                ]
+            );
+
+
+            report(
+                $exception
+            );
+
+
+            return redirect()
+
+                ->route(
+                    'verified-sellers'
+                )
+
+                ->with(
+                    'error',
+                    'We could not verify this seller payment right now. If you were charged, do not pay again yet.'
+                );
+        }
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Download Paid Invoice
+    |--------------------------------------------------------------------------
+    */
+
+    public function download(
+        Request $request,
+        SellerInvoice $invoice
+    ) {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Ownership
+        |--------------------------------------------------------------------------
+        */
+
+        abort_unless(
+            (int) $invoice->user_id
+            ===
+            (int) $request
+                ->user()
+                ->id,
+            403
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Must Be Paid
+        |--------------------------------------------------------------------------
+        */
+
+        abort_unless(
+            $invoice->status
+            ===
+            'paid',
+            404
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Load
+        |--------------------------------------------------------------------------
+        */
+
+        $invoice->load([
+            'application.user',
+        ]);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Generate PDF
+        |--------------------------------------------------------------------------
+        */
+
+        return Pdf::loadView(
+            'pdf.seller-package-invoice',
+            [
+
+                'user' =>
+                    $invoice->user,
+
+                'application' =>
+                    $invoice
+                        ->application,
+
+                'invoice' =>
+                    $invoice,
+
+            ]
+        )
+
+            ->setPaper(
+                'a4',
+                'portrait'
             )
 
-            ->with(
-                'success',
-                'Payment successful and your seller package is active. However, the confirmation email could not be delivered.'
+            ->download(
+                $invoice
+                    ->invoice_number
+                .
+                '.pdf'
             );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Generate Payment Reference
+    |--------------------------------------------------------------------------
+    */
+
+    private function generatePaymentReference(
+        SellerInvoice $invoice
+    ): string {
+
+        do {
+
+            $reference =
+                'MP-SINV-'
+                .
+                $invoice->id
+                .
+                '-'
+                .
+                now()->format(
+                    'YmdHis'
+                )
+                .
+                '-'
+                .
+                Str::upper(
+                    Str::random(8)
+                );
+
+
+        } while (
+
+            SellerInvoicePayment::query()
+
+                ->where(
+                    'reference',
+                    $reference
+                )
+
+                ->exists()
+
+        );
+
+
+        return $reference;
     }
 }

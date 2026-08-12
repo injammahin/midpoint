@@ -1522,226 +1522,299 @@
 
 
 
-                    {{-- =================================================
-                        DEMO PAYMENT
-                    ================================================== --}}
+{{-- =================================================
+    PAYSTACK PAYMENT
+================================================== --}}
+
+<div
+    class="
+        rounded-[16px]
+        border
+        border-[#DCE5E0]
+        bg-[#F8FBF9]
+        p-5
+    "
+>
+
+    <div
+        class="
+            flex
+            items-start
+            gap-3
+        "
+    >
+
+        <div
+            class="
+                grid
+                h-10
+                w-10
+                flex-none
+                place-items-center
+                rounded-full
+                bg-[#D1FADF]
+                text-[#067647]
+            "
+        >
+
+            <i
+                class="
+                    fa-solid
+                    fa-shield-halved
+                "
+            ></i>
+
+        </div>
+
+
+        <div>
+
+            <strong
+                class="
+                    block
+                    text-[14px]
+                    text-[#0B3D2E]
+                "
+            >
+
+                Secure payment with Paystack
+
+            </strong>
+
+
+            <p
+                class="
+                    mp-small
+                    mp-muted
+                    mt-1
+                    leading-5
+                "
+            >
+
+                Continue to Paystack's secure checkout.
+
+                Paystack will display the payment methods
+                available for your account and environment.
+
+            </p>
+
+        </div>
+
+    </div>
+
+
+
+    {{-- TEST MODE --}}
+    @if(
+        strtolower(
+            (string) config(
+                'services.paystack.mode',
+                'test'
+            )
+        )
+        ===
+        'test'
+    )
+
+        <div
+            class="
+                mt-4
+                rounded-[12px]
+                border
+                border-[#FEDF89]
+                bg-[#FFF7E8]
+                px-4
+                py-3
+                text-[11px]
+                leading-5
+                text-[#8A5A00]
+            "
+        >
 
-                    @if(config('seller.demo_payment_enabled'))
+            <strong
+                class="
+                    text-[#B54708]
+                "
+            >
+
+                Paystack Test Mode:
 
-                        <div
-                            class="
-                                mb-5
-                                rounded-[14px]
-                                border
-                                border-[#FEDF89]
-                                bg-[#FFF7E8]
-                                p-4
-                                text-[12px]
-                                leading-6
-                                text-[#8A5A00]
-                            "
-                        >
+            </strong>
 
-                            <strong
-                                class="
-                                    block
-                                    text-[#B54708]
-                                "
-                            >
 
-                                Demo payment mode
+            your current test keys will process
+            a simulated payment only.
 
-                            </strong>
+            No real money is charged in test mode.
 
+        </div>
 
-                            Card:
+    @endif
 
-                            <strong>
-                                4242 4242 4242 4242
-                            </strong>
 
-                            <br>
 
-                            Expiry:
+    {{-- PAYMENT OPTIONS --}}
+    <div
+        class="
+            mt-4
+            flex
+            flex-wrap
+            gap-2
+        "
+    >
 
-                            <strong>
-                                12/30
-                            </strong>
+        <span
+            class="
+                mp-badge
+                mp-badge-slate
+            "
+        >
 
-                            · CVV:
+            <i
+                class="
+                    fa-regular
+                    fa-credit-card
+                    mr-1
+                "
+            ></i>
+
+            Card
 
-                            <strong>
-                                123
-                            </strong>
+        </span>
 
-                        </div>
 
+        <span
+            class="
+                mp-badge
+                mp-badge-slate
+            "
+        >
 
+            <i
+                class="
+                    fa-solid
+                    fa-building-columns
+                    mr-1
+                "
+            ></i>
 
-                        <form
-                            method="POST"
-                            action="{{
-                                route(
-                                    'seller-invoices.pay',
-                                    $pendingInvoice
-                                )
-                            }}"
-                            autocomplete="off"
-                        >
+            Bank
 
-                            @csrf
+        </span>
 
 
-                            <div class="mp-field">
+        <span
+            class="
+                mp-badge
+                mp-badge-slate
+            "
+        >
 
-                                <label>
-                                    Name on card
-                                </label>
+            <i
+                class="
+                    fa-solid
+                    fa-mobile-screen-button
+                    mr-1
+                "
+            ></i>
 
+            USSD
 
-                                <input
-                                    type="text"
-                                    name="cardholder_name"
-                                    value="{{
-                                        old(
-                                            'cardholder_name',
-                                            auth()->user()->name
-                                        )
-                                    }}"
-                                    placeholder="Cardholder name"
-                                    required
-                                >
+        </span>
 
-                            </div>
 
+        <span
+            class="
+                mp-badge
+                mp-badge-slate
+            "
+        >
 
-                            <div class="mp-field">
+            <i
+                class="
+                    fa-solid
+                    fa-money-bill-transfer
+                    mr-1
+                "
+            ></i>
 
-                                <label>
-                                    Card number
-                                </label>
+            Transfer
 
+        </span>
 
-                                <input
-                                    type="text"
-                                    name="card_number"
-                                    inputmode="numeric"
-                                    placeholder="4242 4242 4242 4242"
-                                    maxlength="23"
-                                    required
-                                >
+    </div>
 
-                            </div>
 
 
-                            <div class="mp-grid-2">
+    {{-- PAY --}}
+    <form
+        method="POST"
+        action="{{
+            route(
+                'seller-invoices.pay',
+                $pendingInvoice
+            )
+        }}"
+        class="mt-5"
+    >
 
-                                <div class="mp-field">
+        @csrf
 
-                                    <label>
-                                        Expiry
-                                    </label>
 
+        <button
+            type="submit"
+            class="
+                mp-btn
+                mp-btn-primary
+                mp-btn-lg
+                w-full
+            "
+        >
 
-                                    <input
-                                        type="text"
-                                        name="expiry"
-                                        placeholder="12/30"
-                                        maxlength="5"
-                                        required
-                                    >
+            <i
+                class="
+                    fa-solid
+                    fa-lock
+                "
+            ></i>
 
-                                </div>
 
+            Pay ₦{{
+                number_format(
+                    (float) $pendingInvoice->amount,
+                    0
+                )
+            }}
 
-                                <div class="mp-field">
+            with Paystack
 
-                                    <label>
-                                        CVV
-                                    </label>
+        </button>
 
+    </form>
 
-                                    <input
-                                        type="password"
-                                        name="cvv"
-                                        inputmode="numeric"
-                                        placeholder="123"
-                                        maxlength="4"
-                                        required
-                                    >
 
-                                </div>
 
-                            </div>
+    <p
+        class="
+            mp-small
+            mp-muted
+            mt-3
+            text-center
+            leading-5
+        "
+    >
 
+        Card details are entered on Paystack's checkout,
+        not on MidPoint.
 
-                            <button
-                                type="submit"
-                                class="
-                                    mp-btn
-                                    mp-btn-primary
-                                    mp-btn-lg
-                                    w-full
-                                "
-                            >
+        After successful verification,
+        your seller package is activated automatically
+        and a confirmation email with a PDF invoice
+        is sent to you.
 
-                                Pay ₦{{
-                                    number_format(
-                                        (float) $pendingInvoice->amount,
-                                        0
-                                    )
-                                }}
+    </p>
 
-                                & Activate Seller
-
-                            </button>
-
-                        </form>
-
-
-                        <p
-                            class="
-                                mp-small
-                                mp-muted
-                                mt-3
-                                text-center
-                            "
-                        >
-
-                            Demo payment only.
-                            No real card will be charged.
-
-                        </p>
-
-
-                    @else
-
-                        <div
-                            class="
-                                rounded-[14px]
-                                bg-[#F5F7F6]
-                                p-5
-                                text-center
-                            "
-                        >
-
-                            <strong>
-
-                                Online payment is temporarily unavailable.
-
-                            </strong>
-
-
-                            <p class="mp-small mp-muted mt-2">
-
-                                Please contact MidPoint support
-                                for payment assistance.
-
-                            </p>
-
-                        </div>
-
-                    @endif
+</div>
 
                 </div>
 
@@ -1963,7 +2036,40 @@
                         Manage Products
 
                     </a>
+                    @if(
+                        $latestApplication
+                        &&
+                        $latestApplication->invoice
+                        &&
+                        $latestApplication->invoice->status === 'paid'
+                    )
 
+                        <a
+                            href="{{
+                                route(
+                                    'seller-invoices.download',
+                                    $latestApplication->invoice
+                                )
+                            }}"
+                            class="
+                                mp-btn
+                                mp-btn-outline
+                                mt-3
+                            "
+                        >
+
+                            <i
+                                class="
+                                    fa-solid
+                                    fa-file-pdf
+                                "
+                            ></i>
+
+                            Download Paid Invoice
+
+                        </a>
+
+                    @endif
                 </div>
 
             @endif

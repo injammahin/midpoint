@@ -4,11 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\SecureTransaction;
 use App\Models\SecureTransactionPayment;
-
+use App\Models\SellerInvoicePayment;
 use App\Services\PaystackService;
 use App\Services\TransactionLifecycleService;
 use App\Services\TransactionPaymentCommunicationService;
-
+use App\Services\SellerInvoicePaymentService;
 use Carbon\Carbon;
 
 use Illuminate\Http\Request;
@@ -539,9 +539,10 @@ class PaystackPaymentController extends Controller
 
 
     public function webhook(
-        Request $request,
-        PaystackService $paystack,
-        TransactionLifecycleService $lifecycle
+    Request $request,
+    PaystackService $paystack,
+    TransactionLifecycleService $lifecycle,
+    SellerInvoicePaymentService $sellerInvoicePayments
     ) {
         $rawPayload =
             $request->getContent();
@@ -652,11 +653,143 @@ class PaystackPaymentController extends Controller
 
 
         if (!$payment) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | Seller Package Invoice Payment
+            |--------------------------------------------------------------------------
+            */
+
+            $sellerInvoicePayment =
+                SellerInvoicePayment::query()
+
+                    ->with([
+
+                        'invoice.application',
+
+                        'invoice.user',
+
+                    ])
+
+                    ->where(
+                        'reference',
+                        $reference
+                    )
+
+                    ->first();
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Seller Invoice Payment Found
+            |--------------------------------------------------------------------------
+            */
+
+            if (
+                $sellerInvoicePayment
+            ) {
+
+                /*
+                |--------------------------------------------------------------------------
+                | Already Processed
+                |--------------------------------------------------------------------------
+                */
+
+                if (
+                    $sellerInvoicePayment->status
+                    ===
+                    SellerInvoicePayment::STATUS_SUCCESS
+                ) {
+
+                    return response(
+                        'OK',
+                        200
+                    );
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Verify Directly With Paystack
+                |--------------------------------------------------------------------------
+                */
+
+                try {
+
+                    $verifiedData =
+                        $paystack
+                            ->verifyTransaction(
+                                $reference
+                            );
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Process Seller Invoice
+                    |--------------------------------------------------------------------------
+                    */
+
+                    $sellerInvoicePayments
+                        ->processVerifiedPayment(
+                            $sellerInvoicePayment,
+                            $verifiedData
+                        );
+
+
+                    return response(
+                        'OK',
+                        200
+                    );
+
+
+                } catch (
+                    Throwable $exception
+                ) {
+
+                    Log::error(
+                        'Paystack seller invoice webhook verification failed.',
+                        [
+
+                            'reference' =>
+                                $reference,
+
+                            'seller_invoice_payment_id' =>
+                                $sellerInvoicePayment->id,
+
+                            'error' =>
+                                $exception
+                                    ->getMessage(),
+
+                        ]
+                    );
+
+
+                    report(
+                        $exception
+                    );
+
+
+                    return response(
+                        'Verification failed',
+                        500
+                    );
+                }
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Neither Buyer Transaction Nor Seller Invoice
+            |--------------------------------------------------------------------------
+            */
+
             Log::warning(
                 'Paystack webhook payment reference not found.',
                 [
+
                     'reference' =>
                         $reference,
+
                 ]
             );
 
@@ -666,7 +799,6 @@ class PaystackPaymentController extends Controller
                 200
             );
         }
-
 
         if (
             $payment->status

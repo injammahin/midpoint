@@ -514,7 +514,7 @@
 .plan-admin-stat span {
     display:block;
     color:var(--admin-muted);
-    font-size:9px;
+    font-size:11px;
 }
 
 .plan-admin-stat strong {
@@ -553,7 +553,7 @@
     background:var(--admin-surface-soft);
     color:var(--admin-text);
     font-family:inherit;
-    font-size:9px;
+    font-size:11px;
     outline:none;
 }
 
@@ -567,7 +567,7 @@
     height:38px;
     padding:0 13px;
     border-radius:8px;
-    font-size:9px;
+    font-size:11px;
     font-weight:700;
     text-decoration:none;
     white-space:nowrap;
@@ -604,7 +604,7 @@
     border-bottom:1px solid var(--admin-border);
     background:var(--admin-surface-soft);
     color:var(--admin-muted);
-    font-size:8px;
+    font-size:10px;
     text-align:left;
 }
 
@@ -612,7 +612,7 @@
     padding:12px 13px;
     border-bottom:1px solid var(--admin-border);
     color:var(--admin-text);
-    font-size:9px;
+    font-size:11px;
 }
 
 .plan-table td strong {
@@ -624,7 +624,7 @@
     display:block;
     margin-top:3px;
     color:var(--admin-muted);
-    font-size:8px;
+    font-size:10px;
 }
 
 .plan-days-good {
@@ -643,7 +643,7 @@
     display:inline-flex;
     padding:5px 8px;
     border-radius:999px;
-    font-size:8px;
+    font-size:10px;
     font-weight:700;
 }
 

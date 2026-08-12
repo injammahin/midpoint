@@ -97,8 +97,20 @@ class SellerInvoice extends Model
     }
 
 
+    public function payments()
+    {
+        return $this->hasMany(
+            SellerInvoicePayment::class,
+            'seller_invoice_id'
+        );
+    }
+
+
     public function isPaid(): bool
     {
-        return $this->status === 'paid';
+        return
+            $this->status
+            ===
+            'paid';
     }
 }

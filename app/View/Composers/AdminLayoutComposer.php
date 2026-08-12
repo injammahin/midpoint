@@ -3,9 +3,11 @@
 namespace App\View\Composers;
 
 use App\Models\ContactMessage;
+use App\Models\TransactionDispute;
 
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
+
 use Illuminate\View\View;
 
 class AdminLayoutComposer
@@ -25,9 +27,17 @@ class AdminLayoutComposer
         |--------------------------------------------------------------------------
         */
 
-        $adminUnreadContactCount = 0;
+        $adminUnreadContactCount =
+            0;
 
-        $adminUnreadNotificationCount = 0;
+
+        $adminUnreadNotificationCount =
+            0;
+
+
+        $adminOpenDisputeCount =
+            0;
+
 
         $adminLatestNotifications =
             collect();
@@ -56,14 +66,19 @@ class AdminLayoutComposer
         ) {
 
             $view->with([
+
                 'adminUnreadContactCount' =>
                     $adminUnreadContactCount,
 
                 'adminUnreadNotificationCount' =>
                     $adminUnreadNotificationCount,
 
+                'adminOpenDisputeCount' =>
+                    $adminOpenDisputeCount,
+
                 'adminLatestNotifications' =>
                     $adminLatestNotifications,
+
             ]);
 
 
@@ -96,6 +111,33 @@ class AdminLayoutComposer
 
         /*
         |--------------------------------------------------------------------------
+        | Open Transaction Disputes
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            Schema::hasTable(
+                'transaction_disputes'
+            )
+        ) {
+
+            $adminOpenDisputeCount =
+                TransactionDispute::query()
+
+                    ->whereIn(
+                        'status',
+                        [
+                            'open',
+                            'under_review',
+                        ]
+                    )
+
+                    ->count();
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
         | Database Notifications
         |--------------------------------------------------------------------------
         */
@@ -114,7 +156,9 @@ class AdminLayoutComposer
 
             $adminUnreadNotificationCount =
                 $user
+
                     ->unreadNotifications()
+
                     ->count();
 
 
@@ -126,16 +170,22 @@ class AdminLayoutComposer
 
             $adminLatestNotifications =
                 $user
+
                     ->notifications()
+
                     ->latest()
-                    ->limit(10)
+
+                    ->limit(
+                        10
+                    )
+
                     ->get();
         }
 
 
         /*
         |--------------------------------------------------------------------------
-        | Send To Layout
+        | Send To Admin Layout
         |--------------------------------------------------------------------------
         */
 
@@ -146,6 +196,9 @@ class AdminLayoutComposer
 
             'adminUnreadNotificationCount' =>
                 $adminUnreadNotificationCount,
+
+            'adminOpenDisputeCount' =>
+                $adminOpenDisputeCount,
 
             'adminLatestNotifications' =>
                 $adminLatestNotifications,

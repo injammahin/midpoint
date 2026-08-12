@@ -76,6 +76,12 @@
         )
 
 
+        {{-- Transactions --}}
+        @include(
+            'admin.partials.sidebar.modules.transactions-disputes'
+        )
+
+
         {{-- Website --}}
         @include(
             'admin.partials.sidebar.modules.website-settings'
@@ -86,7 +92,6 @@
         @include(
             'admin.partials.sidebar.modules.support-inquiries'
         )
-
     </nav>
 
 </div>
