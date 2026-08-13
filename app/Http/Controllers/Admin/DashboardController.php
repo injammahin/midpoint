@@ -19,6 +19,26 @@ class DashboardController extends Controller
 {
     public function index(Request $request)
     {
+
+        if (
+            $request
+                ->user()
+                ->isAdminStaff()
+        ) {
+
+            return redirect()
+                ->route(
+                    'admin.staff-dashboard'
+                );
+        }
+
+
+        abort_unless(
+            $request
+                ->user()
+                ->isAdmin(),
+            403
+        );
         $period = (int) $request->get('period', 12);
         $period = in_array($period, [6, 12], true) ? $period : 12;
 

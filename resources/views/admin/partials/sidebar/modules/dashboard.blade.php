@@ -1,3 +1,42 @@
+@php
+
+    /*
+    |--------------------------------------------------------------------------
+    | Correct Dashboard By Account Type
+    |--------------------------------------------------------------------------
+    */
+
+    $dashboardRoute =
+        auth()
+            ->user()
+            ->isAdmin()
+
+            ? route(
+                'admin.dashboard'
+            )
+
+            : route(
+                'admin.staff-dashboard'
+            );
+
+
+    $dashboardActive =
+
+        auth()
+            ->user()
+            ->isAdmin()
+
+            ? request()->routeIs(
+                'admin.dashboard'
+            )
+
+            : request()->routeIs(
+                'admin.staff-dashboard'
+            );
+
+@endphp
+
+
 @if(
     auth()
         ->user()
@@ -7,15 +46,13 @@
 )
 
     <a
-        href="{{ route('admin.dashboard') }}"
+        href="{{ $dashboardRoute }}"
 
         class="
             admin-menu-link
 
             {{
-                request()->routeIs(
-                    'admin.dashboard'
-                )
+                $dashboardActive
                     ? 'active'
                     : ''
             }}

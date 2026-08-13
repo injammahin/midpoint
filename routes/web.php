@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 
+
 /*
 |--------------------------------------------------------------------------
 | Frontend Controllers
@@ -22,6 +23,7 @@ use App\Http\Controllers\SellerInvoicePaymentController;
 use App\Http\Controllers\FeaturedBusinessController;
 use App\Http\Controllers\SecureTransactionController;
 use App\Http\Controllers\PaystackPaymentController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -50,7 +52,8 @@ use App\Http\Controllers\Seller\SellerSecureTransactionController;
 use App\Http\Controllers\Seller\SellerTransactionController;
 use App\Http\Controllers\Seller\SellerNotificationController;
 use App\Http\Controllers\Seller\SellerTransactionStatusController;
-use App\Http\Controllers\Buyer\BuyerProfileSettingsController;
+
+
 /*
 |--------------------------------------------------------------------------
 | Buyer Controllers
@@ -62,15 +65,19 @@ use App\Http\Controllers\Buyer\BuyerTransactionController;
 use App\Http\Controllers\Buyer\BuyerNotificationController;
 use App\Http\Controllers\Buyer\BuyerTransactionActionController;
 use App\Http\Controllers\Buyer\BuyerTransactionDisputeController;
+use App\Http\Controllers\Buyer\BuyerProfileSettingsController;
+
 
 /*
 |--------------------------------------------------------------------------
 | Admin Controllers
 |--------------------------------------------------------------------------
 */
+
 use App\Http\Controllers\Admin\AdminTransactionController;
 use App\Http\Controllers\Admin\AdminDisputeController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\StaffDashboardController;
 use App\Http\Controllers\Admin\WebsiteSettingsController;
 use App\Http\Controllers\Admin\SupportInquiryController;
 use App\Http\Controllers\Admin\ContactMessageController;
@@ -86,6 +93,7 @@ use App\Http\Controllers\Admin\SellerInvoiceController;
 use App\Http\Controllers\Admin\SellerSubscriptionController;
 use App\Http\Controllers\Admin\SellerApplicationController as AdminSellerApplicationController;
 use App\Http\Controllers\Admin\AdminStaffController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -253,6 +261,7 @@ Route::get(
     ]
 )->name('payments.paystack.callback');
 
+
 Route::get(
     '/seller-invoices/paystack/callback',
     [
@@ -260,6 +269,7 @@ Route::get(
         'callback',
     ]
 )->name('seller-invoices.paystack.callback');
+
 
 Route::post(
     '/webhooks/paystack',
@@ -280,6 +290,13 @@ Route::middleware([
     'guest',
 ])->group(function () {
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Two Factor Challenge
+    |--------------------------------------------------------------------------
+    */
+
     Route::get(
         '/two-factor-challenge',
         [
@@ -288,72 +305,6 @@ Route::middleware([
         ]
     )->name('two-factor.challenge');
 
-    Route::get(
-    '/forgot-password',
-    [
-        PasswordResetController::class,
-        'showForgotForm',
-    ]
-)->name('password.request');
-
-
-/*
-|--------------------------------------------------------------------------
-| Send Reset Link
-|--------------------------------------------------------------------------
-*/
-
-Route::post(
-    '/forgot-password',
-    [
-        PasswordResetController::class,
-        'sendResetLink',
-    ]
-)
-    ->middleware(
-        'throttle:5,1'
-    )
-    ->name(
-        'password.email'
-    );
-
-
-/*
-|--------------------------------------------------------------------------
-| Reset Password Page
-|--------------------------------------------------------------------------
-*/
-
-Route::get(
-    '/reset-password/{token}',
-    [
-        PasswordResetController::class,
-        'showResetForm',
-    ]
-)->name(
-    'password.reset'
-);
-
-
-/*
-|--------------------------------------------------------------------------
-| Update Password
-|--------------------------------------------------------------------------
-*/
-
-Route::post(
-    '/reset-password',
-    [
-        PasswordResetController::class,
-        'reset',
-    ]
-)
-    ->middleware(
-        'throttle:10,1'
-    )
-    ->name(
-        'password.update'
-    );
 
     Route::post(
         '/two-factor-challenge',
@@ -365,6 +316,64 @@ Route::post(
         ->middleware('throttle:10,1')
         ->name('two-factor.challenge.store');
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Forgot Password
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get(
+        '/forgot-password',
+        [
+            PasswordResetController::class,
+            'showForgotForm',
+        ]
+    )->name('password.request');
+
+
+    Route::post(
+        '/forgot-password',
+        [
+            PasswordResetController::class,
+            'sendResetLink',
+        ]
+    )
+        ->middleware('throttle:5,1')
+        ->name('password.email');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Reset Password
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get(
+        '/reset-password/{token}',
+        [
+            PasswordResetController::class,
+            'showResetForm',
+        ]
+    )->name('password.reset');
+
+
+    Route::post(
+        '/reset-password',
+        [
+            PasswordResetController::class,
+            'reset',
+        ]
+    )
+        ->middleware('throttle:10,1')
+        ->name('password.update');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Login
+    |--------------------------------------------------------------------------
+    */
 
     Route::get(
         '/login',
@@ -386,6 +395,12 @@ Route::post(
         ->name('login.attempt');
 
 
+    /*
+    |--------------------------------------------------------------------------
+    | Registration
+    |--------------------------------------------------------------------------
+    */
+
     Route::get(
         '/register',
         [
@@ -404,6 +419,7 @@ Route::post(
     )
         ->middleware('throttle:5,1')
         ->name('register.store');
+
 });
 
 
@@ -475,8 +491,14 @@ Route::get(
 
 /*
 |--------------------------------------------------------------------------
-| Dashboard Redirect
+| Main Dashboard Redirect
 |--------------------------------------------------------------------------
+|
+| admin       -> /admin/dashboard
+| admin_staff -> /admin/staff-dashboard
+| buyer       -> /buyer/dashboard
+| seller      -> /seller/dashboard
+|
 */
 
 Route::get(
@@ -518,6 +540,7 @@ Route::middleware([
     'active',
 ])->group(function () {
 
+
     Route::get(
         '/support/chat/sessions/{session}',
         [
@@ -543,12 +566,13 @@ Route::middleware([
             'attachment',
         ]
     )->name('support.chat.attachments.show');
+
 });
 
 
 /*
 |--------------------------------------------------------------------------
-| Authenticated + Active + Verified Users
+| Authenticated + Active + Verified Marketplace Users
 |--------------------------------------------------------------------------
 */
 
@@ -557,6 +581,7 @@ Route::middleware([
     'active',
     'verified',
 ])->group(function () {
+
 
     /*
     |--------------------------------------------------------------------------
@@ -596,6 +621,7 @@ Route::middleware([
         ]
     )->name('seller-invoices.pay');
 
+
     Route::get(
         '/verified-sellers/invoices/{invoice}/download',
         [
@@ -603,6 +629,7 @@ Route::middleware([
             'download',
         ]
     )->name('seller-invoices.download');
+
 
     /*
     |--------------------------------------------------------------------------
@@ -669,6 +696,7 @@ Route::middleware([
     Route::prefix('seller')
         ->name('seller.')
         ->group(function () {
+
 
             /*
             |--------------------------------------------------------------------------
@@ -840,7 +868,7 @@ Route::middleware([
 
             /*
             |--------------------------------------------------------------------------
-            | Seller Transaction Status Update
+            | Seller Transaction Status
             |--------------------------------------------------------------------------
             */
 
@@ -941,6 +969,7 @@ Route::middleware([
                     'destroyProfileImage',
                 ]
             )->name('business-profile.profile-image.destroy');
+
         });
 
 
@@ -953,6 +982,7 @@ Route::middleware([
     Route::prefix('buyer')
         ->name('buyer.')
         ->group(function () {
+
 
             /*
             |--------------------------------------------------------------------------
@@ -1126,12 +1156,6 @@ Route::middleware([
             )->name('profile-settings');
 
 
-            /*
-            |--------------------------------------------------------------------------
-            | Buyer Personal Details
-            |--------------------------------------------------------------------------
-            */
-
             Route::put(
                 '/profile-settings/personal',
                 [
@@ -1141,12 +1165,6 @@ Route::middleware([
             )->name('profile-settings.personal');
 
 
-            /*
-            |--------------------------------------------------------------------------
-            | Buyer Notification Preferences
-            |--------------------------------------------------------------------------
-            */
-
             Route::put(
                 '/profile-settings/notifications',
                 [
@@ -1155,12 +1173,6 @@ Route::middleware([
                 ]
             )->name('profile-settings.notifications');
 
-
-            /*
-            |--------------------------------------------------------------------------
-            | Buyer Change Password
-            |--------------------------------------------------------------------------
-            */
 
             Route::put(
                 '/profile-settings/password',
@@ -1173,7 +1185,7 @@ Route::middleware([
 
             /*
             |--------------------------------------------------------------------------
-            | Buyer Enable 2FA
+            | Buyer Two-Factor Authentication
             |--------------------------------------------------------------------------
             */
 
@@ -1186,12 +1198,6 @@ Route::middleware([
             )->name('profile-settings.two-factor.setup');
 
 
-            /*
-            |--------------------------------------------------------------------------
-            | Buyer Confirm 2FA
-            |--------------------------------------------------------------------------
-            */
-
             Route::post(
                 '/profile-settings/two-factor/confirm',
                 [
@@ -1201,12 +1207,6 @@ Route::middleware([
             )->name('profile-settings.two-factor.confirm');
 
 
-            /*
-            |--------------------------------------------------------------------------
-            | Buyer Disable 2FA
-            |--------------------------------------------------------------------------
-            */
-
             Route::delete(
                 '/profile-settings/two-factor',
                 [
@@ -1214,8 +1214,10 @@ Route::middleware([
                     'disableTwoFactor',
                 ]
             )->name('profile-settings.two-factor.disable');
-                    });
-            });
+
+        });
+
+});
 
 
 /*
@@ -1233,133 +1235,45 @@ Route::prefix('admin')
     ])
     ->group(function () {
 
-        /*
-        |--------------------------------------------------------------------------
-        | Admin Dashboard
-        |--------------------------------------------------------------------------
-        */
-Route::prefix('staff')
-    ->name('staff.')
-    ->group(function () {
 
         /*
         |--------------------------------------------------------------------------
-        | Role Management
+        | Staff Operations Dashboard
         |--------------------------------------------------------------------------
+        |
+        | URL:
+        | /admin/staff-dashboard
+        |
+        | Route:
+        | admin.staff-dashboard
+        |
+        | IMPORTANT:
+        | This must NOT be inside the Route::prefix('staff') group.
+        |
         */
 
         Route::get(
-            '/',
+            '/staff-dashboard',
             [
-                AdminStaffController::class,
+                StaffDashboardController::class,
                 'index',
             ]
-        )->name(
-            'index'
-        );
+        )->name('staff-dashboard');
 
 
         /*
         |--------------------------------------------------------------------------
-        | Create
+        | Super Admin Financial Dashboard
         |--------------------------------------------------------------------------
+        |
+        | URL:
+        | /admin/dashboard
+        |
+        | Route:
+        | admin.dashboard
+        |
         */
 
-        Route::post(
-            '/',
-            [
-                AdminStaffController::class,
-                'store',
-            ]
-        )->name(
-            'store'
-        );
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Update Account & Permissions
-        |--------------------------------------------------------------------------
-        */
-
-        Route::put(
-            '/{staff}',
-            [
-                AdminStaffController::class,
-                'update',
-            ]
-        )->name(
-            'update'
-        );
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Activate / Deactivate
-        |--------------------------------------------------------------------------
-        */
-
-        Route::patch(
-            '/{staff}/status',
-            [
-                AdminStaffController::class,
-                'toggleStatus',
-            ]
-        )->name(
-            'status'
-        );
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Force Password Change
-        |--------------------------------------------------------------------------
-        */
-
-        Route::put(
-            '/{staff}/password',
-            [
-                AdminStaffController::class,
-                'resetPassword',
-            ]
-        )->name(
-            'password'
-        );
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Login As Admin User
-        |--------------------------------------------------------------------------
-        */
-
-        Route::post(
-            '/{staff}/login',
-            [
-                AdminStaffController::class,
-                'impersonate',
-            ]
-        )->name(
-            'impersonate'
-        );
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Delete
-        |--------------------------------------------------------------------------
-        */
-
-        Route::delete(
-            '/{staff}',
-            [
-                AdminStaffController::class,
-                'destroy',
-            ]
-        )->name(
-            'destroy'
-        );
-    });
         Route::get(
             '/dashboard',
             [
@@ -1368,24 +1282,139 @@ Route::prefix('staff')
             ]
         )->name('dashboard');
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | Role / Staff Management
+        |--------------------------------------------------------------------------
+        |
+        | URL:
+        | /admin/staff
+        |
+        */
+
+        Route::prefix('staff')
+            ->name('staff.')
+            ->group(function () {
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Staff List
+                |--------------------------------------------------------------------------
+                */
+
+                Route::get(
+                    '/',
+                    [
+                        AdminStaffController::class,
+                        'index',
+                    ]
+                )->name('index');
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Create Staff
+                |--------------------------------------------------------------------------
+                */
+
+                Route::post(
+                    '/',
+                    [
+                        AdminStaffController::class,
+                        'store',
+                    ]
+                )->name('store');
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Update Staff
+                |--------------------------------------------------------------------------
+                */
+
+                Route::put(
+                    '/{staff}',
+                    [
+                        AdminStaffController::class,
+                        'update',
+                    ]
+                )->name('update');
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Activate / Deactivate
+                |--------------------------------------------------------------------------
+                */
+
+                Route::patch(
+                    '/{staff}/status',
+                    [
+                        AdminStaffController::class,
+                        'toggleStatus',
+                    ]
+                )->name('status');
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Reset Password
+                |--------------------------------------------------------------------------
+                */
+
+                Route::put(
+                    '/{staff}/password',
+                    [
+                        AdminStaffController::class,
+                        'resetPassword',
+                    ]
+                )->name('password');
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Login As Staff
+                |--------------------------------------------------------------------------
+                */
+
+                Route::post(
+                    '/{staff}/login',
+                    [
+                        AdminStaffController::class,
+                        'impersonate',
+                    ]
+                )->name('impersonate');
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Delete Staff
+                |--------------------------------------------------------------------------
+                */
+
+                Route::delete(
+                    '/{staff}',
+                    [
+                        AdminStaffController::class,
+                        'destroy',
+                    ]
+                )->name('destroy');
+
+            });
+
+
         /*
         |--------------------------------------------------------------------------
         | Secure Transactions
         |--------------------------------------------------------------------------
-        |
-        | Only buyer-paid transactions are returned by the controller.
-        |
         */
 
         Route::prefix('transactions')
             ->name('transactions.')
             ->group(function () {
 
-                /*
-                |--------------------------------------------------------------------------
-                | List Paid Transactions
-                |--------------------------------------------------------------------------
-                */
 
                 Route::get(
                     '/',
@@ -1396,12 +1425,6 @@ Route::prefix('staff')
                 )->name('index');
 
 
-                /*
-                |--------------------------------------------------------------------------
-                | View Paid Transaction
-                |--------------------------------------------------------------------------
-                */
-
                 Route::get(
                     '/{secureTransaction}',
                     [
@@ -1409,7 +1432,9 @@ Route::prefix('staff')
                         'show',
                     ]
                 )->name('show');
+
             });
+
 
         /*
         |--------------------------------------------------------------------------
@@ -1421,11 +1446,6 @@ Route::prefix('staff')
             ->name('disputes.')
             ->group(function () {
 
-                /*
-                |--------------------------------------------------------------------------
-                | List
-                |--------------------------------------------------------------------------
-                */
 
                 Route::get(
                     '/',
@@ -1436,12 +1456,6 @@ Route::prefix('staff')
                 )->name('index');
 
 
-                /*
-                |--------------------------------------------------------------------------
-                | Show
-                |--------------------------------------------------------------------------
-                */
-
                 Route::get(
                     '/{dispute}',
                     [
@@ -1451,12 +1465,6 @@ Route::prefix('staff')
                 )->name('show');
 
 
-                /*
-                |--------------------------------------------------------------------------
-                | Workflow Status
-                |--------------------------------------------------------------------------
-                */
-
                 Route::patch(
                     '/{dispute}/status',
                     [
@@ -1464,8 +1472,11 @@ Route::prefix('staff')
                         'updateStatus',
                     ]
                 )->name('status.update');
+
             });
-            /*
+
+
+        /*
         |--------------------------------------------------------------------------
         | Billing
         |--------------------------------------------------------------------------
@@ -1474,6 +1485,7 @@ Route::prefix('staff')
         Route::prefix('billing')
             ->name('billing.')
             ->group(function () {
+
 
                 Route::get(
                     '/invoices',
@@ -1491,18 +1503,20 @@ Route::prefix('staff')
                         'index',
                     ]
                 )->name('subscriptions.index');
+
             });
 
 
         /*
         |--------------------------------------------------------------------------
-        | Users
+        | User Management
         |--------------------------------------------------------------------------
         */
 
         Route::prefix('users')
             ->name('users.')
             ->group(function () {
+
 
                 Route::get(
                     '/',
@@ -1529,6 +1543,7 @@ Route::prefix('staff')
                         'start',
                     ]
                 )->name('impersonate');
+
             });
 
 
@@ -1536,11 +1551,19 @@ Route::prefix('staff')
         |--------------------------------------------------------------------------
         | Live Support
         |--------------------------------------------------------------------------
+        |
+        | URL Prefix:
+        | /admin/support-inquiries/live-support
+        |
+        | Route Prefix:
+        | admin.live-support.*
+        |
         */
 
         Route::prefix('support-inquiries/live-support')
             ->name('live-support.')
             ->group(function () {
+
 
                 Route::get(
                     '/',
@@ -1596,6 +1619,12 @@ Route::prefix('staff')
                 )->name('resolve');
 
 
+                /*
+                |--------------------------------------------------------------------------
+                | Live Support Settings
+                |--------------------------------------------------------------------------
+                */
+
                 Route::get(
                     '/settings',
                     [
@@ -1639,6 +1668,7 @@ Route::prefix('staff')
                         'agentUpdate',
                     ]
                 )->name('agents.update');
+
             });
 
 
@@ -1651,6 +1681,13 @@ Route::prefix('staff')
         Route::prefix('website-settings')
             ->name('website-settings.')
             ->group(function () {
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Application Settings
+                |--------------------------------------------------------------------------
+                */
 
                 Route::get(
                     '/app-settings',
@@ -1836,6 +1873,7 @@ Route::prefix('staff')
                         'destroy',
                     ]
                 )->name('seller-packages.destroy');
+
             });
 
 
@@ -1848,6 +1886,13 @@ Route::prefix('staff')
         Route::prefix('support-inquiries')
             ->name('support-inquiries.')
             ->group(function () {
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Contact Messages
+                |--------------------------------------------------------------------------
+                */
 
                 Route::get(
                     '/contacts',
@@ -1876,6 +1921,12 @@ Route::prefix('staff')
                 )->name('contacts.status');
 
 
+                /*
+                |--------------------------------------------------------------------------
+                | Support Messages
+                |--------------------------------------------------------------------------
+                */
+
                 Route::get(
                     '/support-messages',
                     [
@@ -1883,6 +1934,7 @@ Route::prefix('staff')
                         'supportMessages',
                     ]
                 )->name('support-messages');
+
             });
 
 
@@ -1917,4 +1969,5 @@ Route::prefix('staff')
                 'open',
             ]
         )->name('notifications.open');
+
     });

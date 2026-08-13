@@ -294,7 +294,13 @@ class AdminStaffController extends Controller
                             ??
                             []
                         )
+
+                            ->push(
+                                'dashboard.view'
+                            )
+
                             ->unique()
+
                             ->values();
 
 
@@ -506,7 +512,13 @@ class AdminStaffController extends Controller
                         ??
                         []
                     )
+
+                        ->push(
+                            'dashboard.view'
+                        )
+
                         ->unique()
+
                         ->values();
 
 

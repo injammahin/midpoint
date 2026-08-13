@@ -229,7 +229,8 @@ return [
         'admin.dashboard' =>
             'dashboard.view',
 
-
+        'admin.staff-dashboard' =>
+            'dashboard.view',
         /*
         |--------------------------------------------------------------------------
         | Users
@@ -238,6 +239,7 @@ return [
 
         'admin.users.*' =>
             'users.manage',
+
 
 
         /*
