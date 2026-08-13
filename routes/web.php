@@ -33,6 +33,8 @@ use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\RegistrationController;
 use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\Auth\TwoFactorChallengeController;
+use App\Http\Controllers\Auth\PasswordResetController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -48,7 +50,7 @@ use App\Http\Controllers\Seller\SellerSecureTransactionController;
 use App\Http\Controllers\Seller\SellerTransactionController;
 use App\Http\Controllers\Seller\SellerNotificationController;
 use App\Http\Controllers\Seller\SellerTransactionStatusController;
-
+use App\Http\Controllers\Buyer\BuyerProfileSettingsController;
 /*
 |--------------------------------------------------------------------------
 | Buyer Controllers
@@ -286,6 +288,72 @@ Route::middleware([
         ]
     )->name('two-factor.challenge');
 
+    Route::get(
+    '/forgot-password',
+    [
+        PasswordResetController::class,
+        'showForgotForm',
+    ]
+)->name('password.request');
+
+
+/*
+|--------------------------------------------------------------------------
+| Send Reset Link
+|--------------------------------------------------------------------------
+*/
+
+Route::post(
+    '/forgot-password',
+    [
+        PasswordResetController::class,
+        'sendResetLink',
+    ]
+)
+    ->middleware(
+        'throttle:5,1'
+    )
+    ->name(
+        'password.email'
+    );
+
+
+/*
+|--------------------------------------------------------------------------
+| Reset Password Page
+|--------------------------------------------------------------------------
+*/
+
+Route::get(
+    '/reset-password/{token}',
+    [
+        PasswordResetController::class,
+        'showResetForm',
+    ]
+)->name(
+    'password.reset'
+);
+
+
+/*
+|--------------------------------------------------------------------------
+| Update Password
+|--------------------------------------------------------------------------
+*/
+
+Route::post(
+    '/reset-password',
+    [
+        PasswordResetController::class,
+        'reset',
+    ]
+)
+    ->middleware(
+        'throttle:10,1'
+    )
+    ->name(
+        'password.update'
+    );
 
     Route::post(
         '/two-factor-challenge',
@@ -1049,22 +1117,105 @@ Route::middleware([
             |--------------------------------------------------------------------------
             */
 
-            Route::view(
+            Route::get(
                 '/profile-settings',
-                'account.coming-soon',
                 [
-                    'dashboardRole' =>
-                        'buyer',
-
-                    'pageTitle' =>
-                        'Profile settings',
-
-                    'pageIcon' =>
-                        'fa-gear',
+                    BuyerProfileSettingsController::class,
+                    'index',
                 ]
             )->name('profile-settings');
-        });
-});
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Buyer Personal Details
+            |--------------------------------------------------------------------------
+            */
+
+            Route::put(
+                '/profile-settings/personal',
+                [
+                    BuyerProfileSettingsController::class,
+                    'updateProfile',
+                ]
+            )->name('profile-settings.personal');
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Buyer Notification Preferences
+            |--------------------------------------------------------------------------
+            */
+
+            Route::put(
+                '/profile-settings/notifications',
+                [
+                    BuyerProfileSettingsController::class,
+                    'updateNotifications',
+                ]
+            )->name('profile-settings.notifications');
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Buyer Change Password
+            |--------------------------------------------------------------------------
+            */
+
+            Route::put(
+                '/profile-settings/password',
+                [
+                    BuyerProfileSettingsController::class,
+                    'changePassword',
+                ]
+            )->name('profile-settings.password');
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Buyer Enable 2FA
+            |--------------------------------------------------------------------------
+            */
+
+            Route::post(
+                '/profile-settings/two-factor/setup',
+                [
+                    BuyerProfileSettingsController::class,
+                    'setupTwoFactor',
+                ]
+            )->name('profile-settings.two-factor.setup');
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Buyer Confirm 2FA
+            |--------------------------------------------------------------------------
+            */
+
+            Route::post(
+                '/profile-settings/two-factor/confirm',
+                [
+                    BuyerProfileSettingsController::class,
+                    'confirmTwoFactor',
+                ]
+            )->name('profile-settings.two-factor.confirm');
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Buyer Disable 2FA
+            |--------------------------------------------------------------------------
+            */
+
+            Route::delete(
+                '/profile-settings/two-factor',
+                [
+                    BuyerProfileSettingsController::class,
+                    'disableTwoFactor',
+                ]
+            )->name('profile-settings.two-factor.disable');
+                    });
+            });
 
 
 /*

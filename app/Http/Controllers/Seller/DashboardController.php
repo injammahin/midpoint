@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Seller;
 
 use App\Http\Controllers\Controller;
+use App\Models\SecureTransaction;
+use App\Models\TransactionNotification;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
@@ -10,15 +12,7 @@ class DashboardController extends Controller
     public function index(
         Request $request
     ) {
-
         $user = $request->user();
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Current View
-        |--------------------------------------------------------------------------
-        */
 
         $request
             ->session()
@@ -32,29 +26,79 @@ class DashboardController extends Controller
         |--------------------------------------------------------------------------
         | Seller Identity
         |--------------------------------------------------------------------------
-        |
-        | We will replace these fallbacks with the Business Profile model
-        | when that module is built.
-        |
         */
+
+        $user->loadMissing([
+            'sellerBusinessProfile',
+            'activeSellerSubscription.application',
+        ]);
+
+
+        $application =
+            $user
+                ->activeSellerSubscription
+                ?->application;
+
+
+        $businessProfile =
+            $user
+                ->sellerBusinessProfile;
+
 
         $seller = [
 
             'business_name' =>
-                data_get(
-                    $user,
-                    'business_name'
-                )
-                ?: 'Temi Gadgets',
+                $application?->business_name
+                ?: $user->name,
 
             'location' =>
-                data_get(
-                    $user,
-                    'city'
-                )
-                ?: 'Ikeja, Lagos',
+                $businessProfile?->location
+                ?: $application?->location
+                ?: $user->city
+                ?: 'Location not set',
 
         ];
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Transaction Base
+        |--------------------------------------------------------------------------
+        */
+
+        $sellerTransactions =
+            SecureTransaction::query()
+                ->where(
+                    'seller_id',
+                    $user->id
+                );
+
+
+        $paidTransactions =
+            (clone $sellerTransactions)
+                ->where(
+                    'payment_status',
+                    SecureTransaction::PAYMENT_PAID
+                );
+
+
+        $terminalStatuses = [
+
+            SecureTransaction::STATUS_COMPLETED,
+
+            SecureTransaction::STATUS_CANCELLED,
+
+            SecureTransaction::STATUS_EXPIRED,
+
+        ];
+
+
+        $activePaidTransactions =
+            (clone $paidTransactions)
+                ->whereNotIn(
+                    'status',
+                    $terminalStatuses
+                );
 
 
         /*
@@ -62,37 +106,326 @@ class DashboardController extends Controller
         | Featured Transaction
         |--------------------------------------------------------------------------
         |
-        | Demo/dashboard presentation data for now.
+        | First priority:
+        |
+        | Find an order where seller can actually perform the next
+        | fulfilment action.
         |
         */
 
-        $featuredTransaction = [
+        $sellerActionStatuses = [
 
-            'reference' =>
-                'MP-88214',
+            SecureTransaction::STATUS_PAYMENT_SECURED,
 
-            'product' =>
-                'iPhone 12, 128GB',
+            SecureTransaction::STATUS_PREPARING_ITEM,
 
-            'amount' =>
-                145000,
+            SecureTransaction::STATUS_DISPATCHED,
 
-            'buyer' =>
-                'Chiamaka Nwosu',
-
-            'paid_ago' =>
-                '2 hours ago',
-
-            'delivery_address' =>
-                '12 Awolowo Avenue, Bodija, Ibadan, Oyo State',
-
-            'delivery_phone' =>
-                '0803 552 7741',
-
-            'payout' =>
-                137206,
+            SecureTransaction::STATUS_IN_TRANSIT,
 
         ];
+
+
+        $featuredTransaction =
+            SecureTransaction::query()
+
+                ->with([
+                    'buyer',
+                    'dispute',
+                ])
+
+                ->where(
+                    'seller_id',
+                    $user->id
+                )
+
+                ->where(
+                    'payment_status',
+                    SecureTransaction::PAYMENT_PAID
+                )
+
+                ->whereIn(
+                    'status',
+                    $sellerActionStatuses
+                )
+
+                ->latest(
+                    'paid_at'
+                )
+
+                ->latest(
+                    'id'
+                )
+
+                ->first();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Fallback Active Transaction
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            !$featuredTransaction
+        ) {
+
+            $featuredTransaction =
+                SecureTransaction::query()
+
+                    ->with([
+                        'buyer',
+                        'dispute',
+                    ])
+
+                    ->where(
+                        'seller_id',
+                        $user->id
+                    )
+
+                    ->where(
+                        'payment_status',
+                        SecureTransaction::PAYMENT_PAID
+                    )
+
+                    ->whereNotIn(
+                        'status',
+                        $terminalStatuses
+                    )
+
+                    ->latest(
+                        'updated_at'
+                    )
+
+                    ->latest(
+                        'id'
+                    )
+
+                    ->first();
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Held In Escrow
+        |--------------------------------------------------------------------------
+        */
+
+        $heldInEscrow =
+            (float)
+            (clone $activePaidTransactions)
+                ->sum(
+                    'total_amount'
+                );
+
+
+        $activeDeals =
+            (clone $activePaidTransactions)
+                ->count();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Current Month
+        |--------------------------------------------------------------------------
+        */
+
+        $monthStart =
+            now()
+                ->copy()
+                ->startOfMonth();
+
+
+        $monthEnd =
+            now()
+                ->copy()
+                ->endOfMonth();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Previous Month
+        |--------------------------------------------------------------------------
+        */
+
+        $previousMonthStart =
+            now()
+                ->copy()
+                ->subMonthNoOverflow()
+                ->startOfMonth();
+
+
+        $previousMonthEnd =
+            now()
+                ->copy()
+                ->subMonthNoOverflow()
+                ->endOfMonth();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Current Month Released Transactions
+        |--------------------------------------------------------------------------
+        |
+        | This data also powers the revenue chart.
+        |
+        */
+
+        $monthlyReleasedTransactions =
+            (clone $sellerTransactions)
+
+                ->whereBetween(
+                    'funds_released_at',
+                    [
+                        $monthStart,
+                        $monthEnd,
+                    ]
+                )
+
+                ->get([
+                    'id',
+                    'funds_released_at',
+                    'seller_net_amount',
+                ]);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Released This Month
+        |--------------------------------------------------------------------------
+        */
+
+        $releasedThisMonth =
+            (float)
+            $monthlyReleasedTransactions
+                ->sum(
+                    fn ($transaction) =>
+                        (float)
+                        $transaction
+                            ->seller_net_amount
+                );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Previous Month Released
+        |--------------------------------------------------------------------------
+        */
+
+        $releasedPreviousMonth =
+            (float)
+            (clone $sellerTransactions)
+
+                ->whereBetween(
+                    'funds_released_at',
+                    [
+                        $previousMonthStart,
+                        $previousMonthEnd,
+                    ]
+                )
+
+                ->sum(
+                    'seller_net_amount'
+                );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Comparison
+        |--------------------------------------------------------------------------
+        */
+
+        $releasedComparison =
+            $this->monthComparisonText(
+                $releasedThisMonth,
+                $releasedPreviousMonth,
+                $previousMonthStart->format(
+                    'M'
+                )
+            );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Charges Paid
+        |--------------------------------------------------------------------------
+        */
+
+        $serviceFeesPaid =
+            (float)
+            (clone $sellerTransactions)
+
+                ->whereNotNull(
+                    'funds_released_at'
+                )
+
+                ->sum(
+                    'service_fee_amount'
+                );
+
+
+        $vatPaid =
+            (float)
+            (clone $sellerTransactions)
+
+                ->whereNotNull(
+                    'funds_released_at'
+                )
+
+                ->sum(
+                    'vat_amount'
+                );
+
+
+        $chargesPaid =
+            $serviceFeesPaid
+            +
+            $vatPaid;
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Completed Deals
+        |--------------------------------------------------------------------------
+        */
+
+        $completedDeals =
+            (clone $sellerTransactions)
+
+                ->where(
+                    'status',
+                    SecureTransaction::STATUS_COMPLETED
+                )
+
+                ->count();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Seller Trust Score
+        |--------------------------------------------------------------------------
+        |
+        | Uses actual published seller reviews.
+        |
+        */
+
+        $reviewCount =
+            $user
+                ->publishedSellerReviews()
+                ->count();
+
+
+        $ratingAverage =
+            $reviewCount > 0
+
+                ? (float)
+                    $user
+                        ->publishedSellerReviews()
+                        ->avg(
+                            'rating'
+                        )
+
+                : null;
 
 
         /*
@@ -108,55 +441,93 @@ class DashboardController extends Controller
                     'Held in escrow',
 
                 'value' =>
-                    '₦412,500',
+                    $this->money(
+                        $heldInEscrow
+                    ),
 
                 'note' =>
-                    '3 active deals',
+                    $activeDeals
+                    .
+                    ' active '
+                    .
+                    (
+                        $activeDeals === 1
+                            ? 'deal'
+                            : 'deals'
+                    ),
 
                 'class' =>
                     'positive',
             ],
+
 
             [
                 'label' =>
                     'Released this month',
 
                 'value' =>
-                    '₦1.28M',
+                    $this->compactMoney(
+                        $releasedThisMonth
+                    ),
 
                 'note' =>
-                    '▲ 18% vs June',
+                    $releasedComparison[
+                        'text'
+                    ],
 
                 'class' =>
-                    'positive',
+                    $releasedComparison[
+                        'class'
+                    ],
             ],
+
 
             [
                 'label' =>
                     'Charges paid',
 
                 'value' =>
-                    '₦68,908',
+                    $this->money(
+                        $chargesPaid
+                    ),
 
                 'note' =>
-                    '5% fee + 7.5% VAT',
+                    'Service fees + VAT',
 
                 'class' =>
                     '',
             ],
+
 
             [
                 'label' =>
                     'Trust score',
 
                 'value' =>
-                    '4.9',
+                    $ratingAverage !== null
+
+                        ? number_format(
+                            $ratingAverage,
+                            1
+                        )
+
+                        : 'New',
 
                 'suffix' =>
-                    '/5',
+                    $ratingAverage !== null
+                        ? '/5'
+                        : null,
 
                 'note' =>
-                    '62 completed deals',
+                    $completedDeals
+                    .
+                    ' completed '
+                    .
+                    (
+                        $completedDeals === 1
+                            ? 'deal'
+                            : 'deals'
+                    ),
 
                 'class' =>
                     'positive',
@@ -167,113 +538,263 @@ class DashboardController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Transactions
+        | Revenue Chart
+        |--------------------------------------------------------------------------
+        |
+        | Four bars:
+        |
+        | Week 1 = days 1 - 7
+        | Week 2 = days 8 - 14
+        | Week 3 = days 15 - 21
+        | Week 4 = days 22 - end
+        |
+        */
+
+        $weekValues = [
+
+            1 => 0.0,
+
+            2 => 0.0,
+
+            3 => 0.0,
+
+            4 => 0.0,
+
+        ];
+
+
+        foreach (
+            $monthlyReleasedTransactions
+            as
+            $transaction
+        ) {
+
+            if (
+                !$transaction
+                    ->funds_released_at
+            ) {
+                continue;
+            }
+
+
+            $weekNumber =
+                min(
+                    4,
+
+                    intdiv(
+
+                        max(
+                            0,
+                            $transaction
+                                ->funds_released_at
+                                ->day
+                            -
+                            1
+                        ),
+
+                        7
+
+                    )
+                    +
+                    1
+                );
+
+
+            $weekValues[
+                $weekNumber
+            ] +=
+                (float)
+                $transaction
+                    ->seller_net_amount;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Highest Chart Value
         |--------------------------------------------------------------------------
         */
 
-        $transactions = [
+        $chartMaximum =
+            max(
+                1,
+                ...array_values(
+                    $weekValues
+                )
+            );
 
-            [
-                'product' =>
-                    'iPhone 12, 128GB',
 
-                'reference' =>
-                    'MP-88214',
+        /*
+        |--------------------------------------------------------------------------
+        | Current Week
+        |--------------------------------------------------------------------------
+        */
 
-                'buyer' =>
-                    'Chiamaka N.',
+        $currentWeek =
+            min(
+                4,
 
-                'amount' =>
-                    '₦145,000',
+                intdiv(
+                    now()->day - 1,
+                    7
+                )
+                +
+                1
+            );
 
-                'status' =>
-                    'Inspection',
 
-                'status_class' =>
-                    'purple',
-            ],
+        $revenueChart = [];
 
-            [
-                'product' =>
-                    'PS5 Slim + 2 pads',
 
-                'reference' =>
-                    'MP-88190',
+        foreach (
+            $weekValues
+            as
+            $week => $value
+        ) {
 
-                'buyer' =>
-                    'Emeka O.',
+            $revenueChart[] = [
 
-                'amount' =>
-                    '₦520,000',
+                'label' =>
+                    'Wk ' . $week,
 
-                'status' =>
-                    'In transit',
+                'value' =>
+                    $value,
 
-                'status_class' =>
-                    'amber',
-            ],
+                'formatted' =>
+                    $this->money(
+                        $value
+                    ),
 
-            [
-                'product' =>
-                    'Oraimo FreePods 4',
+                'height' =>
+                    $value > 0
 
-                'reference' =>
-                    'MP-88171',
+                        ? max(
+                            8,
 
-                'buyer' =>
-                    'Fatima S.',
+                            round(
+                                (
+                                    $value
+                                    /
+                                    $chartMaximum
+                                )
+                                *
+                                100,
+                                2
+                            )
+                        )
 
-                'amount' =>
-                    '₦28,500',
+                        : 0,
 
-                'status' =>
-                    'Funds released',
+                'strong' =>
+                    $week === $currentWeek,
 
-                'status_class' =>
-                    'green',
-            ],
+            ];
+        }
 
-            [
-                'product' =>
-                    'HP EliteBook 840 G7',
 
-                'reference' =>
-                    'MP-88123',
+        $revenueSummary = [
 
-                'buyer' =>
-                    'Yusuf D.',
+            'month' =>
+                $monthStart->format(
+                    'F'
+                ),
 
-                'amount' =>
-                    '₦385,000',
+            'total' =>
+                $releasedThisMonth,
 
-                'status' =>
-                    'Completed',
+            'formatted_total' =>
+                $this->money(
+                    $releasedThisMonth
+                ),
 
-                'status_class' =>
-                    'green',
-            ],
-
-            [
-                'product' =>
-                    'Samsung A54 case (x20)',
-
-                'reference' =>
-                    'MP-88099',
-
-                'buyer' =>
-                    'Blessing A.',
-
-                'amount' =>
-                    '₦46,000',
-
-                'status' =>
-                    'Awaiting buyer',
-
-                'status_class' =>
-                    'slate',
-            ],
+            'bars' =>
+                $revenueChart,
 
         ];
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Recent Transactions
+        |--------------------------------------------------------------------------
+        */
+
+        $transactions =
+            SecureTransaction::query()
+
+                ->with([
+                    'buyer',
+                    'dispute',
+                ])
+
+                ->where(
+                    'seller_id',
+                    $user->id
+                )
+
+                ->latest(
+                    'updated_at'
+                )
+
+                ->latest(
+                    'id'
+                )
+
+                ->limit(
+                    5
+                )
+
+                ->get()
+
+                ->map(
+                    function (
+                        $transaction
+                    ) {
+
+                        return [
+
+                            'product' =>
+                                $transaction
+                                    ->title,
+
+                            'reference' =>
+                                $transaction
+                                    ->reference,
+
+                            'buyer' =>
+                                $transaction
+                                    ->buyer
+                                    ?->name
+                                ?:
+                                $transaction
+                                    ->buyer_email,
+
+                            'amount' =>
+                                $this->money(
+                                    (float)
+                                    $transaction
+                                        ->total_amount
+                                ),
+
+                            'status' =>
+                                $transaction
+                                    ->status_label,
+
+                            'status_class' =>
+                                $this->statusClass(
+                                    $transaction
+                                        ->status
+                                ),
+
+                            'url' =>
+                                route(
+                                    'seller.transactions.show',
+                                    $transaction
+                                ),
+
+                        ];
+                    }
+                );
 
 
         /*
@@ -282,54 +803,399 @@ class DashboardController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $notifications = [
+        $notificationBase =
+            TransactionNotification::query()
 
-            [
-                'icon' =>
-                    'fa-money-bill-transfer',
+                ->where(
+                    'user_id',
+                    $user->id
+                )
 
-                'title' =>
-                    'Payment received',
+                ->where(
+                    'audience',
+                    'seller'
+                );
 
-                'message' =>
-                    'Chiamaka paid ₦145,000 for iPhone 12.',
-            ],
 
-            [
-                'icon' =>
-                    'fa-box',
+        $unreadNotificationCount =
+            (clone $notificationBase)
 
-                'title' =>
-                    'Reminder to dispatch',
+                ->whereNull(
+                    'read_at'
+                )
 
-                'message' =>
-                    'Payment held for PS5 Slim. Mark it dispatched once it is sent.',
-            ],
+                ->count();
 
-            [
-                'icon' =>
-                    'fa-stopwatch',
 
-                'title' =>
-                    'Inspection reminder',
+        $notifications =
+            (clone $notificationBase)
 
-                'message' =>
-                    'Buyer window on MP-88214 ends in 3h.',
-            ],
+                ->latest(
+                    'created_at'
+                )
 
-        ];
+                ->limit(
+                    3
+                )
 
+                ->get()
+
+                ->map(
+                    function (
+                        $notification
+                    ) {
+
+                        return [
+
+                            'id' =>
+                                $notification
+                                    ->id,
+
+                            'icon' =>
+                                $this->notificationIcon(
+                                    $notification
+                                        ->type
+                                ),
+
+                            'title' =>
+                                $notification
+                                    ->title,
+
+                            'message' =>
+                                $notification
+                                    ->message,
+
+                            'unread' =>
+                                $notification
+                                    ->read_at
+                                ===
+                                null,
+
+                            'url' =>
+                                route(
+                                    'seller.notifications.open',
+                                    $notification
+                                ),
+
+                        ];
+                    }
+                );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | View
+        |--------------------------------------------------------------------------
+        */
 
         return view(
             'seller.dashboard',
+
             compact(
                 'user',
                 'seller',
                 'featuredTransaction',
                 'statistics',
                 'transactions',
-                'notifications'
+                'notifications',
+                'unreadNotificationCount',
+                'revenueSummary'
             )
         );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Currency
+    |--------------------------------------------------------------------------
+    */
+
+    private function money(
+        float $amount
+    ): string {
+
+        return
+            '₦'
+            .
+            number_format(
+                $amount,
+                0
+            );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Compact Currency
+    |--------------------------------------------------------------------------
+    */
+
+    private function compactMoney(
+        float $amount
+    ): string {
+
+        $absoluteAmount =
+            abs(
+                $amount
+            );
+
+
+        if (
+            $absoluteAmount
+            >=
+            1000000
+        ) {
+
+            return
+                '₦'
+                .
+                rtrim(
+                    rtrim(
+                        number_format(
+                            $amount / 1000000,
+                            2,
+                            '.',
+                            ''
+                        ),
+                        '0'
+                    ),
+                    '.'
+                )
+                .
+                'M';
+        }
+
+
+        if (
+            $absoluteAmount
+            >=
+            1000
+        ) {
+
+            return
+                '₦'
+                .
+                rtrim(
+                    rtrim(
+                        number_format(
+                            $amount / 1000,
+                            1,
+                            '.',
+                            ''
+                        ),
+                        '0'
+                    ),
+                    '.'
+                )
+                .
+                'K';
+        }
+
+
+        return $this->money(
+            $amount
+        );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Monthly Comparison
+    |--------------------------------------------------------------------------
+    */
+
+    private function monthComparisonText(
+        float $current,
+        float $previous,
+        string $previousMonthName
+    ): array {
+
+        if (
+            $previous <= 0
+        ) {
+
+            if (
+                $current > 0
+            ) {
+
+                return [
+
+                    'text' =>
+                        'New payouts this month',
+
+                    'class' =>
+                        'positive',
+
+                ];
+            }
+
+
+            return [
+
+                'text' =>
+                    'No payouts yet',
+
+                'class' =>
+                    '',
+
+            ];
+        }
+
+
+        $percentage =
+            (
+                (
+                    $current
+                    -
+                    $previous
+                )
+                /
+                $previous
+            )
+            *
+            100;
+
+
+        $rounded =
+            (int)
+            round(
+                abs(
+                    $percentage
+                )
+            );
+
+
+        if (
+            $percentage > 0
+        ) {
+
+            return [
+
+                'text' =>
+                    '▲ '
+                    .
+                    $rounded
+                    .
+                    '% vs '
+                    .
+                    $previousMonthName,
+
+                'class' =>
+                    'positive',
+
+            ];
+        }
+
+
+        if (
+            $percentage < 0
+        ) {
+
+            return [
+
+                'text' =>
+                    '▼ '
+                    .
+                    $rounded
+                    .
+                    '% vs '
+                    .
+                    $previousMonthName,
+
+                'class' =>
+                    'negative',
+
+            ];
+        }
+
+
+        return [
+
+            'text' =>
+                'No change vs '
+                .
+                $previousMonthName,
+
+            'class' =>
+                '',
+
+        ];
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Transaction Status CSS
+    |--------------------------------------------------------------------------
+    */
+
+    private function statusClass(
+        string $status
+    ): string {
+
+        return match (
+            $status
+        ) {
+
+            SecureTransaction::STATUS_COMPLETED,
+            SecureTransaction::STATUS_RELEASE_APPROVED,
+            SecureTransaction::STATUS_PAYOUT_PENDING =>
+                'green',
+
+
+            SecureTransaction::STATUS_INSPECTION =>
+                'purple',
+
+
+            SecureTransaction::STATUS_PAYMENT_SECURED,
+            SecureTransaction::STATUS_PREPARING_ITEM,
+            SecureTransaction::STATUS_DISPATCHED,
+            SecureTransaction::STATUS_IN_TRANSIT,
+            SecureTransaction::STATUS_DELIVERED =>
+                'amber',
+
+
+            SecureTransaction::STATUS_DISPUTED =>
+                'red',
+
+
+            default =>
+                'slate',
+
+        };
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Notification Icon
+    |--------------------------------------------------------------------------
+    */
+
+    private function notificationIcon(
+        ?string $type
+    ): string {
+
+        return match (
+            $type
+        ) {
+
+            'payment' =>
+                'fa-money-bill-transfer',
+
+            'dispatch' =>
+                'fa-box',
+
+            'inspection' =>
+                'fa-stopwatch',
+
+            'dispute' =>
+                'fa-scale-balanced',
+
+            default =>
+                'fa-bell',
+
+        };
     }
 }
