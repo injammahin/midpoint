@@ -9,7 +9,7 @@
     <div class="admin-sidebar-brand">
 
         <a
-            href="{{ route('admin.dashboard') }}"
+            href="{{ route('dashboard') }}"
             class="admin-brand"
         >
 
@@ -117,7 +117,17 @@
                 </strong>
 
                 <span>
-                    Administrator
+
+                    {{
+                        auth()
+                            ->user()
+                            ->isAdmin()
+
+                            ? 'Administrator'
+
+                            : 'Admin User'
+                    }}
+
                 </span>
 
             </div>

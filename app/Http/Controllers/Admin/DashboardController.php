@@ -19,6 +19,26 @@ class DashboardController extends Controller
 {
     public function index(Request $request)
     {
+
+        if (
+            $request
+                ->user()
+                ->isAdminStaff()
+        ) {
+
+            return redirect()
+                ->route(
+                    'admin.staff-dashboard'
+                );
+        }
+
+
+        abort_unless(
+            $request
+                ->user()
+                ->isAdmin(),
+            403
+        );
         $period = (int) $request->get('period', 12);
         $period = in_array($period, [6, 12], true) ? $period : 12;
 
@@ -93,8 +113,29 @@ class DashboardController extends Controller
             ->count();
 
         /* Users / sellers / package stats */
-        $totalUsers = User::query()->where('role', '!=', 'admin')->count();
-        $activeUsers = User::query()->where('role', '!=', 'admin')->where('status', true)->count();
+        $totalUsers =
+            User::query()
+
+                ->where(
+                    'role',
+                    'user'
+                )
+
+                ->count();
+        $activeUsers =
+            User::query()
+
+                ->where(
+                    'role',
+                    'user'
+                )
+
+                ->where(
+                    'status',
+                    true
+                )
+
+                ->count();
         $paidBuyers = SecureTransaction::query()
             ->where('payment_status', SecureTransaction::PAYMENT_PAID)
             ->whereNotNull('buyer_id')

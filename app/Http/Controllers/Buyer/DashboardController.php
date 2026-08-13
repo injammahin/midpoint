@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Buyer;
 
 use App\Http\Controllers\Controller;
+use App\Models\SecureTransaction;
+use App\Models\TransactionNotification;
+use App\Models\User;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
@@ -10,9 +13,15 @@ class DashboardController extends Controller
     public function index(
         Request $request
     ) {
+        $user =
+            $request->user();
 
-        $user = $request->user();
 
+        /*
+        |--------------------------------------------------------------------------
+        | Current Account View
+        |--------------------------------------------------------------------------
+        */
 
         $request
             ->session()
@@ -31,147 +40,441 @@ class DashboardController extends Controller
         $buyer = [
 
             'location' =>
-                data_get(
-                    $user,
-                    'city'
-                )
-                ?: 'Ibadan, Oyo',
+                $user->city
+                ?: 'Location not set',
 
         ];
 
 
         /*
         |--------------------------------------------------------------------------
-        | Dashboard Statistics
+        | Transaction Base
         |--------------------------------------------------------------------------
         */
+
+        $buyerTransactions =
+            SecureTransaction::query()
+
+                ->where(
+                    'buyer_id',
+                    $user->id
+                );
+
+
+        $paidTransactions =
+            (clone $buyerTransactions)
+
+                ->where(
+                    'payment_status',
+                    SecureTransaction::PAYMENT_PAID
+                );
+
+
+        $terminalStatuses = [
+
+            SecureTransaction::STATUS_COMPLETED,
+
+            SecureTransaction::STATUS_CANCELLED,
+
+            SecureTransaction::STATUS_EXPIRED,
+
+        ];
+
+
+        $activeTransactions =
+            (clone $paidTransactions)
+
+                ->whereNotIn(
+                    'status',
+                    $terminalStatuses
+                );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Buyer Statistics
+        |--------------------------------------------------------------------------
+        */
+
+        $escrowAmount =
+            (float)
+            (clone $activeTransactions)
+                ->sum(
+                    'total_amount'
+                );
+
+
+        $purchasesInProgress =
+            (clone $activeTransactions)
+                ->count();
+
+
+        $purchaseCount =
+            (clone $paidTransactions)
+                ->count();
+
+
+        $protectedLifetime =
+            (float)
+            (clone $paidTransactions)
+                ->sum(
+                    'total_amount'
+                );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Trust Score
+        |--------------------------------------------------------------------------
+        |
+        | There is currently no dedicated buyer-rating table in your project.
+        |
+        | Because buyer and seller are the same MidPoint user account,
+        | if this user has actual published seller reviews, we use that
+        | account rating.
+        |
+        | Otherwise "New" is shown instead of inventing a fake 5.0.
+        |
+        */
+
+        $publishedReviewCount =
+            $user
+                ->publishedSellerReviews()
+                ->count();
+
+
+        $trustScore =
+            $publishedReviewCount > 0
+
+                ? (float)
+                    $user
+                        ->publishedSellerReviews()
+                        ->avg(
+                            'rating'
+                        )
+
+                : null;
+
 
         $statistics = [
 
             'escrow' =>
-                '₦172,500',
+                $this->money(
+                    $escrowAmount
+                ),
 
             'purchases_in_progress' =>
-                2,
+                $purchasesInProgress,
 
             'trust_score' =>
-                '5.0',
+                $trustScore !== null
+
+                    ? number_format(
+                        $trustScore,
+                        1
+                    )
+
+                    : 'New',
+
+            'trust_score_suffix' =>
+                $trustScore !== null
+                    ? '/5'
+                    : null,
 
             'purchases' =>
-                11,
+                $purchaseCount,
 
             'protected_lifetime' =>
-                '₦1.4M',
+                $this->compactMoney(
+                    $protectedLifetime
+                ),
 
         ];
 
 
         /*
         |--------------------------------------------------------------------------
-        | Featured Active Transaction
+        | Featured Transaction Relations
         |--------------------------------------------------------------------------
         */
 
-        $featuredTransaction = [
+        $featuredRelations = [
 
-            'product' =>
-                'iPhone 12, 128GB',
+            'seller.sellerBusinessProfile',
 
-            'amount' =>
-                '₦145,000',
+            'seller.activeSellerSubscription.application',
 
-            'seller' =>
-                'Temi Gadgets',
-
-            'delivery_type' =>
-                'Seller-arranged delivery',
-
-            'reference' =>
-                'MP-88214',
-
-            'escrow_amount' =>
-                '₦148,500',
+            'dispute',
 
         ];
 
 
         /*
         |--------------------------------------------------------------------------
-        | Transactions
+        | Priority 1: Delivered
         |--------------------------------------------------------------------------
         */
 
-        $transactions = [
+        $featuredTransaction =
+            SecureTransaction::query()
 
-            [
-                'product' =>
-                    'iPhone 12, 128GB',
+                ->with(
+                    $featuredRelations
+                )
 
-                'seller' =>
-                    'Temi Gadgets',
+                ->where(
+                    'buyer_id',
+                    $user->id
+                )
 
-                'amount' =>
-                    '₦145,000',
+                ->where(
+                    'payment_status',
+                    SecureTransaction::PAYMENT_PAID
+                )
 
-                'status' =>
-                    'Inspection',
+                ->where(
+                    'status',
+                    SecureTransaction::STATUS_DELIVERED
+                )
 
-                'status_class' =>
-                    'purple',
-            ],
+                ->latest(
+                    'delivered_at'
+                )
 
-            [
-                'product' =>
-                    'Ankara two-piece set',
+                ->latest(
+                    'id'
+                )
 
-                'seller' =>
-                    'Zaria Stitches',
+                ->first();
 
-                'amount' =>
-                    '₦24,000',
 
-                'status' =>
-                    'Dispatched',
+        /*
+        |--------------------------------------------------------------------------
+        | Priority 2: Inspection
+        |--------------------------------------------------------------------------
+        */
 
-                'status_class' =>
-                    'amber',
-            ],
+        if (
+            !$featuredTransaction
+        ) {
 
-            [
-                'product' =>
-                    'Air fryer, 5.5L',
+            $featuredTransaction =
+                SecureTransaction::query()
 
-                'seller' =>
-                    'HomePlus NG',
+                    ->with(
+                        $featuredRelations
+                    )
 
-                'amount' =>
-                    '₦68,000',
+                    ->where(
+                        'buyer_id',
+                        $user->id
+                    )
 
-                'status' =>
-                    'Completed',
+                    ->where(
+                        'payment_status',
+                        SecureTransaction::PAYMENT_PAID
+                    )
 
-                'status_class' =>
-                    'green',
-            ],
+                    ->where(
+                        'status',
+                        SecureTransaction::STATUS_INSPECTION
+                    )
 
-            [
-                'product' =>
-                    '12" human-hair wig',
+                    ->latest(
+                        'inspection_started_at'
+                    )
 
-                'seller' =>
-                    'Crowned Hair Empire',
+                    ->latest(
+                        'id'
+                    )
 
-                'amount' =>
-                    '₦95,000',
+                    ->first();
+        }
 
-                'status' =>
-                    'Completed',
 
-                'status_class' =>
-                    'green',
-            ],
+        /*
+        |--------------------------------------------------------------------------
+        | Priority 3: Disputed
+        |--------------------------------------------------------------------------
+        */
 
-        ];
+        if (
+            !$featuredTransaction
+        ) {
+
+            $featuredTransaction =
+                SecureTransaction::query()
+
+                    ->with(
+                        $featuredRelations
+                    )
+
+                    ->where(
+                        'buyer_id',
+                        $user->id
+                    )
+
+                    ->where(
+                        'payment_status',
+                        SecureTransaction::PAYMENT_PAID
+                    )
+
+                    ->where(
+                        'status',
+                        SecureTransaction::STATUS_DISPUTED
+                    )
+
+                    ->latest(
+                        'updated_at'
+                    )
+
+                    ->latest(
+                        'id'
+                    )
+
+                    ->first();
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Priority 4: Any Active Paid Transaction
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            !$featuredTransaction
+        ) {
+
+            $featuredTransaction =
+                SecureTransaction::query()
+
+                    ->with(
+                        $featuredRelations
+                    )
+
+                    ->where(
+                        'buyer_id',
+                        $user->id
+                    )
+
+                    ->where(
+                        'payment_status',
+                        SecureTransaction::PAYMENT_PAID
+                    )
+
+                    ->whereNotIn(
+                        'status',
+                        $terminalStatuses
+                    )
+
+                    ->latest(
+                        'updated_at'
+                    )
+
+                    ->latest(
+                        'id'
+                    )
+
+                    ->first();
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Recent Transactions
+        |--------------------------------------------------------------------------
+        */
+
+        $transactions =
+            SecureTransaction::query()
+
+                ->with([
+
+                    'seller.sellerBusinessProfile',
+
+                    'seller.activeSellerSubscription.application',
+
+                    'dispute',
+
+                ])
+
+                ->where(
+                    'buyer_id',
+                    $user->id
+                )
+
+                ->where(
+                    'payment_status',
+                    SecureTransaction::PAYMENT_PAID
+                )
+
+                ->latest(
+                    'updated_at'
+                )
+
+                ->latest(
+                    'id'
+                )
+
+                ->limit(
+                    5
+                )
+
+                ->get()
+
+                ->map(
+                    function (
+                        $transaction
+                    ) {
+
+                        return [
+
+                            'product' =>
+                                $transaction
+                                    ->title,
+
+                            'reference' =>
+                                $transaction
+                                    ->reference,
+
+                            'seller' =>
+                                $this->sellerBusinessName(
+                                    $transaction
+                                        ->seller
+                                ),
+
+                            'amount' =>
+                                $this->money(
+                                    (float)
+                                    (
+                                        $transaction
+                                            ->paid_amount
+                                        ?:
+                                        $transaction
+                                            ->total_amount
+                                    )
+                                ),
+
+                            'status' =>
+                                $transaction
+                                    ->status_label,
+
+                            'status_class' =>
+                                $this->statusClass(
+                                    $transaction
+                                        ->status
+                                ),
+
+                            'url' =>
+                                route(
+                                    'buyer.transactions.show',
+                                    $transaction
+                                ),
+
+                        ];
+                    }
+                );
 
 
         /*
@@ -180,108 +483,223 @@ class DashboardController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $notifications = [
+        $notificationBase =
+            TransactionNotification::query()
 
-            [
-                'icon' =>
-                    'fa-box',
+                ->where(
+                    'user_id',
+                    $user->id
+                )
 
-                'title' =>
-                    'Delivered',
+                ->where(
+                    'audience',
+                    'buyer'
+                );
 
-                'message' =>
-                    'Your iPhone 12 arrived. Inspection has started.',
-            ],
 
-            [
-                'icon' =>
-                    'fa-box',
+        $unreadNotificationCount =
+            (clone $notificationBase)
 
-                'title' =>
-                    'Item dispatched',
+                ->whereNull(
+                    'read_at'
+                )
 
-                'message' =>
-                    'Zaria Stitches has sent your Ankara set.',
-            ],
+                ->count();
 
-            [
-                'icon' =>
-                    'fa-square-check',
 
-                'title' =>
-                    'Funds released',
+        $notifications =
+            (clone $notificationBase)
 
-                'message' =>
-                    'HomePlus NG has been paid for your air fryer.',
-            ],
+                ->latest(
+                    'created_at'
+                )
 
-        ];
+                ->limit(
+                    3
+                )
+
+                ->get()
+
+                ->map(
+                    function (
+                        $notification
+                    ) {
+
+                        return [
+
+                            'id' =>
+                                $notification
+                                    ->id,
+
+                            'icon' =>
+                                $this->notificationIcon(
+                                    $notification
+                                        ->type
+                                ),
+
+                            'title' =>
+                                $notification
+                                    ->title,
+
+                            'message' =>
+                                $notification
+                                    ->message,
+
+                            'unread' =>
+                                $notification
+                                    ->read_at
+                                ===
+                                null,
+
+                            'url' =>
+                                route(
+                                    'buyer.notifications.open',
+                                    $notification
+                                ),
+
+                        ];
+                    }
+                );
 
 
         /*
         |--------------------------------------------------------------------------
-        | Featured Businesses
+        | Real Featured Businesses
         |--------------------------------------------------------------------------
         */
 
-        $businesses = [
+        $businesses =
+            User::query()
 
-            [
-                'initials' =>
-                    'TG',
+                ->where(
+                    'role',
+                    'user'
+                )
 
-                'name' =>
-                    'Temi Gadgets',
+                ->where(
+                    'status',
+                    true
+                )
 
-                'category' =>
-                    'Phones & Electronics',
+                ->where(
+                    'id',
+                    '!=',
+                    $user->id
+                )
 
-                'trust' =>
-                    '4.9',
+                ->whereHas(
+                    'activeSellerSubscription'
+                )
 
-                'style' =>
-                    'green',
-            ],
+                ->with([
 
-            [
-                'initials' =>
-                    'CH',
+                    'sellerBusinessProfile',
 
-                'name' =>
-                    'Crowned Hair Empire',
+                    'activeSellerSubscription.application',
 
-                'category' =>
-                    'Beauty & Hair',
+                ])
 
-                'trust' =>
-                    '4.8',
+                ->withAvg(
+                    'publishedSellerReviews as seller_rating',
+                    'rating'
+                )
 
-                'style' =>
-                    'purple',
-            ],
+                ->withCount(
+                    'publishedSellerReviews as seller_review_count'
+                )
 
-            [
-                'initials' =>
-                    'ZS',
+                ->orderByDesc(
+                    'seller_rating'
+                )
 
-                'name' =>
-                    'Zaria Stitches',
+                ->latest(
+                    'id'
+                )
 
-                'category' =>
-                    'Fashion & Tailoring',
+                ->limit(
+                    3
+                )
 
-                'trust' =>
-                    '4.7',
+                ->get()
 
-                'style' =>
-                    'orange',
-            ],
+                ->values()
 
-        ];
+                ->map(
+                    function (
+                        $seller,
+                        $index
+                    ) {
 
+                        $businessName =
+                            $this->sellerBusinessName(
+                                $seller
+                            );
+
+
+                        $application =
+                            $seller
+                                ->activeSellerSubscription
+                                ?->application;
+
+
+                        return [
+
+                            'initials' =>
+                                $this->initials(
+                                    $businessName
+                                ),
+
+                            'name' =>
+                                $businessName,
+
+                            'category' =>
+                                $application?->category
+                                ?: 'Verified business',
+
+                            'trust' =>
+                                $seller
+                                    ->seller_rating
+                                !==
+                                null
+
+                                    ? number_format(
+                                        (float)
+                                        $seller
+                                            ->seller_rating,
+                                        1
+                                    )
+
+                                    : 'New',
+
+                            'style' =>
+                                [
+                                    'green',
+                                    'purple',
+                                    'orange',
+                                ][
+                                    $index % 3
+                                ],
+
+                            'url' =>
+                                route(
+                                    'featured-businesses.show',
+                                    $seller
+                                ),
+
+                        ];
+                    }
+                );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | View
+        |--------------------------------------------------------------------------
+        */
 
         return view(
             'buyer.dashboard',
+
             compact(
                 'user',
                 'buyer',
@@ -289,8 +707,278 @@ class DashboardController extends Controller
                 'featuredTransaction',
                 'transactions',
                 'notifications',
+                'unreadNotificationCount',
                 'businesses'
             )
         );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Currency
+    |--------------------------------------------------------------------------
+    */
+
+    private function money(
+        float $amount
+    ): string {
+
+        return
+            '₦'
+            .
+            number_format(
+                $amount,
+                0
+            );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Compact Currency
+    |--------------------------------------------------------------------------
+    */
+
+    private function compactMoney(
+        float $amount
+    ): string {
+
+        $absoluteAmount =
+            abs(
+                $amount
+            );
+
+
+        if (
+            $absoluteAmount
+            >=
+            1000000
+        ) {
+
+            return
+                '₦'
+                .
+                rtrim(
+                    rtrim(
+                        number_format(
+                            $amount / 1000000,
+                            2,
+                            '.',
+                            ''
+                        ),
+                        '0'
+                    ),
+                    '.'
+                )
+                .
+                'M';
+        }
+
+
+        if (
+            $absoluteAmount
+            >=
+            1000
+        ) {
+
+            return
+                '₦'
+                .
+                rtrim(
+                    rtrim(
+                        number_format(
+                            $amount / 1000,
+                            1,
+                            '.',
+                            ''
+                        ),
+                        '0'
+                    ),
+                    '.'
+                )
+                .
+                'K';
+        }
+
+
+        return $this->money(
+            $amount
+        );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Seller Business Name
+    |--------------------------------------------------------------------------
+    */
+
+    private function sellerBusinessName(
+        ?User $seller
+    ): string {
+
+        if (
+            !$seller
+        ) {
+
+            return 'Seller';
+        }
+
+
+        return
+            $seller
+                ->activeSellerSubscription
+                ?->application
+                ?->business_name
+            ?:
+            $seller->name
+            ?:
+            'Seller';
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Business Initials
+    |--------------------------------------------------------------------------
+    */
+
+    private function initials(
+        string $name
+    ): string {
+
+        $parts =
+            collect(
+                preg_split(
+                    '/\s+/',
+                    trim(
+                        $name
+                    )
+                )
+            )
+
+                ->filter()
+
+                ->values();
+
+
+        if (
+            $parts->isEmpty()
+        ) {
+
+            return 'B';
+        }
+
+
+        if (
+            $parts->count()
+            ===
+            1
+        ) {
+
+            return strtoupper(
+                substr(
+                    $parts->first(),
+                    0,
+                    2
+                )
+            );
+        }
+
+
+        return strtoupper(
+
+            substr(
+                $parts->first(),
+                0,
+                1
+            )
+
+            .
+
+            substr(
+                $parts->last(),
+                0,
+                1
+            )
+
+        );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Status CSS
+    |--------------------------------------------------------------------------
+    */
+
+    private function statusClass(
+        string $status
+    ): string {
+
+        return match (
+            $status
+        ) {
+
+            SecureTransaction::STATUS_COMPLETED,
+            SecureTransaction::STATUS_RELEASE_APPROVED,
+            SecureTransaction::STATUS_PAYOUT_PENDING =>
+                'green',
+
+
+            SecureTransaction::STATUS_INSPECTION =>
+                'purple',
+
+
+            SecureTransaction::STATUS_PAYMENT_SECURED,
+            SecureTransaction::STATUS_PREPARING_ITEM,
+            SecureTransaction::STATUS_DISPATCHED,
+            SecureTransaction::STATUS_IN_TRANSIT,
+            SecureTransaction::STATUS_DELIVERED =>
+                'amber',
+
+
+            SecureTransaction::STATUS_DISPUTED =>
+                'red',
+
+
+            default =>
+                'slate',
+
+        };
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Notification Icon
+    |--------------------------------------------------------------------------
+    */
+
+    private function notificationIcon(
+        ?string $type
+    ): string {
+
+        return match (
+            $type
+        ) {
+
+            'payment' =>
+                'fa-money-bill-transfer',
+
+            'dispatch' =>
+                'fa-box',
+
+            'inspection' =>
+                'fa-stopwatch',
+
+            'dispute' =>
+                'fa-scale-balanced',
+
+            default =>
+                'fa-bell',
+
+        };
     }
 }

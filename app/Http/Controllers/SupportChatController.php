@@ -153,7 +153,7 @@ public function storeMessage(
 
 
     $isAgent =
-        $user->role === 'admin'
+        $user->canAccessAdminPanel()
         &&
         (
             (int) $session->agent_id
@@ -762,7 +762,7 @@ public function storeMessage(
 
 
         if (
-            $user->role === 'admin'
+            $user->canAccessAdminPanel()
             &&
             $user
                 ->supportAgentProfile

@@ -401,13 +401,29 @@
                 </a>
 
 
-                <a
-                    href="{{ route('admin.website-settings.app-settings') }}"
-                >
-                    <i class="fa-solid fa-gear"></i>
-                    Settings
-                </a>
+                @if(
+                    auth()
+                        ->user()
+                        ->hasAdminPermission(
+                            'website.app_settings.manage'
+                        )
+                )
 
+                    <a
+                        href="{{
+                            route(
+                                'admin.website-settings.app-settings'
+                            )
+                        }}"
+                    >
+
+                        <i class="fa-solid fa-gear"></i>
+
+                        Settings
+
+                    </a>
+
+                @endif
 
                 <form
                     method="POST"

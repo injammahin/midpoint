@@ -26,8 +26,7 @@ class UserManagementController extends Controller
             User::query()
                 ->where(
                     'role',
-                    '!=',
-                    'admin'
+                    'user'
                 );
 
 
@@ -170,15 +169,13 @@ class UserManagementController extends Controller
             'total' =>
                 User::where(
                     'role',
-                    '!=',
-                    'admin'
+                    'user'
                 )->count(),
 
             'active' =>
                 User::where(
                     'role',
-                    '!=',
-                    'admin'
+                    'user'
                 )
                     ->where(
                         'status',
@@ -189,8 +186,7 @@ class UserManagementController extends Controller
             'inactive' =>
                 User::where(
                     'role',
-                    '!=',
-                    'admin'
+                    'user'
                 )
                     ->where(
                         'status',
@@ -201,8 +197,7 @@ class UserManagementController extends Controller
             'verified' =>
                 User::where(
                     'role',
-                    '!=',
-                    'admin'
+                    'user'
                 )
                     ->whereNotNull(
                         'email_verified_at'
@@ -234,7 +229,7 @@ class UserManagementController extends Controller
     ) {
 
         abort_if(
-            $user->role === 'admin',
+            $user->role !== 'user',
             403
         );
 

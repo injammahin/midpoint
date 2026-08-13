@@ -73,11 +73,11 @@ class AdminLayoutComposer
         |--------------------------------------------------------------------------
         */
 
-        if (
-            !$user
-            ||
-            $user->role !== 'admin'
-        ) {
+            if (
+                !$user
+                ||
+                !$user->canAccessAdminPanel()
+            ) {
 
             $view->with([
 

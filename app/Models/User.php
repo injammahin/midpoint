@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use App\Notifications\VerifyEmailNotification;
-
+use App\Notifications\ResetPasswordNotification;
 use Illuminate\Auth\MustVerifyEmail as MustVerifyEmailTrait;
 
 use Illuminate\Contracts\Auth\MustVerifyEmail as MustVerifyEmailContract;
@@ -39,6 +39,8 @@ class User extends Authenticatable implements MustVerifyEmailContract
         */
 
         'name',
+        
+        'username',
 
         'email',
 
@@ -60,6 +62,8 @@ class User extends Authenticatable implements MustVerifyEmailContract
         'preferred_role',
 
         'status',
+
+        'session_version',
 
 
         /*
@@ -152,6 +156,9 @@ class User extends Authenticatable implements MustVerifyEmailContract
         'email_verified_at' =>
             'datetime',
 
+        'session_version' =>
+            'integer',
+
         'verification_sent_at' =>
             'datetime',
 
@@ -176,6 +183,162 @@ class User extends Authenticatable implements MustVerifyEmailContract
     public function isAdmin(): bool
     {
         return $this->role === 'admin';
+    }
+
+
+    public function isAdminStaff(): bool
+    {
+        return $this->role === 'admin_staff';
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Can Access Administration Panel?
+    |--------------------------------------------------------------------------
+    */
+
+    public function canAccessAdminPanel(): bool
+    {
+        return
+            $this->isAdmin()
+            ||
+            $this->isAdminStaff();
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Admin Permissions
+    |--------------------------------------------------------------------------
+    */
+
+    public function adminPermissions()
+    {
+        return $this->hasMany(
+            AdminUserPermission::class
+        );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Has Admin Permission?
+    |--------------------------------------------------------------------------
+    */
+
+    public function hasAdminPermission(
+        string $permission
+    ): bool {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Super Admin Always Has Everything
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            $this->isAdmin()
+        ) {
+
+            return true;
+
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Normal Users Never Have Admin Permissions
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            !$this->isAdminStaff()
+        ) {
+
+            return false;
+
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Load Permissions Once
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            !$this->relationLoaded(
+                'adminPermissions'
+            )
+        ) {
+
+            $this->load(
+                'adminPermissions'
+            );
+
+        }
+
+
+        return $this
+            ->adminPermissions
+            ->contains(
+                'permission',
+                $permission
+            );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Has Any Permission?
+    |--------------------------------------------------------------------------
+    */
+
+    public function hasAnyAdminPermission(
+        array $permissions
+    ): bool {
+
+        if (
+            $this->isAdmin()
+        ) {
+
+            return true;
+
+        }
+
+
+        if (
+            !$this->isAdminStaff()
+            ||
+            empty($permissions)
+        ) {
+
+            return false;
+
+        }
+
+
+        if (
+            !$this->relationLoaded(
+                'adminPermissions'
+            )
+        ) {
+
+            $this->load(
+                'adminPermissions'
+            );
+
+        }
+
+
+        return $this
+            ->adminPermissions
+            ->whereIn(
+                'permission',
+                $permissions
+            )
+            ->isNotEmpty();
     }
 
 
@@ -261,7 +424,16 @@ class User extends Authenticatable implements MustVerifyEmailContract
         );
     }
 
+    public function sendPasswordResetNotification(
+        $token
+    ): void {
 
+        $this->notify(
+            new ResetPasswordNotification(
+                $token
+            )
+        );
+    }
     /*
     |--------------------------------------------------------------------------
     | Notification Mail Address

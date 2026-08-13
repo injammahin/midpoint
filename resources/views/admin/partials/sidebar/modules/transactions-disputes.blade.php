@@ -1,10 +1,20 @@
 @php
 
-    /*
-    |--------------------------------------------------------------------------
-    | Active Routes
-    |--------------------------------------------------------------------------
-    */
+    $canTransactions =
+        auth()
+            ->user()
+            ->hasAdminPermission(
+                'transactions.view'
+            );
+
+
+    $canDisputes =
+        auth()
+            ->user()
+            ->hasAdminPermission(
+                'disputes.manage'
+            );
+
 
     $transactionsActive =
         request()->routeIs(
@@ -24,12 +34,6 @@
         $disputesActive;
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Open Disputes
-    |--------------------------------------------------------------------------
-    */
-
     $openDisputes =
         $adminOpenDisputeCount
         ??
@@ -39,6 +43,12 @@
 
 
 
+@if(
+    $canTransactions
+    ||
+    $canDisputes
+)
+
 <div
     class="
         admin-menu-group
@@ -47,19 +57,19 @@
 >
 
 
-    {{-- =====================================================
-        MAIN BUTTON
-    ====================================================== --}}
-
     <button
         type="button"
+
         class="
             admin-menu-link
             admin-menu-toggle
             {{ $moduleActive ? 'active-parent' : '' }}
         "
+
         data-sidebar-group
-        data-tooltip="Transactions & Disputes"
+
+        data-tooltip="Transactions"
+
         aria-expanded="{{ $moduleActive ? 'true' : 'false' }}"
     >
 
@@ -77,7 +87,11 @@
         </span>
 
 
-        @if($openDisputes > 0)
+        @if(
+            $canDisputes
+            &&
+            $openDisputes > 0
+        )
 
             <span class="admin-menu-count">
 
@@ -102,69 +116,68 @@
 
 
 
-    {{-- =====================================================
-        SUBMENU
-    ====================================================== --}}
-
     <div class="admin-submenu">
 
 
-        {{-- Paid Transactions --}}
-        <a
-            href="{{ route('admin.transactions.index') }}"
-            class="{{ $transactionsActive ? 'active' : '' }}"
-        >
+        @if($canTransactions)
 
-            <i class="fa-solid fa-shield-halved"></i>
+            <a
+                href="{{ route('admin.transactions.index') }}"
+                class="{{ $transactionsActive ? 'active' : '' }}"
+            >
 
+                <i class="fa-solid fa-shield-halved"></i>
 
-            <span>
-                Paid Transactions
-            </span>
-
-        </a>
-
-
-
-        {{-- Disputes --}}
-        <a
-            href="{{ route('admin.disputes.index') }}"
-            class="{{ $disputesActive ? 'active' : '' }}"
-        >
-
-            <i class="fa-solid fa-triangle-exclamation"></i>
-
-
-            <span>
-                Disputes
-            </span>
-
-
-            @if($openDisputes > 0)
-
-                <span class="admin-submenu-count">
-
-                    {{
-                        $openDisputes > 99
-                            ? '99+'
-                            : $openDisputes
-                    }}
-
+                <span>
+                    Paid Transactions
                 </span>
 
-            @endif
+            </a>
 
-        </a>
+        @endif
+
+
+
+        @if($canDisputes)
+
+            <a
+                href="{{ route('admin.disputes.index') }}"
+                class="{{ $disputesActive ? 'active' : '' }}"
+            >
+
+                <i class="fa-solid fa-triangle-exclamation"></i>
+
+                <span>
+                    Disputes
+                </span>
+
+
+                @if(
+                    $openDisputes > 0
+                )
+
+                    <span class="admin-submenu-count">
+
+                        {{
+                            $openDisputes > 99
+                                ? '99+'
+                                : $openDisputes
+                        }}
+
+                    </span>
+
+                @endif
+
+            </a>
+
+        @endif
 
     </div>
 
 
 
-    {{-- =====================================================
-        COLLAPSED FLYOUT
-    ====================================================== --}}
-
     <div class="admin-flyout">
+
 
         <div class="admin-flyout-head">
 
@@ -193,35 +206,39 @@
         <div class="admin-flyout-links">
 
 
-            <a
-                href="{{ route('admin.transactions.index') }}"
-                class="{{ $transactionsActive ? 'active' : '' }}"
-            >
+            @if($canTransactions)
 
-                <i class="fa-solid fa-shield-halved"></i>
+                <a href="{{ route('admin.transactions.index') }}">
 
-                <span>
-                    Paid Transactions
-                </span>
+                    <i class="fa-solid fa-shield-halved"></i>
 
-            </a>
+                    <span>
+                        Paid Transactions
+                    </span>
+
+                </a>
+
+            @endif
 
 
-            <a
-                href="{{ route('admin.disputes.index') }}"
-                class="{{ $disputesActive ? 'active' : '' }}"
-            >
+            @if($canDisputes)
 
-                <i class="fa-solid fa-triangle-exclamation"></i>
+                <a href="{{ route('admin.disputes.index') }}">
 
-                <span>
-                    Disputes
-                </span>
+                    <i class="fa-solid fa-triangle-exclamation"></i>
 
-            </a>
+                    <span>
+                        Disputes
+                    </span>
+
+                </a>
+
+            @endif
 
         </div>
 
     </div>
 
 </div>
+
+@endif

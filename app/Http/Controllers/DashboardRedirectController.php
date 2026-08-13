@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 
+
 class DashboardRedirectController extends Controller
 {
     public function __invoke(
@@ -14,27 +15,49 @@ class DashboardRedirectController extends Controller
             $request->user();
 
 
+        abort_unless(
+            $user,
+            401
+        );
+
+
         /*
         |--------------------------------------------------------------------------
-        | Admin
+        | Main Administrator
         |--------------------------------------------------------------------------
         */
 
         if (
-            $user->role === 'admin'
+            $user->isAdmin()
         ) {
 
             return redirect()
                 ->route(
                     'admin.dashboard'
                 );
-
         }
 
 
         /*
         |--------------------------------------------------------------------------
-        | Verify First
+        | Administration Staff
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            $user->isAdminStaff()
+        ) {
+
+            return redirect()
+                ->route(
+                    'admin.staff-dashboard'
+                );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Normal Marketplace Users
         |--------------------------------------------------------------------------
         */
 
@@ -46,28 +69,33 @@ class DashboardRedirectController extends Controller
                 ->route(
                     'verification.notice'
                 );
-
         }
 
 
         /*
         |--------------------------------------------------------------------------
-        | Preferred View
+        | Buyer
         |--------------------------------------------------------------------------
         */
 
         if (
             $user->preferred_role
-            === 'buyer'
+            ===
+            'buyer'
         ) {
 
             return redirect()
                 ->route(
                     'buyer.dashboard'
                 );
-
         }
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | Seller
+        |--------------------------------------------------------------------------
+        */
 
         return redirect()
             ->route(

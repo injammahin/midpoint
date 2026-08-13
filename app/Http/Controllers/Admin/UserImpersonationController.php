@@ -126,6 +126,12 @@ class UserImpersonationController extends Controller
         Request $request
     ) {
 
+        /*
+        |--------------------------------------------------------------------------
+        | Original Super Admin
+        |--------------------------------------------------------------------------
+        */
+
         $adminId =
             $request
                 ->session()
@@ -140,26 +146,55 @@ class UserImpersonationController extends Controller
         );
 
 
+        /*
+        |--------------------------------------------------------------------------
+        | Current Impersonated User
+        |--------------------------------------------------------------------------
+        */
+
         $impersonatedUserId =
             Auth::id();
 
 
+        $wasAdminStaff =
+            Auth::user()
+                ?->isAdminStaff()
+            ??
+            false;
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Retrieve Main Admin
+        |--------------------------------------------------------------------------
+        */
+
         $admin =
             User::query()
+
                 ->where(
                     'id',
                     $adminId
                 )
+
                 ->where(
                     'role',
                     'admin'
                 )
+
                 ->where(
                     'status',
                     true
                 )
+
                 ->firstOrFail();
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | Restore Admin
+        |--------------------------------------------------------------------------
+        */
 
         Auth::login(
             $admin
@@ -178,6 +213,30 @@ class UserImpersonationController extends Controller
             );
 
 
+        /*
+        |--------------------------------------------------------------------------
+        | Restore Admin Session Version
+        |--------------------------------------------------------------------------
+        */
+
+        $request
+            ->session()
+            ->put(
+                'admin_session_version',
+                (int) (
+                    $admin->session_version
+                    ??
+                    1
+                )
+            );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Audit
+        |--------------------------------------------------------------------------
+        */
+
         Log::notice(
             'Admin stopped user impersonation.',
             [
@@ -192,9 +251,21 @@ class UserImpersonationController extends Controller
         );
 
 
+        /*
+        |--------------------------------------------------------------------------
+        | Return
+        |--------------------------------------------------------------------------
+        */
+
         return redirect()
             ->route(
-                'admin.users.index'
+
+                $wasAdminStaff
+
+                    ? 'admin.staff.index'
+
+                    : 'admin.users.index'
+
             )
             ->with(
                 'success',

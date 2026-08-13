@@ -110,7 +110,7 @@ class SecureTransactionController extends Controller
         */
 
         abort_if(
-            $user->role === 'admin',
+            $user->canAccessAdminPanel(),
             403,
             'Administrator accounts cannot participate as transaction buyers.'
         );

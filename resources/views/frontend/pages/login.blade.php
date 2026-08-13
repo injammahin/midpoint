@@ -128,6 +128,38 @@
                 >
                     @csrf
 
+                    @if(session('status'))
+
+                        <div
+                            class="mb-4 rounded-xl
+                                border border-[#ABEFC6]
+                                bg-[#ECFDF3]
+                                px-4 py-3
+                                text-[13px]
+                                leading-[1.55]
+                                text-[#067647]"
+                        >
+
+                            <div class="flex items-start gap-2">
+
+                                <i
+                                    class="fa-solid
+                                        fa-circle-check
+                                        mt-[3px]"
+                                ></i>
+
+
+                                <span>
+
+                                    {{ session('status') }}
+
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    @endif
 
                     @if ($errors->any())
 
@@ -150,7 +182,7 @@
                     <div class="mp-field">
 
                         <label for="login">
-                            Email or phone
+                            Email or username
                         </label>
 
                         <input
@@ -158,7 +190,7 @@
                             type="text"
                             name="login"
                             value="{{ old('login') }}"
-                            placeholder="you@example.com"
+                            placeholder="Email or admin username"
                             autocomplete="username"
                             required
                             autofocus
@@ -209,10 +241,12 @@
 
 
                         <a
-                            href="javascript:void(0)"
+                            href="{{ route('password.request') }}"
                             class="text-[13px]
                                 font-semibold
-                                text-[#12B76A]"
+                                text-[#12B76A]
+                                transition
+                                hover:text-[#0B3D2E]"
                         >
                             Forgot password?
                         </a>

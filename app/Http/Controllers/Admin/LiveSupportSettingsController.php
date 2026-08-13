@@ -27,10 +27,12 @@ class LiveSupportSettingsController extends Controller
 
                 'admins' =>
                     User::query()
-
-                        ->where(
+                        ->whereIn(
                             'role',
-                            'admin'
+                            [
+                                'admin',
+                                'admin_staff',
+                            ]
                         )
 
                         ->with(
@@ -302,7 +304,7 @@ class LiveSupportSettingsController extends Controller
     ) {
 
         abort_unless(
-            $user->role === 'admin',
+            $user->canAccessAdminPanel(),
             422
         );
 

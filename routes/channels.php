@@ -64,7 +64,7 @@ Broadcast::channel(
         */
 
         if (
-            $user->role === 'admin'
+            $user->canAccessAdminPanel()
         ) {
 
             $profile =
@@ -96,7 +96,7 @@ Broadcast::channel(
     function ($user) {
 
         if (
-            $user->role !== 'admin'
+            !$user->canAccessAdminPanel()
         ) {
 
             return false;
