@@ -182,7 +182,7 @@
                     <div class="mp-field">
 
                         <label for="login">
-                            Email or phone
+                            Email or username
                         </label>
 
                         <input
@@ -190,7 +190,7 @@
                             type="text"
                             name="login"
                             value="{{ old('login') }}"
-                            placeholder="you@example.com"
+                            placeholder="Email or admin username"
                             autocomplete="username"
                             required
                             autofocus

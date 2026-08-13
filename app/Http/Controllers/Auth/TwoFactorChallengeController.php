@@ -325,7 +325,22 @@ class TwoFactorChallengeController extends Controller
             ->session()
             ->regenerate();
 
+        if (
+            $user->canAccessAdminPanel()
+        ) {
 
+            $request
+                ->session()
+                ->put(
+                    'admin_session_version',
+                    (int) (
+                        $user->session_version
+                        ??
+                        1
+                    )
+                );
+
+        }
         /*
         |--------------------------------------------------------------------------
         | Login Tracking
@@ -350,7 +365,7 @@ class TwoFactorChallengeController extends Controller
         */
 
         if (
-            $user->role !== 'admin'
+            !$user->canAccessAdminPanel()
             &&
             !$user->hasVerifiedEmail()
         ) {

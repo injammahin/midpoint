@@ -85,7 +85,7 @@ use App\Http\Controllers\Admin\SellerPackageController;
 use App\Http\Controllers\Admin\SellerInvoiceController;
 use App\Http\Controllers\Admin\SellerSubscriptionController;
 use App\Http\Controllers\Admin\SellerApplicationController as AdminSellerApplicationController;
-
+use App\Http\Controllers\Admin\AdminStaffController;
 
 /*
 |--------------------------------------------------------------------------
@@ -1238,7 +1238,128 @@ Route::prefix('admin')
         | Admin Dashboard
         |--------------------------------------------------------------------------
         */
+Route::prefix('staff')
+    ->name('staff.')
+    ->group(function () {
 
+        /*
+        |--------------------------------------------------------------------------
+        | Role Management
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get(
+            '/',
+            [
+                AdminStaffController::class,
+                'index',
+            ]
+        )->name(
+            'index'
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Create
+        |--------------------------------------------------------------------------
+        */
+
+        Route::post(
+            '/',
+            [
+                AdminStaffController::class,
+                'store',
+            ]
+        )->name(
+            'store'
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Update Account & Permissions
+        |--------------------------------------------------------------------------
+        */
+
+        Route::put(
+            '/{staff}',
+            [
+                AdminStaffController::class,
+                'update',
+            ]
+        )->name(
+            'update'
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Activate / Deactivate
+        |--------------------------------------------------------------------------
+        */
+
+        Route::patch(
+            '/{staff}/status',
+            [
+                AdminStaffController::class,
+                'toggleStatus',
+            ]
+        )->name(
+            'status'
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Force Password Change
+        |--------------------------------------------------------------------------
+        */
+
+        Route::put(
+            '/{staff}/password',
+            [
+                AdminStaffController::class,
+                'resetPassword',
+            ]
+        )->name(
+            'password'
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Login As Admin User
+        |--------------------------------------------------------------------------
+        */
+
+        Route::post(
+            '/{staff}/login',
+            [
+                AdminStaffController::class,
+                'impersonate',
+            ]
+        )->name(
+            'impersonate'
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Delete
+        |--------------------------------------------------------------------------
+        */
+
+        Route::delete(
+            '/{staff}',
+            [
+                AdminStaffController::class,
+                'destroy',
+            ]
+        )->name(
+            'destroy'
+        );
+    });
         Route::get(
             '/dashboard',
             [

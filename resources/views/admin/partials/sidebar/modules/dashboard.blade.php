@@ -1,17 +1,42 @@
-<a
-    href="{{ route('admin.dashboard') }}"
-    class="admin-menu-link
-           {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}"
-    data-tooltip="Dashboard"
->
+@if(
+    auth()
+        ->user()
+        ->hasAdminPermission(
+            'dashboard.view'
+        )
+)
 
-    <span class="admin-menu-icon">
-        <i class="fa-solid fa-gauge-high"></i>
-    </span>
+    <a
+        href="{{ route('admin.dashboard') }}"
+
+        class="
+            admin-menu-link
+
+            {{
+                request()->routeIs(
+                    'admin.dashboard'
+                )
+                    ? 'active'
+                    : ''
+            }}
+        "
+
+        data-tooltip="Dashboard"
+    >
+
+        <span class="admin-menu-icon">
+
+            <i class="fa-solid fa-gauge-high"></i>
+
+        </span>
 
 
-    <span class="admin-menu-label">
-        Dashboard
-    </span>
+        <span class="admin-menu-label">
 
-</a>
+            Dashboard
+
+        </span>
+
+    </a>
+
+@endif

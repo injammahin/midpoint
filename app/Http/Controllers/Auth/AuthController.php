@@ -118,6 +118,13 @@ class AuthController extends Controller
                     $login
                 )
 
+                ->orWhere(
+                    'username',
+                    strtolower(
+                        $login
+                    )
+                )
+
                 ->first();
 
 
@@ -261,7 +268,22 @@ class AuthController extends Controller
             ->session()
             ->regenerate();
 
+        if (
+            $user->canAccessAdminPanel()
+        ) {
 
+            $request
+                ->session()
+                ->put(
+                    'admin_session_version',
+                    (int) (
+                        $user->session_version
+                        ??
+                        1
+                    )
+                );
+
+        }
         /*
         |--------------------------------------------------------------------------
         | Login Tracking
@@ -286,10 +308,10 @@ class AuthController extends Controller
         */
 
         if (
-            $user->role !== 'admin'
+            !$user->canAccessAdminPanel()
             &&
             !$user->hasVerifiedEmail()
-        ) {
+        ){
 
             return redirect()
                 ->route(

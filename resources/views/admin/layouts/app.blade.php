@@ -157,7 +157,78 @@
 
 <body class="admin-body">
 
+@if(
+    session()->has(
+        'impersonator_admin_id'
+    )
+)
 
+    <div
+        style="
+            position:fixed;
+            left:50%;
+            top:10px;
+            transform:translateX(-50%);
+            z-index:99999;
+            display:flex;
+            align-items:center;
+            gap:12px;
+            background:#172033;
+            color:#fff;
+            padding:9px 12px;
+            border-radius:10px;
+            box-shadow:0 10px 30px rgba(15,23,42,.22);
+            font:600 12px/1.2 Inter,sans-serif;
+        "
+    >
+
+        <span>
+
+            <i
+                class="fa-solid fa-user-secret"
+                style="margin-right:6px;"
+            ></i>
+
+            Viewing
+
+            {{ auth()->user()->name }}
+
+            as an admin user
+
+        </span>
+
+
+        <form
+            method="POST"
+            action="{{ route('impersonation.stop') }}"
+            style="margin:0;"
+        >
+
+            @csrf
+
+
+            <button
+                type="submit"
+                style="
+                    border:0;
+                    border-radius:7px;
+                    background:#fff;
+                    color:#172033;
+                    padding:6px 9px;
+                    font-weight:800;
+                    cursor:pointer;
+                "
+            >
+
+                Return to Super Admin
+
+            </button>
+
+        </form>
+
+    </div>
+
+@endif
     <div
         id="adminShell"
         class="admin-shell"

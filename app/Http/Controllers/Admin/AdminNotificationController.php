@@ -33,7 +33,7 @@ class AdminNotificationController extends Controller
         abort_unless(
             $user
             &&
-            $user->role === 'admin',
+            $user->canAccessAdminPanel(),
             403
         );
 
