@@ -6,65 +6,105 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    public function up()
-    {
-        Schema::create(
-            'transaction_dispute_status_histories',
-            function (Blueprint $table) {
+public function up()
+{
+    Schema::create(
+        'transaction_dispute_status_histories',
+        function (Blueprint $table) {
 
-                $table->id();
 
-                $table
-                    ->foreignId('transaction_dispute_id')
-                    ->constrained('transaction_disputes')
-                    ->cascadeOnDelete();
+            $table->id();
 
-                $table
-                    ->foreignId('secure_transaction_id')
-                    ->constrained('secure_transactions')
-                    ->cascadeOnDelete();
 
-                $table
-                    ->foreignId('admin_id')
-                    ->nullable()
-                    ->constrained('users')
-                    ->nullOnDelete();
+            $table->unsignedBigInteger(
+                'transaction_dispute_id'
+            );
 
-                $table
-                    ->string('from_status', 50)
-                    ->nullable();
 
-                $table
-                    ->string('to_status', 50);
+            $table->unsignedBigInteger(
+                'secure_transaction_id'
+            );
 
-                /*
-                |--------------------------------------------------------------------------
-                | Customer-facing/admin status message
-                |--------------------------------------------------------------------------
-                |
-                | For awaiting_buyer / awaiting_seller / resolved this message
-                | can be included in the email sent to the relevant party.
-                |
-                */
 
-                $table
-                    ->text('note')
-                    ->nullable();
+            $table->unsignedBigInteger(
+                'admin_id'
+            )->nullable();
 
-                $table->timestamps();
 
-                $table->index([
+            $table->string(
+                'from_status',
+                50
+            )->nullable();
+
+
+            $table->string(
+                'to_status',
+                50
+            );
+
+
+            $table->text(
+                'note'
+            )->nullable();
+
+
+            $table->timestamps();
+
+
+
+            $table
+                ->foreign(
                     'transaction_dispute_id',
-                    'created_at',
-                ]);
+                    'tdsh_dispute_fk'
+                )
+                ->references('id')
+                ->on('transaction_disputes')
+                ->cascadeOnDelete();
 
-                $table->index([
+
+
+            $table
+                ->foreign(
+                    'secure_transaction_id',
+                    'tdsh_transaction_fk'
+                )
+                ->references('id')
+                ->on('secure_transactions')
+                ->cascadeOnDelete();
+
+
+
+            $table
+                ->foreign(
+                    'admin_id',
+                    'tdsh_admin_fk'
+                )
+                ->references('id')
+                ->on('users')
+                ->nullOnDelete();
+
+
+
+            $table->index(
+                [
+                    'transaction_dispute_id',
+                    'created_at'
+                ],
+                'tdsh_dispute_created_idx'
+            );
+
+
+            $table->index(
+                [
                     'to_status',
-                    'created_at',
-                ]);
-            }
-        );
-    }
+                    'created_at'
+                ],
+                'tdsh_status_created_idx'
+            );
+
+        }
+    );
+}
 
 
     public function down()
