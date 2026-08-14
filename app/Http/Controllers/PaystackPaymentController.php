@@ -1243,15 +1243,15 @@ if (
                         : now();
 
 
-                $lockedPayment->update([
+$lockedPayment->update([
 
-                    'status' =>
-                        SecureTransactionPayment::STATUS_SUCCESS,
+    'status' =>
+        SecureTransactionPayment::STATUS_SUCCESS,
 
-                    'paystack_transaction_id' =>
-                        $data['id']
-                        ??
-                        null,
+                'paystack_transaction_id' =>
+                    isset($data['id'])
+                        ? (string) $data['id']
+                        : null,
 
                     'channel' =>
                         $data['channel']

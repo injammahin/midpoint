@@ -91,7 +91,7 @@ class SecureTransactionPayment extends Model
             'integer',
 
         'paystack_transaction_id' =>
-            'integer',
+            'string',
 
         'initialized_at' =>
             'datetime',
