@@ -601,12 +601,8 @@ class SellerInvoicePaymentService
                     SellerInvoicePayment::STATUS_SUCCESS,
 
                 'paystack_transaction_id' =>
-                    isset(
-                        $data['id']
-                    )
-
-                        ? (int) $data['id']
-
+                    isset($data['id'])
+                        ? (string) $data['id']
                         : null,
 
                 'channel' =>
