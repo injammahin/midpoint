@@ -13,7 +13,7 @@ class DatabaseSeeder extends Seeder
             FaqSeeder::class,
             PricingSettingSeeder::class,
             SupportChatSeeder::class,
-            sellerPackageSeeder::class,
+            SellerPackageSeeder::class,
         ]);
     }
 }
