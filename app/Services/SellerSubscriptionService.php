@@ -8,12 +8,15 @@ use App\Models\User;
 
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+
+use RuntimeException;
 
 class SellerSubscriptionService
 {
     /*
     |--------------------------------------------------------------------------
-    | Activate Seller Subscription
+    | Activate Subscription
     |--------------------------------------------------------------------------
     */
 
@@ -21,6 +24,15 @@ class SellerSubscriptionService
         SellerApplication $application,
         ?string $paymentReference = null
     ): SellerSubscription {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Make Database Problems Explicit
+        |--------------------------------------------------------------------------
+        */
+
+        $this->assertRequiredSchema();
+
 
         return DB::transaction(
             function () use (
@@ -48,7 +60,7 @@ class SellerSubscriptionService
 
                 /*
                 |--------------------------------------------------------------------------
-                | Existing Subscription For Same Application
+                | Existing Subscription For This Application
                 |--------------------------------------------------------------------------
                 */
 
@@ -67,15 +79,42 @@ class SellerSubscriptionService
 
                 /*
                 |--------------------------------------------------------------------------
-                | Already Active
+                | Existing Active Subscription
                 |--------------------------------------------------------------------------
                 */
 
                 if (
                     $existing
                     &&
-                    $existing->isCurrentlyActive()
+                    $existing
+                        ->isCurrentlyActive()
                 ) {
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Repair Application Status If Necessary
+                    |--------------------------------------------------------------------------
+                    */
+
+                    if (
+                        $application->status
+                        !==
+                        SellerApplication::STATUS_ACTIVE
+                    ) {
+
+                        $application->update([
+
+                            'status' =>
+                                SellerApplication::STATUS_ACTIVE,
+
+                            'activated_at' =>
+                                $application->activated_at
+                                ?:
+                                now(),
+
+                        ]);
+                    }
+
 
                     return $existing;
                 }
@@ -83,7 +122,7 @@ class SellerSubscriptionService
 
                 /*
                 |--------------------------------------------------------------------------
-                | Expire Previous Active Subscription
+                | Expire Older Active Packages
                 |--------------------------------------------------------------------------
                 */
 
@@ -101,21 +140,14 @@ class SellerSubscriptionService
                         );
 
 
-                /*
-                |--------------------------------------------------------------------------
-                | Do Not Expire Current Record
-                |--------------------------------------------------------------------------
-                */
+                if ($existing) {
 
-                if (
-                    $existing
-                ) {
-
-                    $oldSubscriptions->where(
-                        'id',
-                        '!=',
-                        $existing->id
-                    );
+                    $oldSubscriptions
+                        ->where(
+                            'id',
+                            '!=',
+                            $existing->id
+                        );
                 }
 
 
@@ -132,7 +164,7 @@ class SellerSubscriptionService
 
                 /*
                 |--------------------------------------------------------------------------
-                | Start Date
+                | Subscription Dates
                 |--------------------------------------------------------------------------
                 */
 
@@ -140,33 +172,107 @@ class SellerSubscriptionService
                     now();
 
 
-                /*
-                |--------------------------------------------------------------------------
-                | Expiration Date
-                |--------------------------------------------------------------------------
-                */
-
                 $expiresAt =
                     $this->calculateExpiration(
-                        $application->billing_period,
+
+                        (string)
+                        $application
+                            ->billing_period,
+
                         $startedAt
+
                     );
 
 
                 /*
                 |--------------------------------------------------------------------------
-                | Price
+                | Package Price
                 |--------------------------------------------------------------------------
                 */
 
                 $packagePrice =
                     (float)
-                    $application->package_price;
+                    $application
+                        ->package_price;
 
 
                 /*
                 |--------------------------------------------------------------------------
-                | Create / Update Subscription
+                | Subscription Values
+                |--------------------------------------------------------------------------
+                */
+
+                $values = [
+
+                    'user_id' =>
+                        $application->user_id,
+
+                    'seller_package_id' =>
+                        $application
+                            ->seller_package_id,
+
+                    'package_name' =>
+                        $application
+                            ->package_name,
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Support Both Old And New DB Columns
+                    |--------------------------------------------------------------------------
+                    */
+
+                    'package_price' =>
+                        $packagePrice,
+
+                    'price' =>
+                        $packagePrice,
+
+                    'billing_period' =>
+                        $application
+                            ->billing_period,
+
+                    'product_limit' =>
+                        $application
+                            ->product_limit,
+
+                    'status' =>
+                        SellerSubscription::STATUS_ACTIVE,
+
+                    'payment_reference' =>
+                        $paymentReference,
+
+                    'started_at' =>
+                        $startedAt,
+
+                    'expires_at' =>
+                        $expiresAt,
+
+                ];
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Legacy starts_at Column
+                |--------------------------------------------------------------------------
+                */
+
+                if (
+                    Schema::hasColumn(
+                        'seller_subscriptions',
+                        'starts_at'
+                    )
+                ) {
+
+                    $values[
+                        'starts_at'
+                    ] =
+                        $startedAt;
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Create Or Repair Subscription
                 |--------------------------------------------------------------------------
                 */
 
@@ -178,55 +284,14 @@ class SellerSubscriptionService
                                 $application->id,
                         ],
 
-                        [
-                            'user_id' =>
-                                $application->user_id,
+                        $values
 
-                            'seller_package_id' =>
-                                $application->seller_package_id,
-
-                            'package_name' =>
-                                $application->package_name,
-
-
-                            /*
-                            |--------------------------------------------------------------------------
-                            | Existing Database Compatibility
-                            |--------------------------------------------------------------------------
-                            */
-
-                            'package_price' =>
-                                $packagePrice,
-
-                            'price' =>
-                                $packagePrice,
-
-
-                            'billing_period' =>
-                                $application->billing_period,
-
-                            'product_limit' =>
-                                $application->product_limit,
-
-                            'status' =>
-                                SellerSubscription::STATUS_ACTIVE,
-
-                            'payment_reference' =>
-                                $paymentReference,
-
-                            'started_at' =>
-                                $startedAt,
-
-                            'expires_at' =>
-                                $expiresAt,
-
-                        ]
                     );
 
 
                 /*
                 |--------------------------------------------------------------------------
-                | Activate Seller Application
+                | Activate Application
                 |--------------------------------------------------------------------------
                 */
 
@@ -236,20 +301,96 @@ class SellerSubscriptionService
                         SellerApplication::STATUS_ACTIVE,
 
                     'activated_at' =>
+                        $application->activated_at
+                        ?:
                         $startedAt,
 
                 ]);
 
 
-                return $subscription;
-            }
+                return $subscription
+                    ->fresh();
+
+            },
+            3
         );
     }
 
 
     /*
     |--------------------------------------------------------------------------
-    | Calculate Expiration
+    | Verify Live Database Schema
+    |--------------------------------------------------------------------------
+    */
+
+    private function assertRequiredSchema(): void
+    {
+        $required = [
+
+            'seller_application_id',
+
+            'package_name',
+
+            'package_price',
+
+            'price',
+
+            'billing_period',
+
+            'product_limit',
+
+            'status',
+
+            'payment_reference',
+
+            'started_at',
+
+            'expires_at',
+
+        ];
+
+
+        $missing = [];
+
+
+        foreach (
+            $required
+            as
+            $column
+        ) {
+
+            if (
+                !Schema::hasColumn(
+                    'seller_subscriptions',
+                    $column
+                )
+            ) {
+
+                $missing[] =
+                    $column;
+            }
+        }
+
+
+        if ($missing) {
+
+            throw new RuntimeException(
+                'seller_subscriptions schema is missing: '
+                .
+                implode(
+                    ', ',
+                    $missing
+                )
+                .
+                '. Run the latest production migrations.'
+            );
+        }
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Expiration
     |--------------------------------------------------------------------------
     */
 
@@ -258,18 +399,25 @@ class SellerSubscriptionService
         Carbon $startedAt
     ): Carbon {
 
-        /*
-        |--------------------------------------------------------------------------
-        | Yearly
-        |--------------------------------------------------------------------------
-        */
+        $period =
+            strtolower(
+                trim(
+                    $billingPeriod
+                )
+            );
+
 
         if (
-            strtolower(
-                $billingPeriod
+            in_array(
+                $period,
+                [
+                    'year',
+                    'yearly',
+                    'annual',
+                    'annually',
+                ],
+                true
             )
-            ===
-            'year'
         ) {
 
             return $startedAt
@@ -277,12 +425,6 @@ class SellerSubscriptionService
                 ->addYear();
         }
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Monthly
-        |--------------------------------------------------------------------------
-        */
 
         return $startedAt
             ->copy()
@@ -292,7 +434,7 @@ class SellerSubscriptionService
 
     /*
     |--------------------------------------------------------------------------
-    | Get Current Active Plan
+    | Active Package For User
     |--------------------------------------------------------------------------
     */
 
@@ -300,23 +442,11 @@ class SellerSubscriptionService
         User $user
     ): ?SellerSubscription {
 
-        /*
-        |--------------------------------------------------------------------------
-        | Expire Due Plan First
-        |--------------------------------------------------------------------------
-        */
-
         $this
             ->expireDueSubscriptionsForUser(
                 $user
             );
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Get Active
-        |--------------------------------------------------------------------------
-        */
 
         return SellerSubscription::query()
 
@@ -340,7 +470,7 @@ class SellerSubscriptionService
 
     /*
     |--------------------------------------------------------------------------
-    | Expire All Due Plans
+    | Expire All Due Subscriptions
     |--------------------------------------------------------------------------
     */
 
@@ -369,7 +499,11 @@ class SellerSubscriptionService
 
             ->chunkById(
                 100,
-                function ($subscriptions) use (&$expiredCount) {
+                function (
+                    $subscriptions
+                ) use (
+                    &$expiredCount
+                ) {
 
                     foreach (
                         $subscriptions
@@ -396,7 +530,7 @@ class SellerSubscriptionService
 
     /*
     |--------------------------------------------------------------------------
-    | Expire User's Due Plans
+    | Expire User's Due Subscriptions
     |--------------------------------------------------------------------------
     */
 
@@ -470,12 +604,6 @@ class SellerSubscriptionService
                 $subscription
             ) {
 
-                /*
-                |--------------------------------------------------------------------------
-                | Lock
-                |--------------------------------------------------------------------------
-                */
-
                 $subscription =
                     SellerSubscription::query()
 
@@ -488,25 +616,11 @@ class SellerSubscriptionService
                         ->first();
 
 
-                /*
-                |--------------------------------------------------------------------------
-                | Missing
-                |--------------------------------------------------------------------------
-                */
-
-                if (
-                    !$subscription
-                ) {
+                if (!$subscription) {
 
                     return false;
                 }
 
-
-                /*
-                |--------------------------------------------------------------------------
-                | Already Expired
-                |--------------------------------------------------------------------------
-                */
 
                 if (
                     $subscription->status
@@ -517,12 +631,6 @@ class SellerSubscriptionService
                     return false;
                 }
 
-
-                /*
-                |--------------------------------------------------------------------------
-                | Still Active By Date
-                |--------------------------------------------------------------------------
-                */
 
                 if (
                     !$subscription->expires_at
@@ -536,12 +644,6 @@ class SellerSubscriptionService
                 }
 
 
-                /*
-                |--------------------------------------------------------------------------
-                | Expire Subscription
-                |--------------------------------------------------------------------------
-                */
-
                 $subscription->update([
 
                     'status' =>
@@ -549,12 +651,6 @@ class SellerSubscriptionService
 
                 ]);
 
-
-                /*
-                |--------------------------------------------------------------------------
-                | Expire Related Seller Application
-                |--------------------------------------------------------------------------
-                */
 
                 if (
                     $subscription
@@ -583,7 +679,9 @@ class SellerSubscriptionService
 
 
                 return true;
-            }
+
+            },
+            3
         );
     }
 }

@@ -695,17 +695,124 @@ class PaystackPaymentController extends Controller
                 |--------------------------------------------------------------------------
                 */
 
-                if (
-                    $sellerInvoicePayment->status
-                    ===
-                    SellerInvoicePayment::STATUS_SUCCESS
+/*
+|--------------------------------------------------------------------------
+| Check Whether Seller Package Is FULLY Activated
+|--------------------------------------------------------------------------
+|
+| Payment status = success alone is NOT enough.
+|
+| A previous callback may have successfully saved Paystack payment but failed
+| while creating seller subscription.
+|
+*/
+
+$sellerInvoice =
+    $sellerInvoicePayment
+        ->invoice;
+
+
+$sellerApplication =
+    $sellerInvoice
+        ? $sellerInvoice->application
+        : null;
+
+
+/*
+|--------------------------------------------------------------------------
+| Check Active Subscription
+|--------------------------------------------------------------------------
+*/
+
+$activeSubscriptionExists =
+    false;
+
+
+if (
+    $sellerApplication
+) {
+
+    $activeSubscriptionExists =
+        \App\Models\SellerSubscription::query()
+
+            ->where(
+                'seller_application_id',
+                $sellerApplication->id
+            )
+
+            ->where(
+                'status',
+                \App\Models\SellerSubscription::STATUS_ACTIVE
+            )
+
+            ->where(
+                function (
+                    $query
                 ) {
 
-                    return response(
-                        'OK',
-                        200
-                    );
+                    $query
+                        ->whereNull(
+                            'expires_at'
+                        )
+
+                        ->orWhere(
+                            'expires_at',
+                            '>',
+                            now()
+                        );
                 }
+            )
+
+            ->exists();
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Only Return Early If EVERYTHING Is Finished
+|--------------------------------------------------------------------------
+*/
+
+$sellerPackageFullyActivated =
+
+    $sellerInvoicePayment->status
+    ===
+    SellerInvoicePayment::STATUS_SUCCESS
+
+    &&
+
+    $sellerInvoice
+
+    &&
+
+    $sellerInvoice->status
+    ===
+    'paid'
+
+    &&
+
+    $sellerApplication
+
+    &&
+
+    $sellerApplication->status
+    ===
+    \App\Models\SellerApplication::STATUS_ACTIVE
+
+    &&
+
+    $activeSubscriptionExists;
+
+
+if (
+    $sellerPackageFullyActivated
+) {
+
+    return response(
+        'OK',
+        200
+    );
+}
 
 
                 /*

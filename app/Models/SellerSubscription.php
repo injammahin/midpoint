@@ -9,7 +9,7 @@ class SellerSubscription extends Model
 {
     /*
     |--------------------------------------------------------------------------
-    | Statuses
+    | Status
     |--------------------------------------------------------------------------
     */
 
@@ -36,17 +36,6 @@ class SellerSubscription extends Model
 
         'package_name',
 
-        /*
-        |--------------------------------------------------------------------------
-        | Price
-        |--------------------------------------------------------------------------
-        |
-        | Your existing database currently contains both fields.
-        |
-        | package_price is required in your existing table.
-        |
-        */
-
         'package_price',
 
         'price',
@@ -59,9 +48,26 @@ class SellerSubscription extends Model
 
         'payment_reference',
 
+        /*
+        |--------------------------------------------------------------------------
+        | Both Names Supported
+        |--------------------------------------------------------------------------
+        |
+        | Original DB:
+        | starts_at
+        |
+        | Newer application:
+        | started_at
+        |
+        */
+
+        'starts_at',
+
         'started_at',
 
         'expires_at',
+
+        'cancelled_at',
 
     ];
 
@@ -83,10 +89,16 @@ class SellerSubscription extends Model
         'product_limit' =>
             'integer',
 
+        'starts_at' =>
+            'datetime',
+
         'started_at' =>
             'datetime',
 
         'expires_at' =>
+            'datetime',
+
+        'cancelled_at' =>
             'datetime',
 
     ];
@@ -108,7 +120,7 @@ class SellerSubscription extends Model
 
     /*
     |--------------------------------------------------------------------------
-    | Seller Package
+    | Package
     |--------------------------------------------------------------------------
     */
 
@@ -123,7 +135,7 @@ class SellerSubscription extends Model
 
     /*
     |--------------------------------------------------------------------------
-    | Seller Application
+    | Application
     |--------------------------------------------------------------------------
     */
 
@@ -154,9 +166,12 @@ class SellerSubscription extends Model
             )
 
             ->where(
-                function ($query) {
+                function (
+                    $query
+                ) {
 
                     $query
+
                         ->whereNull(
                             'expires_at'
                         )
@@ -181,51 +196,51 @@ class SellerSubscription extends Model
         Builder $query
     ): Builder {
 
-        return $query->where(
-            function ($query) {
+        return $query
 
-                $query
+            ->where(
+                function (
+                    $query
+                ) {
 
-                    ->where(
-                        'status',
-                        self::STATUS_EXPIRED
-                    )
+                    $query
 
-                    ->orWhere(
-                        function ($query) {
+                        ->where(
+                            'status',
+                            self::STATUS_EXPIRED
+                        )
 
-                            $query
+                        ->orWhere(
+                            function (
+                                $query
+                            ) {
 
-                                ->whereNotNull(
-                                    'expires_at'
-                                )
+                                $query
 
-                                ->where(
-                                    'expires_at',
-                                    '<=',
-                                    now()
-                                );
-                        }
-                    );
-            }
-        );
+                                    ->whereNotNull(
+                                        'expires_at'
+                                    )
+
+                                    ->where(
+                                        'expires_at',
+                                        '<=',
+                                        now()
+                                    );
+                            }
+                        );
+                }
+            );
     }
 
 
     /*
     |--------------------------------------------------------------------------
-    | Check Current Status
+    | Is Active?
     |--------------------------------------------------------------------------
     */
 
     public function isCurrentlyActive(): bool
     {
-        /*
-        |--------------------------------------------------------------------------
-        | Status
-        |--------------------------------------------------------------------------
-        */
-
         if (
             $this->status
             !==
@@ -236,12 +251,6 @@ class SellerSubscription extends Model
         }
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | No Expiration
-        |--------------------------------------------------------------------------
-        */
-
         if (
             !$this->expires_at
         ) {
@@ -249,12 +258,6 @@ class SellerSubscription extends Model
             return true;
         }
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Check Time
-        |--------------------------------------------------------------------------
-        */
 
         return $this
             ->expires_at
@@ -264,7 +267,7 @@ class SellerSubscription extends Model
 
     /*
     |--------------------------------------------------------------------------
-    | Days Left
+    | Days Remaining
     |--------------------------------------------------------------------------
     */
 
@@ -287,38 +290,23 @@ class SellerSubscription extends Model
             );
 
 
-        if (
-            $seconds <= 0
-        ) {
+        if ($seconds <= 0) {
 
             return 0;
         }
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | Round Up
-        |--------------------------------------------------------------------------
-        |
-        | Example:
-        |
-        | 4 hours left
-        |
-        | shows:
-        |
-        | 1 day left
-        |
-        */
-
         return (int) ceil(
-            $seconds / 86400
+            $seconds
+            /
+            86400
         );
     }
 
 
     /*
     |--------------------------------------------------------------------------
-    | Remaining Time Text
+    | Remaining Text
     |--------------------------------------------------------------------------
     */
 
