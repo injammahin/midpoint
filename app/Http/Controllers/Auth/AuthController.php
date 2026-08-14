@@ -103,29 +103,20 @@ class AuthController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $user =
-            User::query()
+$user = User::where(function ($query) use ($login) {
 
-                ->where(
-                    'email',
-                    strtolower(
-                        $login
-                    )
-                )
+        $query->where(
+            'email',
+            strtolower($login)
+        )
 
-                ->orWhere(
-                    'phone',
-                    $login
-                )
+        ->orWhere(
+            'phone',
+            $login
+        );
 
-                ->orWhere(
-                    'username',
-                    strtolower(
-                        $login
-                    )
-                )
-
-                ->first();
+    })
+    ->first();
 
 
         /*
