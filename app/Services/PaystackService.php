@@ -37,6 +37,16 @@ class PaystackService
         }
     }
 
+    /**
+     * Non-secret fingerprint useful for logs when diagnosing API-key changes.
+     * This never exposes the full Paystack secret key.
+     */
+    public function secretKeyFingerprint(): string
+    {
+        return substr(hash('sha256', $this->secretKey), 0, 12);
+    }
+
+
     public function initializeTransaction(
         array $payload
     ): array {
