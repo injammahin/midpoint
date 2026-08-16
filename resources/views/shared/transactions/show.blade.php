@@ -6,7 +6,65 @@
     $isSeller =
         $mode === 'seller';
 
+    $isMarketplaceOrder =
+            $transaction->transaction_source
+            ===
+            'marketplace_checkout';
 
+
+    $isSellerCreatedTransaction =
+        $transaction->transaction_source
+        ===
+        'seller_link';
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Ordered Product Information
+    |--------------------------------------------------------------------------
+    |
+    | IMPORTANT:
+    |
+    | We use the values saved in SecureTransaction as the main source.
+    |
+    | That is intentional because they are the product snapshot at the
+    | moment the buyer ordered.
+    |
+    | For example, if the seller later changes the live product name or
+    | price, the historical transaction must still show what was actually
+    | purchased.
+    |
+    */
+
+    $orderedItemName =
+        $transaction->title
+        ?:
+        $transaction->product?->name
+        ?:
+        'Item';
+
+
+    $orderedQuantity =
+        max(
+            1,
+            (int) $transaction->quantity
+        );
+
+
+    $orderedUnitPrice =
+        (float) $transaction->unit_price;
+
+
+    $orderedSubtotal =
+        (float) $transaction->subtotal;
+
+
+    $buyerDisplayName =
+        $transaction->buyer?->name
+        ?:
+        $transaction->buyer_email
+        ?:
+        'Buyer';
     /*
     |--------------------------------------------------------------------------
     | Dispute State
@@ -144,15 +202,59 @@
             </a>
 
 
+            @if(
+                $isSeller
+                &&
+                $isMarketplaceOrder
+            )
+
+                <span class="tm-order-source marketplace">
+
+                    <i class="fa-solid fa-bag-shopping"></i>
+
+                    Marketplace order
+
+                </span>
+
+            @elseif(
+                $isSeller
+                &&
+                $isSellerCreatedTransaction
+            )
+
+                <span class="tm-order-source seller-created">
+
+                    <i class="fa-solid fa-link"></i>
+
+                    Seller-created transaction
+
+                </span>
+
+            @endif
+
+
             <h1>
-                {{ $transaction->title }}
+                {{ $orderedItemName }}
             </h1>
 
 
             <p>
+
                 Transaction {{ $transaction->reference }}
+
                 ·
+
+                @if($isSeller)
+
+                    {{ $orderedQuantity }}
+                    {{ \Illuminate\Support\Str::plural('item', $orderedQuantity) }}
+
+                    ·
+
+                @endif
+
                 Created {{ $transaction->created_at->format('d M Y') }}
+
             </p>
 
         </div>
@@ -374,6 +476,315 @@
 
         <aside class="tm-side">
 
+            @if($isSeller)
+
+                <div class="tm-card tm-order-details-card">
+
+
+                    <div class="tm-order-card-heading">
+
+
+                        <div>
+
+                            <span class="tm-order-card-eyebrow">
+
+                                @if($isMarketplaceOrder)
+
+                                    MARKETPLACE ORDER
+
+                                @elseif($isSellerCreatedTransaction)
+
+                                    SECURE TRANSACTION
+
+                                @else
+
+                                    ORDER DETAILS
+
+                                @endif
+
+                            </span>
+
+
+                            <h3>
+                                Ordered item
+                            </h3>
+
+                        </div>
+
+
+                        <div class="tm-order-box-icon">
+
+                            <i class="fa-solid fa-box-open"></i>
+
+                        </div>
+
+
+                    </div>
+
+
+
+                    {{-- =================================================
+                        PRODUCT NAME
+                    ================================================== --}}
+
+                    <div class="tm-ordered-product">
+
+
+                        <span>
+                            Product
+                        </span>
+
+
+                        <strong>
+                            {{ $orderedItemName }}
+                        </strong>
+
+
+                        @if($transaction->description)
+
+                            <p>
+
+                                {{
+                                    \Illuminate\Support\Str::limit(
+                                        $transaction->description,
+                                        100
+                                    )
+                                }}
+
+                            </p>
+
+                        @endif
+
+
+                    </div>
+
+
+
+                    {{-- =================================================
+                        QUANTITY
+                    ================================================== --}}
+
+                    <div class="tm-order-detail-row">
+
+
+                        <span>
+
+                            <i class="fa-solid fa-cubes"></i>
+
+                            Quantity ordered
+
+                        </span>
+
+
+                        <strong class="tm-order-quantity">
+
+                            {{ number_format($orderedQuantity) }}
+
+                        </strong>
+
+
+                    </div>
+
+
+
+                    {{-- =================================================
+                        UNIT PRICE
+                    ================================================== --}}
+
+                    <div class="tm-order-detail-row">
+
+
+                        <span>
+
+                            <i class="fa-solid fa-tag"></i>
+
+                            Unit price
+
+                        </span>
+
+
+                        <strong>
+
+                            ₦{{ number_format(
+                                $orderedUnitPrice,
+                                2
+                            ) }}
+
+                        </strong>
+
+
+                    </div>
+
+
+
+                    {{-- =================================================
+                        SUBTOTAL
+                    ================================================== --}}
+
+                    <div class="tm-order-detail-row">
+
+
+                        <span>
+
+                            <i class="fa-solid fa-calculator"></i>
+
+                            Product subtotal
+
+                        </span>
+
+
+                        <strong>
+
+                            ₦{{ number_format(
+                                $orderedSubtotal,
+                                2
+                            ) }}
+
+                        </strong>
+
+
+                    </div>
+
+
+
+                    {{-- =================================================
+                        PRODUCT ID
+                    ================================================== --}}
+
+                    @if($transaction->seller_product_id)
+
+                        <div class="tm-order-detail-row">
+
+
+                            <span>
+
+                                <i class="fa-solid fa-hashtag"></i>
+
+                                Product ID
+
+                            </span>
+
+
+                            <strong>
+
+                                {{ $transaction->seller_product_id }}
+
+                            </strong>
+
+
+                        </div>
+
+                    @endif
+
+
+
+                    {{-- =================================================
+                        BUYER
+                    ================================================== --}}
+
+                    <div class="tm-order-detail-row">
+
+
+                        <span>
+
+                            <i class="fa-solid fa-user"></i>
+
+                            Ordered by
+
+                        </span>
+
+
+                        <strong>
+
+                            {{ $buyerDisplayName }}
+
+                        </strong>
+
+
+                    </div>
+
+
+
+                    {{-- =================================================
+                        BUYER PHONE
+                    ================================================== --}}
+
+                    @if($transaction->buyer_phone)
+
+                        <div class="tm-order-detail-row">
+
+
+                            <span>
+
+                                <i class="fa-solid fa-phone"></i>
+
+                                Buyer phone
+
+                            </span>
+
+
+                            <strong>
+
+                                {{ $transaction->buyer_phone }}
+
+                            </strong>
+
+
+                        </div>
+
+                    @endif
+
+
+
+                    {{-- =================================================
+                        REFERENCE
+                    ================================================== --}}
+
+                    <div class="tm-order-reference">
+
+
+                        <span>
+                            Order reference
+                        </span>
+
+
+                        <strong>
+                            {{ $transaction->reference }}
+                        </strong>
+
+
+                    </div>
+
+
+
+                    {{-- =================================================
+                        MARKETPLACE INFORMATION
+                    ================================================== --}}
+
+                    @if($isMarketplaceOrder)
+
+                        <div class="tm-marketplace-note">
+
+
+                            <i class="fa-solid fa-circle-check"></i>
+
+
+                            <span>
+
+                                This order was placed directly from your
+                                listed products.
+
+                            </span>
+
+
+                        </div>
+
+                    @endif
+
+
+                </div>
+
+            @endif
 
             @if($countdownEnd)
 
@@ -1203,7 +1614,287 @@
 
 
 <style>
+.tm-order-source {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
 
+    margin-top: 9px;
+    padding: 6px 9px;
+
+    border-radius: 999px;
+
+    font-size: 9px;
+    font-weight: 800;
+
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+
+.tm-order-source.marketplace {
+    background: #ECFDF3;
+    color: #067647;
+}
+
+
+.tm-order-source.seller-created {
+    background: #F4F3FF;
+    color: #6941C6;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Seller Order Details Card
+|--------------------------------------------------------------------------
+*/
+
+.tm-order-details-card {
+    border-color: #BFE7D0;
+    background:
+        linear-gradient(
+            145deg,
+            #FFFFFF 0%,
+            #F6FFF9 100%
+        );
+}
+
+
+.tm-order-card-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+
+    margin-bottom: 15px;
+}
+
+
+.tm-order-card-heading h3 {
+    margin: 4px 0 0;
+}
+
+
+.tm-order-card-eyebrow {
+    display: block;
+
+    color: #087647;
+
+    font-size: 8px;
+    font-weight: 800;
+
+    letter-spacing: .06em;
+}
+
+
+.tm-order-box-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 36px;
+    height: 36px;
+
+    flex: 0 0 36px;
+
+    border-radius: 10px;
+
+    background: #EAFBF1;
+    color: #087647;
+
+    font-size: 15px;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Ordered Product
+|--------------------------------------------------------------------------
+*/
+
+.tm-ordered-product {
+    margin-bottom: 12px;
+    padding: 13px;
+
+    border: 1px solid #DCEBE3;
+    border-radius: 10px;
+
+    background: #FFFFFF;
+}
+
+
+.tm-ordered-product > span {
+    display: block;
+
+    margin-bottom: 5px;
+
+    color: #7B8781;
+
+    font-size: 9px;
+}
+
+
+.tm-ordered-product > strong {
+    display: block;
+
+    color: #101915;
+
+    font-size: 15px;
+    font-weight: 800;
+}
+
+
+.tm-ordered-product p {
+    margin: 6px 0 0;
+
+    color: #748078;
+
+    font-size: 9px;
+    line-height: 1.5;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Order Detail Row
+|--------------------------------------------------------------------------
+*/
+
+.tm-order-detail-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 12px;
+
+    padding: 9px 0;
+
+    border-bottom: 1px solid #ECF1EE;
+}
+
+
+.tm-order-detail-row > span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    color: #68756E;
+
+    font-size: 9px;
+}
+
+
+.tm-order-detail-row > span i {
+    width: 13px;
+
+    color: #82918A;
+
+    text-align: center;
+}
+
+
+.tm-order-detail-row > strong {
+    max-width: 55%;
+
+    color: #17251F;
+
+    font-size: 10px;
+
+    text-align: right;
+
+    word-break: break-word;
+}
+
+
+.tm-order-quantity {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 29px;
+    height: 29px;
+
+    padding: 0 8px;
+
+    border-radius: 8px;
+
+    background: #0B3D2E;
+
+    color: #FFFFFF !important;
+
+    font-size: 12px !important;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Order Reference
+|--------------------------------------------------------------------------
+*/
+
+.tm-order-reference {
+    margin-top: 12px;
+    padding: 10px;
+
+    border-radius: 9px;
+
+    background: #F3F7F5;
+}
+
+
+.tm-order-reference span,
+.tm-order-reference strong {
+    display: block;
+}
+
+
+.tm-order-reference span {
+    margin-bottom: 4px;
+
+    color: #7D8982;
+
+    font-size: 8px;
+}
+
+
+.tm-order-reference strong {
+    color: #0B3D2E;
+
+    font-size: 9px;
+
+    word-break: break-all;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Marketplace Note
+|--------------------------------------------------------------------------
+*/
+
+.tm-marketplace-note {
+    display: flex;
+    align-items: flex-start;
+
+    gap: 7px;
+
+    margin-top: 11px;
+    padding: 10px;
+
+    border-radius: 9px;
+
+    background: #ECFDF3;
+    color: #067647;
+
+    font-size: 9px;
+    line-height: 1.5;
+}
+
+
+.tm-marketplace-note i {
+    margin-top: 2px;
+}
 .tm-page {
     width: 100%;
 }

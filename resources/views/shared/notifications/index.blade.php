@@ -314,6 +314,26 @@
 
 
                             @if(
+                                $isSeller
+                                &&
+                                $transaction->isMarketplaceCheckout()
+                            )
+
+                                <span>
+
+                                    <i class="fa-solid fa-bag-shopping"></i>
+
+                                    Marketplace order · Qty
+                                    {{ number_format(
+                                        (int) $transaction->quantity
+                                    ) }}
+
+                                </span>
+
+                            @endif
+
+
+                            @if(
                                 $type === 'payment'
                                 &&
                                 $transaction->paid_amount

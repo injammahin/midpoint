@@ -136,17 +136,79 @@
 
                         </div>
 
-                        <div>
+                    <div class="tx-product-copy">
 
-                            <a href="{{ $detailUrl }}">
-                                {{ $transaction->title }}
-                            </a>
 
-                            <span>
-                                {{ $transaction->reference }}
-                            </span>
+                        <a href="{{ $detailUrl }}">
 
-                        </div>
+                            {{ $transaction->title }}
+
+                        </a>
+
+
+                        @if($isSeller)
+
+                            <div class="tx-order-meta">
+
+
+                                @if(
+                                    $transaction->transaction_source
+                                    ===
+                                    'marketplace_checkout'
+                                )
+
+                                    <span class="tx-source marketplace">
+
+                                        <i class="fa-solid fa-bag-shopping"></i>
+
+                                        Marketplace order
+
+                                    </span>
+
+
+                                @elseif(
+                                    $transaction->transaction_source
+                                    ===
+                                    'seller_link'
+                                )
+
+                                    <span class="tx-source seller-link">
+
+                                        <i class="fa-solid fa-link"></i>
+
+                                        Seller-created
+
+                                    </span>
+
+                                @endif
+
+
+                                <span class="tx-qty">
+
+                                    Qty:
+                                    {{ number_format(
+                                        max(
+                                            1,
+                                            (int) $transaction->quantity
+                                        )
+                                    ) }}
+
+                                </span>
+
+
+                            </div>
+
+                        @endif
+
+
+                        <span>
+
+                            {{ $transaction->reference }}
+
+                        </span>
+
+
+                    </div>
 
                     </div>
 
@@ -270,7 +332,40 @@
     letter-spacing:.1em;
     text-transform:uppercase;
 }
+.tx-source-pill {
+    display:inline-flex !important;
 
+    align-items:center;
+
+    gap:5px;
+
+    width:max-content;
+
+    margin-top:5px;
+
+    padding:4px 7px;
+
+    border-radius:999px;
+
+    font-size:9px !important;
+    font-weight:800;
+
+    line-height:1;
+}
+
+
+.tx-source-pill.marketplace {
+    background:#ECFDF3;
+
+    color:#067647 !important;
+}
+
+
+.tx-source-pill.seller-link {
+    background:#F3F0FF;
+
+    color:#6941C6 !important;
+}
 .tx-head h1 {
     margin:4px 0;
     color:#101915;
@@ -310,7 +405,62 @@
     border-radius:13px;
     background:#fff;
 }
+.tx-product-copy {
+    min-width: 0;
+}
 
+
+.tx-order-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+
+    gap: 5px;
+
+    margin-top: 5px;
+    margin-bottom: 4px;
+}
+
+
+.tx-source,
+.tx-qty {
+    display: inline-flex !important;
+    align-items: center;
+
+    gap: 4px;
+
+    width: max-content;
+
+    padding: 4px 6px;
+
+    border-radius: 999px;
+
+    font-size: 8px !important;
+    font-weight: 800;
+
+    line-height: 1;
+}
+
+
+.tx-source.marketplace {
+    background: #ECFDF3;
+
+    color: #067647 !important;
+}
+
+
+.tx-source.seller-link {
+    background: #F4F3FF;
+
+    color: #6941C6 !important;
+}
+
+
+.tx-qty {
+    background: #F2F4F3;
+
+    color: #47544D !important;
+}
 .tx-stat span,
 .tx-stat strong {
     display:block;

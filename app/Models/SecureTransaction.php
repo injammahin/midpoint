@@ -53,6 +53,9 @@ class SecureTransaction extends Model
     public const PAYMENT_PAID = 'paid';
 
     public const PAYMENT_FAILED = 'failed';
+    public const SOURCE_SELLER_LINK = 'seller_link';
+
+    public const SOURCE_MARKETPLACE_CHECKOUT = 'marketplace_checkout';
 
 
     /*
@@ -93,6 +96,8 @@ class SecureTransaction extends Model
         'seller_product_id',
 
         'transaction_type',
+
+        'transaction_source',
 
         'title',
 
@@ -547,7 +552,44 @@ class SecureTransaction extends Model
                 ),
         };
     }
+    /*
+    |--------------------------------------------------------------------------
+    | Transaction Source Helpers
+    |--------------------------------------------------------------------------
+    */
 
+    public function isMarketplaceCheckout(): bool
+    {
+        return
+            $this->transaction_source
+            ===
+            self::SOURCE_MARKETPLACE_CHECKOUT;
+    }
+
+
+    public function isSellerCreatedLink(): bool
+    {
+        return
+            $this->transaction_source
+            ===
+            self::SOURCE_SELLER_LINK;
+    }
+
+
+    public function getTransactionSourceLabelAttribute(): string
+    {
+        return match ($this->transaction_source) {
+
+            self::SOURCE_MARKETPLACE_CHECKOUT =>
+                'Marketplace order',
+
+            self::SOURCE_SELLER_LINK =>
+                'Seller-created transaction',
+
+            default =>
+                'Legacy transaction',
+        };
+    }
 
     /*
     |--------------------------------------------------------------------------

@@ -759,7 +759,8 @@ class SellerSecureTransactionController extends Controller
                             'transaction_type' =>
                                 $validated['transaction_type'],
 
-
+                            'transaction_source' =>
+                                SecureTransaction::SOURCE_SELLER_LINK,
                             /*
                             |--------------------------------------------------------------------------
                             | Product Snapshot

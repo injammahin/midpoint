@@ -4,11 +4,13 @@
 
 @section('content')
 
+
 @include(
     'shared.transactions.show',
     [
         'mode' => 'seller',
     ]
 )
+
 
 @endsection

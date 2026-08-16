@@ -610,6 +610,20 @@ class ProductCheckoutController extends Controller
 
                             /*
                             |--------------------------------------------------------------------------
+                            | Transaction Source
+                            |--------------------------------------------------------------------------
+                            |
+                            | This transaction was created because a buyer selected a product from
+                            | the seller's public/listed products and checked out directly.
+                            |
+                            */
+
+                            'transaction_source' =>
+                                SecureTransaction::SOURCE_MARKETPLACE_CHECKOUT,
+
+
+                            /*
+                            |--------------------------------------------------------------------------
                             | Product Snapshot
                             |--------------------------------------------------------------------------
                             */
