@@ -1861,13 +1861,50 @@ Route::prefix('admin')
                 )->name(
                     'home-page.testimonials.destroy'
                 );
+
                 Route::get(
                     '/app-settings',
                     [
                         WebsiteSettingsController::class,
                         'appSettings',
                     ]
-                )->name('app-settings');
+                )->name(
+                    'app-settings'
+                );
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Update Application Settings
+                |--------------------------------------------------------------------------
+                */
+
+                Route::put(
+                    '/app-settings',
+                    [
+                        WebsiteSettingsController::class,
+                        'updateAppSettings',
+                    ]
+                )->name(
+                    'app-settings.update'
+                );
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Remove Application Logo
+                |--------------------------------------------------------------------------
+                */
+
+                Route::delete(
+                    '/app-settings/logo',
+                    [
+                        WebsiteSettingsController::class,
+                        'destroyLogo',
+                    ]
+                )->name(
+                    'app-settings.logo.destroy'
+                );
 
 
                 /*

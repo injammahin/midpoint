@@ -8,29 +8,14 @@
     ========================================================== --}}
     <div class="admin-sidebar-brand">
 
-        <a
-            href="{{ route('dashboard') }}"
-            class="admin-brand"
-        >
+    <a
+        href="{{ route('dashboard') }}"
+        class="admin-brand"
+    >
 
-            <span class="admin-brand-icon">
-                M
-            </span>
+        <x-midpoint-brand variant="admin" />
 
-
-            <span class="admin-brand-text">
-
-                <strong>
-                    Mid<span>Point</span>
-                </strong>
-
-                <small>
-                    Admin Panel
-                </small>
-
-            </span>
-
-        </a>
+    </a>
 
     </div>
 

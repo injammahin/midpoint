@@ -18,29 +18,19 @@
 
             <a
                 href="{{ route('home') }}"
-                class="mb-auto flex
-                       items-center gap-[9px]
-                       font-['Bricolage_Grotesque']
-                       text-[20px]
-                       font-extrabold"
+
+                class="
+                    mb-auto
+                    flex
+                    items-center
+                    gap-[9px]
+                    font-['Bricolage_Grotesque']
+                    text-[20px]
+                    font-extrabold
+                "
             >
 
-                <span
-                    class="grid h-8 w-8
-                           place-items-center
-                           rounded-[10px]
-                           bg-gradient-to-br
-                           from-[#0B3D2E]
-                           to-[#12B76A]
-                           text-[15px]
-                           text-white"
-                >
-                    M
-                </span>
-
-                <span>
-                    <span class="text-white">Mid</span><span class="text-[#C4B5FD]">Point</span>
-                </span>
+                <x-midpoint-brand variant="auth" />
 
             </a>
 
