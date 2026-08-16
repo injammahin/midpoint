@@ -36,7 +36,7 @@ class AccountStatusChangedNotification extends Notification
             return (new MailMessage)
 
                 ->subject(
-                    'Your MidPoint account has been deactivated'
+                    'Your Midpoint account has been deactivated'
                 )
 
                 ->greeting(
@@ -44,15 +44,15 @@ class AccountStatusChangedNotification extends Notification
                 )
 
                 ->line(
-                    'Your MidPoint account has been deactivated by an administrator.'
+                    'Your Midpoint account has been deactivated by an administrator.'
                 )
 
                 ->line(
-                    'You will not be able to access protected MidPoint account features while your account is inactive.'
+                    'You will not be able to access protected Midpoint account features while your account is inactive.'
                 )
 
                 ->line(
-                    'If you believe this was a mistake, please contact MidPoint support.'
+                    'If you believe this was a mistake, please contact Midpoint support.'
                 )
 
                 ->action(
@@ -68,7 +68,7 @@ class AccountStatusChangedNotification extends Notification
         return (new MailMessage)
 
             ->subject(
-                'Your MidPoint account is active again'
+                'Your Midpoint account is active again'
             )
 
             ->greeting(
@@ -76,11 +76,11 @@ class AccountStatusChangedNotification extends Notification
             )
 
             ->line(
-                'Your MidPoint account has been reactivated.'
+                'Your Midpoint account has been reactivated.'
             )
 
             ->action(
-                'Log in to MidPoint',
+                'Log in to Midpoint',
                 route(
                     'login'
                 )

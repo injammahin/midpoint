@@ -1,6 +1,6 @@
 @extends('frontend.layouts.app')
 
-@section('title', 'Forgot Password | MidPoint')
+@section('title', 'Forgot Password | Midpoint')
 
 @section('hide_footer', '1')
 
@@ -74,7 +74,7 @@
                     class="max-w-[400px]
                            text-[#C8DAD2]"
                 >
-                    Enter the email linked to your MidPoint
+                    Enter the email linked to your Midpoint
                     account. We'll send you a secure,
                     time-limited link to choose a new password.
                 </p>
@@ -340,7 +340,7 @@
                                text-[#0E7A4C]"
                     ></i>
 
-                    For privacy, MidPoint does not confirm
+                    For privacy, Midpoint does not confirm
                     whether a specific email address has an
                     account.
 

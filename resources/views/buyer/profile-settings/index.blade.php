@@ -300,7 +300,7 @@
                     </strong>
 
 
-                    MidPoint does not need a saved payment-card section here.
+                    Midpoint does not need a saved payment-card section here.
                     When you pay for a transaction, the payment flow is handled
                     separately; this profile stores your account settings, not
                     raw card details.
@@ -452,7 +452,7 @@
                                     'Marketing emails',
 
                                 'description' =>
-                                    'Product news, promotions and MidPoint announcements.',
+                                    'Product news, promotions and Midpoint announcements.',
 
                                 'enabled' =>
                                     old(
@@ -555,7 +555,7 @@
 
                         <p>
 
-                            Protect access to your MidPoint account.
+                            Protect access to your Midpoint account.
 
                         </p>
 
@@ -714,12 +714,12 @@
 
                     <strong>
 
-                        Protect your MidPoint account
+                        Protect your Midpoint account
 
                     </strong>
 
 
-                    Your Buyer View and Seller View use the same MidPoint account.
+                    Your Buyer View and Seller View use the same Midpoint account.
                     Enabling two-factor authentication here protects both views
                     with the same additional verification step.
 
@@ -967,7 +967,7 @@
 
                     Enter your current password first.
 
-                    MidPoint will then generate an authenticator
+                    Midpoint will then generate an authenticator
                     setup QR code.
 
                 </div>
@@ -2825,11 +2825,11 @@ document.addEventListener(
             if (
                 qrCanvas
                 &&
-                window.MidPointQRCode
+                window.MidpointQRCode
             ) {
 
                 window
-                    .MidPointQRCode
+                    .MidpointQRCode
                     .toCanvas(
 
                         qrCanvas,

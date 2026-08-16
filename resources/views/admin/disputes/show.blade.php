@@ -377,7 +377,7 @@
 
                 This transaction is currently disputed.
 
-                MidPoint should review the buyer's claim,
+                Midpoint should review the buyer's claim,
                 transaction details and evidence before
                 any refund, payout or settlement action.
 
@@ -436,7 +436,7 @@
 
                     Update the review status.
 
-                    MidPoint will automatically email the
+                    Midpoint will automatically email the
                     appropriate buyer or seller for each stage.
 
                 </p>
@@ -610,7 +610,7 @@
                     <span>
 
                         Both buyer and seller have been
-                        notified that MidPoint completed
+                        notified that Midpoint completed
                         its dispute review.
 
                     </span>
@@ -2885,7 +2885,7 @@ document.addEventListener(
 
 
                 previewText.textContent =
-                    'The buyer will receive an email that MidPoint has resumed reviewing the dispute.';
+                    'The buyer will receive an email that Midpoint has resumed reviewing the dispute.';
 
 
                 return;

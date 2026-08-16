@@ -703,7 +703,7 @@
             "
         >
 
-            MidPoint Verified Seller Program
+            Midpoint Verified Seller Program
 
             <br>
 
@@ -715,7 +715,7 @@
 
             <br>
 
-            © {{ date('Y') }} MidPoint
+            © {{ date('Y') }} Midpoint
 
         </td>
 

@@ -256,7 +256,7 @@ class PricingController extends Controller
                         'Please enter the VAT percentage.',
 
                     'buyer_service_fee_percent.required' =>
-                        'Please enter the buyer service fee. Enter 0 if buyers pay no MidPoint fee.',
+                        'Please enter the buyer service fee. Enter 0 if buyers pay no Midpoint fee.',
 
                 ]
             );

@@ -18,7 +18,7 @@
 
 
     <title>
-        @yield('title', 'Seller Dashboard') | MidPoint
+        @yield('title', 'Seller Dashboard') | Midpoint
     </title>
 
 

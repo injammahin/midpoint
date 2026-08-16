@@ -739,11 +739,11 @@
 
 <div class="note-box">
 
-    This invoice confirms that MidPoint received payment
+    This invoice confirms that Midpoint received payment
     for the seller package shown above.
 
     The corresponding Verified Seller subscription becomes
-    active only after MidPoint verifies the payment with
+    active only after Midpoint verifies the payment with
     Paystack.
 
     Keep this PDF for your records.
@@ -760,7 +760,7 @@
 
             <td>
 
-                MidPoint Verified Seller Program
+                Midpoint Verified Seller Program
 
             </td>
 

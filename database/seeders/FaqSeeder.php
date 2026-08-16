@@ -13,10 +13,10 @@ class FaqSeeder extends Seeder
 
             [
                 'question' =>
-                    'Is MidPoint a marketplace?',
+                    'Is Midpoint a marketplace?',
 
                 'answer' =>
-                    "No. We don't list or sell products. You find your buyer or seller anywhere — WhatsApp, Instagram, Jiji, Facebook Marketplace, referrals — and use MidPoint only to protect the payment.",
+                    "No. We don't list or sell products. You find your buyer or seller anywhere — WhatsApp, Instagram, Jiji, Facebook Marketplace, referrals — and use Midpoint only to protect the payment.",
 
                 'sort_order' => 1,
 
@@ -26,10 +26,10 @@ class FaqSeeder extends Seeder
 
             [
                 'question' =>
-                    "Who pays MidPoint's fee?",
+                    "Who pays Midpoint's fee?",
 
                 'answer' =>
-                    "The seller pays a 5% service fee, deducted from their payout. Buyers pay nothing to MidPoint — only the product price agreed with the seller. Delivery is arranged directly between buyer and seller, so any delivery cost is settled between you — MidPoint doesn't charge or collect it.",
+                    "The seller pays a 5% service fee, deducted from their payout. Buyers pay nothing to Midpoint — only the product price agreed with the seller. Delivery is arranged directly between buyer and seller, so any delivery cost is settled between you — Midpoint doesn't charge or collect it.",
 
                 'sort_order' => 2,
 
@@ -130,10 +130,10 @@ class FaqSeeder extends Seeder
 
             [
                 'question' =>
-                    'Can I use MidPoint for services, not just goods?',
+                    'Can I use Midpoint for services, not just goods?',
 
                 'answer' =>
-                    "Yes. MidPoint can support protected transactions involving physical goods and eligible services. For services, the delivery and inspection process applies to the completed work instead of a physical item.",
+                    "Yes. Midpoint can support protected transactions involving physical goods and eligible services. For services, the delivery and inspection process applies to the completed work instead of a physical item.",
 
                 'sort_order' => 10,
 

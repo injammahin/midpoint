@@ -18,7 +18,7 @@
 
 
     <title>
-        @yield('title', 'Dashboard') | MidPoint
+        @yield('title', 'Dashboard') | Midpoint
     </title>
 
 
@@ -52,7 +52,7 @@
 </head>
 
 
-<body class="midpoint-account-body">
+<body class="Midpoint-account-body">
 
 
     {{-- =========================================================

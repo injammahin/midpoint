@@ -1,7 +1,7 @@
 @extends('frontend.layouts.app')
 
 
-@section('title', $application->business_name . ' | MidPoint')
+@section('title', $application->business_name . ' | Midpoint')
 
 
 @section('content')
@@ -21,7 +21,7 @@
     $publicDescription =
         optional($profile)->about
         ?: $application->description
-        ?: 'Verified business on MidPoint.';
+        ?: 'Verified business on Midpoint.';
 
 
     $publicTagline =
@@ -123,7 +123,7 @@
                             .
                             $product->name
                             .
-                            ' on MidPoint and would like to know more about it.'
+                            ' on Midpoint and would like to know more about it.'
                         );
                 }
 
@@ -658,7 +658,7 @@
                                         .
                                         $product->name
                                         .
-                                        ' on MidPoint and would like to know more about it.'
+                                        ' on Midpoint and would like to know more about it.'
                                     );
                             }
                         @endphp
@@ -1182,7 +1182,7 @@
                     <div>
 
                         <strong>
-                            MidPoint Verified
+                            Midpoint Verified
                         </strong>
 
                         <span>
@@ -1218,7 +1218,7 @@
                     </h2>
 
                     <p>
-                        Reviews from MidPoint buyers.
+                        Reviews from Midpoint buyers.
                     </p>
 
                 </div>
@@ -1257,7 +1257,7 @@
                                 <div>
 
                                     <strong>
-                                        {{ optional($review->buyer)->name ?: 'MidPoint Buyer' }}
+                                        {{ optional($review->buyer)->name ?: 'Midpoint Buyer' }}
                                     </strong>
 
 
@@ -1504,7 +1504,7 @@
 
                     <i class="fa-solid fa-lock"></i>
 
-                    Your payment is protected through MidPoint escrow
+                    Your payment is protected through Midpoint escrow
                     until the transaction is completed.
 
                 </div>

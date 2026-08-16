@@ -67,7 +67,7 @@
 
         <p class="tg-intro">
 
-            MidPoint has sent this secure transaction link to
+            Midpoint has sent this secure transaction link to
 
             <strong>
                 {{ $transaction->buyer_email }}
@@ -190,7 +190,7 @@
 
             <a
                 href="https://wa.me/?text={{ rawurlencode(
-                    'I created a secure MidPoint transaction for you: '
+                    'I created a secure Midpoint transaction for you: '
                     .
                     $transaction->share_url
                 ) }}"
@@ -234,7 +234,7 @@
                 </strong>
 
                 <p>
-                    Only the MidPoint account using
+                    Only the Midpoint account using
                     {{ $transaction->buyer_email }}
                     can claim this transaction.
                 </p>

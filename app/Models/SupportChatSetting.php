@@ -68,7 +68,7 @@ class SupportChatSetting extends Model
                     '20:00:00',
 
                 'welcome_message' =>
-                    'Welcome to MidPoint Live Support. Please wait while we connect you with a support specialist.',
+                    'Welcome to Midpoint Live Support. Please wait while we connect you with a support specialist.',
 
                 'offline_message' =>
                     'Live Support is currently unavailable. Please send us an email or return during our support hours.',

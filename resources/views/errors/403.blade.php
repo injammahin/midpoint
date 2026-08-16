@@ -15,7 +15,7 @@
         content="noindex,nofollow"
     >
 
-    <title>403 | Access Restricted | MidPoint</title>
+    <title>403 | Access Restricted | Midpoint</title>
 
 
     {{-- =========================================================
@@ -808,11 +808,11 @@
 
         /*
         |--------------------------------------------------------------------------
-        | MIDPOINT CORE
+        | Midpoint CORE
         |--------------------------------------------------------------------------
         */
 
-        .midpoint-core {
+        .Midpoint-core {
             position: absolute;
 
             left: 50%;
@@ -849,7 +849,7 @@
         }
 
 
-        .midpoint-core::before {
+        .Midpoint-core::before {
             content: "";
 
             position: absolute;
@@ -869,7 +869,7 @@
         }
 
 
-        .midpoint-core::after {
+        .Midpoint-core::after {
             content: "";
 
             position: absolute;
@@ -1468,7 +1468,7 @@
             }
 
 
-            .midpoint-core {
+            .Midpoint-core {
                 width: 110px;
                 height: 110px;
             }
@@ -1687,7 +1687,7 @@
 
             <p class="mp-error-description">
 
-                MidPoint keeps buyers, sellers and support teams
+                Midpoint keeps buyers, sellers and support teams
                 safely separated while protecting every transaction.
                 Your account is authenticated, but it doesn't have
                 permission to access this particular area.
@@ -1904,17 +1904,17 @@
 
 
                 {{-- =============================================
-                    MIDPOINT
+                    Midpoint
                 ============================================== --}}
 
-                <div class="midpoint-core">
+                <div class="Midpoint-core">
 
                     <div class="core-content">
 
                         <i class="fa-solid fa-shield-halved"></i>
 
                         <strong>
-                            MidPoint
+                            Midpoint
                         </strong>
 
                         <span>
@@ -1971,7 +1971,7 @@
 
             <i class="fa-solid fa-shield-halved"></i>
 
-            MidPoint keeps every side of the transaction protected.
+            Midpoint keeps every side of the transaction protected.
 
         </span>
 

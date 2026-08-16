@@ -102,7 +102,7 @@ class PricingSetting extends Model
                 'One simple fee. Paid by the seller.',
 
             'page_subtitle' =>
-                'Buyers never pay MidPoint anything — only the product price agreed with the seller.',
+                'Buyers never pay Midpoint anything — only the product price agreed with the seller.',
 
 
             'currency_symbol' =>
@@ -122,7 +122,7 @@ class PricingSetting extends Model
                 7.5,
 
             'seller_description' =>
-                'MidPoint Service Fee, deducted from your payout when funds are released. Nigerian VAT applies to the service fee only — never to your product price. No signup fee, no monthly fee, no listing fee.',
+                'Midpoint Service Fee, deducted from your payout when funds are released. Nigerian VAT applies to the service fee only — never to your product price. No signup fee, no monthly fee, no listing fee.',
 
 
             'buyer_badge' =>
@@ -132,14 +132,14 @@ class PricingSetting extends Model
                 0,
 
             'buyer_description' =>
-                'No MidPoint fees, ever. You only pay:',
+                'No Midpoint fees, ever. You only pay:',
 
 
             'product_price_label' =>
                 'Product price',
 
             'seller_fee_label' =>
-                'MidPoint Service Fee',
+                'Midpoint Service Fee',
 
             'vat_label' =>
                 'VAT',
@@ -151,7 +151,7 @@ class PricingSetting extends Model
                 "You'll receive",
 
             'buyer_fee_label' =>
-                'MidPoint Service Fee',
+                'Midpoint Service Fee',
 
             'buyer_total_label' =>
                 'Total you pay',
@@ -161,7 +161,7 @@ class PricingSetting extends Model
                 'Delivery (arranged & agreed with the seller)',
 
             'delivery_value' =>
-                'Outside MidPoint',
+                'Outside Midpoint',
 
 
             'protection_note' =>

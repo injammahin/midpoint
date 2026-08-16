@@ -272,14 +272,14 @@ class BuyerTransactionDisputeController extends Controller
             $secureTransaction,
             'dispute-opened',
             'Your dispute was submitted',
-            'Your dispute has been received. Automatic seller payout has been paused while MidPoint reviews the case.'
+            'Your dispute has been received. Automatic seller payout has been paused while Midpoint reviews the case.'
         );
 
         $communications->seller(
             $secureTransaction,
             'dispute-opened',
             'Buyer opened a dispute',
-            'The buyer opened a dispute for this transaction. Seller payout has been paused while MidPoint reviews the case.'
+            'The buyer opened a dispute for this transaction. Seller payout has been paused while Midpoint reviews the case.'
         );
 
         $communications->adminsForDispute(

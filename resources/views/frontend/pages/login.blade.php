@@ -1,6 +1,6 @@
 @extends('frontend.layouts.app')
 
-@section('title', 'Log in | MidPoint')
+@section('title', 'Log in | Midpoint')
 
 @section('hide_footer', '1')
 
@@ -98,7 +98,7 @@
 
                 <p class="mp-small mp-muted mb-5">
 
-                    New to MidPoint?
+                    New to Midpoint?
 
                     <a
                         href="{{

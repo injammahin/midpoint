@@ -697,7 +697,7 @@
                             type="text"
                             name="question"
                             value="{{ old('question') }}"
-                            placeholder="e.g. Who pays MidPoint's fee?"
+                            placeholder="e.g. Who pays Midpoint's fee?"
                             maxlength="500"
                             required
                         >

@@ -14,7 +14,7 @@
 
 
     <title>
-        Verify your MidPoint email address
+        Verify your Midpoint email address
     </title>
 
 
@@ -309,7 +309,7 @@
                                                 line-height: 1.75;
                                             ">
                                             Thanks for creating your
-                                            MidPoint account. Please confirm
+                                            Midpoint account. Please confirm
                                             that this email address belongs
                                             to you before you start using
                                             your account.
@@ -447,7 +447,7 @@
                                                 font-size: 13px;
                                                 line-height: 1.7;
                                             ">
-                                            If you didn't create a MidPoint
+                                            If you didn't create a Midpoint
                                             account, you can safely ignore
                                             this email.
                                         </p>
@@ -525,7 +525,7 @@
                                     line-height: 1.6;
                                 ">
                                 © {{ date('Y') }}
-                                MidPoint Technologies Ltd.
+                                Midpoint Technologies Ltd.
                                 All rights reserved.
                             </p>
 

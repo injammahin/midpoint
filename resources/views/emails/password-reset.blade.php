@@ -23,7 +23,7 @@
 
 
     <title>
-        Reset your MidPoint password
+        Reset your Midpoint password
     </title>
 
 
@@ -417,7 +417,7 @@
                                     >
 
                                         We received a request to reset
-                                        the password for your MidPoint
+                                        the password for your Midpoint
                                         account. Use the secure button
                                         below to choose a new password.
 
@@ -811,7 +811,7 @@
                         >
 
                             © {{ date('Y') }}
-                            MidPoint Technologies Ltd.
+                            Midpoint Technologies Ltd.
                             All rights reserved.
 
                         </p>

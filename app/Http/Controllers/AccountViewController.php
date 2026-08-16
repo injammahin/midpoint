@@ -16,7 +16,7 @@ class AccountViewController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Only normal MidPoint users can use buyer / seller dashboards
+        | Only normal Midpoint users can use buyer / seller dashboards
         |--------------------------------------------------------------------------
         */
 

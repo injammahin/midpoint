@@ -14,7 +14,7 @@ class ProcessSecureTransactions extends Command
         'transactions:process';
 
     protected $description =
-        'Process MidPoint transaction countdowns and seller payouts';
+        'Process Midpoint transaction countdowns and seller payouts';
 
     public function handle(
         TransactionLifecycleService $lifecycle,

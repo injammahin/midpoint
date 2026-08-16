@@ -3,7 +3,7 @@
 
 @section(
     'title',
-    'Thank You | MidPoint'
+    'Thank You | Midpoint'
 )
 
 

@@ -1,6 +1,6 @@
 @extends('frontend.layouts.app')
 
-@section('title', 'Reset Password | MidPoint')
+@section('title', 'Reset Password | Midpoint')
 
 @section('hide_footer', '1')
 
@@ -74,7 +74,7 @@
                     class="max-w-[410px]
                            text-[#C8DAD2]"
                 >
-                    Your reset link is checked by MidPoint
+                    Your reset link is checked by Midpoint
                     before any password is changed. After a
                     successful reset, the link cannot be used
                     again.
@@ -136,7 +136,7 @@
                            mb-5"
                 >
                     Enter and confirm the new password for
-                    your MidPoint account.
+                    your Midpoint account.
                 </p>
 
 

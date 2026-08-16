@@ -296,7 +296,7 @@
     "
 >
 
-    MidPoint · Secure transactions between buyers and sellers
+    Midpoint · Secure transactions between buyers and sellers
 
 </td>
 

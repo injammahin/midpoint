@@ -68,7 +68,7 @@ class SellerPayoutService
                         $reference,
 
                     'reason' =>
-                        'MidPoint transaction '
+                        'Midpoint transaction '
                         . $transaction->reference,
 
                     'currency' =>
@@ -160,7 +160,7 @@ class SellerPayoutService
                         'NGN',
 
                     'description' =>
-                        'MidPoint seller payout account',
+                        'Midpoint seller payout account',
                 ]);
 
         $recipientCode =

@@ -91,7 +91,7 @@
                     'Seller'
                 )
                 .
-                ', I am contacting you about delivery for MidPoint transaction '
+                ', I am contacting you about delivery for Midpoint transaction '
                 .
                 $transaction->reference
                 .
@@ -235,7 +235,7 @@
                         \App\Models\TransactionDispute::STATUS_AWAITING_BUYER
                     )
 
-                        MidPoint is waiting for additional information from the buyer.
+                        Midpoint is waiting for additional information from the buyer.
                         Automatic completion and seller payout remain paused.
 
                     @elseif(
@@ -244,13 +244,13 @@
                         \App\Models\TransactionDispute::STATUS_AWAITING_SELLER
                     )
 
-                        MidPoint is waiting for additional information from the seller.
+                        Midpoint is waiting for additional information from the seller.
                         Automatic completion and seller payout remain paused.
 
                     @else
 
                         Automatic completion and seller payout are paused while
-                        MidPoint reviews this case.
+                        Midpoint reviews this case.
 
                     @endif
 
@@ -276,7 +276,7 @@
 
 
                 <span>
-                    MidPoint has completed the dispute review.
+                    Midpoint has completed the dispute review.
                     This transaction has resumed its normal protection and settlement workflow.
 
                     @if($dispute->resolved_at)
@@ -301,7 +301,7 @@
                     <small>
 
                         <strong>
-                            MidPoint resolution:
+                            Midpoint resolution:
                         </strong>
 
                         {{ $dispute->admin_note }}
@@ -889,7 +889,7 @@
                                 </strong>
 
                                 <span>
-                                    MidPoint has completed the dispute review.
+                                    Midpoint has completed the dispute review.
                                     You can now continue with the normal transaction actions above.
                                 </span>
 
@@ -963,7 +963,7 @@
                                 </strong>
 
                                 <span>
-                                    MidPoint has completed the dispute review.
+                                    Midpoint has completed the dispute review.
                                     You may accept the item and release funds when you are ready.
                                 </span>
 
@@ -1023,7 +1023,7 @@
                                     \App\Models\TransactionDispute::STATUS_AWAITING_BUYER
                                 )
 
-                                    MidPoint needs information or action from you.
+                                    Midpoint needs information or action from you.
                                     Please check your email and notifications.
 
                                 @elseif(
@@ -1032,11 +1032,11 @@
                                     \App\Models\TransactionDispute::STATUS_AWAITING_SELLER
                                 )
 
-                                    MidPoint is waiting for additional information from the seller.
+                                    Midpoint is waiting for additional information from the seller.
 
                                 @else
 
-                                    Seller payout is currently paused while MidPoint reviews the dispute.
+                                    Seller payout is currently paused while Midpoint reviews the dispute.
 
                                 @endif
 

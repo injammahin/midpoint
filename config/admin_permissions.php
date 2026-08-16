@@ -110,6 +110,35 @@ return [
         | Website Settings
         |--------------------------------------------------------------------------
         */
+        'website.home_page.manage' => [
+
+            'label' =>
+                'Home Page',
+
+            'group' =>
+                'Website Settings',
+
+        ],
+        'website.about_page.manage' => [
+
+            'label' =>
+                'About Page',
+
+            'group' =>
+                'Website Settings',
+
+        ],
+
+
+        'website.how_it_works_page.manage' => [
+
+            'label' =>
+                'How It Works Page',
+
+            'group' =>
+                'Website Settings',
+
+        ],
 
         'website.app_settings.manage' => [
 
@@ -285,6 +314,15 @@ return [
         | Website
         |--------------------------------------------------------------------------
         */
+        'admin.website-settings.about-page*' =>
+            'website.about_page.manage',
+
+
+        'admin.website-settings.how-it-works-page*' =>
+            'website.how_it_works_page.manage',
+
+        'admin.website-settings.home-page*' =>
+            'website.home_page.manage',
 
         'admin.website-settings.app-settings*' =>
             'website.app_settings.manage',

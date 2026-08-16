@@ -451,7 +451,7 @@ class TransactionCommunicationService
 
             /*
             |--------------------------------------------------------------------------
-            | Existing MidPoint Transaction Notification
+            | Existing Midpoint Transaction Notification
             |--------------------------------------------------------------------------
             |
             | Keep this because buyer/seller transaction notifications already use
@@ -596,7 +596,7 @@ class TransactionCommunicationService
 
                         'New transaction dispute',
 
-                        'A buyer opened a dispute for this transaction. Automatic seller payout has been paused until MidPoint reviews the case.',
+                        'A buyer opened a dispute for this transaction. Automatic seller payout has been paused until Midpoint reviews the case.',
 
                         'Review dispute',
 
@@ -712,7 +712,7 @@ class TransactionCommunicationService
         ) {
 
             $message =
-                'MidPoint has started reviewing your dispute for transaction '
+                'Midpoint has started reviewing your dispute for transaction '
                 .
                 $transaction->reference
                 .
@@ -724,7 +724,7 @@ class TransactionCommunicationService
             ) {
 
                 $message .=
-                    ' MidPoint message: '
+                    ' Midpoint message: '
                     .
                     $note;
             }
@@ -760,7 +760,7 @@ class TransactionCommunicationService
         ) {
 
             $message =
-                'MidPoint needs additional information or action from you before reviewing this dispute further.';
+                'Midpoint needs additional information or action from you before reviewing this dispute further.';
 
 
             if (
@@ -768,7 +768,7 @@ class TransactionCommunicationService
             ) {
 
                 $message .=
-                    ' Request from MidPoint: '
+                    ' Request from Midpoint: '
                     .
                     $note;
             }
@@ -804,7 +804,7 @@ class TransactionCommunicationService
         ) {
 
             $message =
-                'MidPoint needs additional information or action from you regarding the buyer dispute on transaction '
+                'Midpoint needs additional information or action from you regarding the buyer dispute on transaction '
                 .
                 $transaction->reference
                 .
@@ -816,7 +816,7 @@ class TransactionCommunicationService
             ) {
 
                 $message .=
-                    ' Request from MidPoint: '
+                    ' Request from Midpoint: '
                     .
                     $note;
             }
@@ -852,7 +852,7 @@ class TransactionCommunicationService
         ) {
 
             $message =
-                'MidPoint has completed the review of the dispute for transaction '
+                'Midpoint has completed the review of the dispute for transaction '
                 .
                 $transaction->reference
                 .

@@ -1,6 +1,6 @@
 @extends('frontend.layouts.app')
 
-@section('title', 'Become a Verified Seller | MidPoint')
+@section('title', 'Become a Verified Seller | Midpoint')
 
 
 @section('content')
@@ -409,7 +409,7 @@
                             'Get approved & pay',
 
                         'text' =>
-                            'Once approved, MidPoint creates your package invoice. Payment is required before seller activation.',
+                            'Once approved, Midpoint creates your package invoice. Payment is required before seller activation.',
                     ],
 
                     [
@@ -419,7 +419,7 @@
                             'List & get buyers',
 
                         'text' =>
-                            'After activation, list products within your package limit and connect with buyers through MidPoint.',
+                            'After activation, list products within your package limit and connect with buyers through Midpoint.',
                     ],
 
                 ];
@@ -1805,7 +1805,7 @@
     >
 
         Card details are entered on Paystack's checkout,
-        not on MidPoint.
+        not on Midpoint.
 
         After successful verification,
         your seller package is activated automatically
@@ -2144,7 +2144,7 @@
                         "
                     >
 
-                        MidPoint is reviewing your seller
+                        Midpoint is reviewing your seller
                         verification request.
 
                         You will receive an email when
@@ -2788,7 +2788,7 @@
                                     "
                                 >
 
-                                    Your MidPoint email address
+                                    Your Midpoint email address
                                     must be verified first.
 
                                 </p>

@@ -27,7 +27,7 @@ class PricingSettingSeeder extends Seeder
                     'One simple fee. Paid by the seller.',
 
                 'page_subtitle' =>
-                    'Buyers never pay MidPoint anything — only the product price agreed with the seller.',
+                    'Buyers never pay Midpoint anything — only the product price agreed with the seller.',
 
 
                 /*
@@ -59,7 +59,7 @@ class PricingSettingSeeder extends Seeder
                     7.5,
 
                 'seller_description' =>
-                    'MidPoint Service Fee, deducted from your payout when funds are released. Nigerian VAT of 7.5% applies to the service fee only — never to your product price. No signup fee, no monthly fee, no listing fee.',
+                    'Midpoint Service Fee, deducted from your payout when funds are released. Nigerian VAT of 7.5% applies to the service fee only — never to your product price. No signup fee, no monthly fee, no listing fee.',
 
 
                 /*
@@ -75,7 +75,7 @@ class PricingSettingSeeder extends Seeder
                     0,
 
                 'buyer_description' =>
-                    'No MidPoint fees, ever. You only pay:',
+                    'No Midpoint fees, ever. You only pay:',
 
 
                 /*
@@ -88,7 +88,7 @@ class PricingSettingSeeder extends Seeder
                     'Product price',
 
                 'seller_fee_label' =>
-                    'MidPoint Service Fee',
+                    'Midpoint Service Fee',
 
                 'vat_label' =>
                     'VAT',
@@ -100,7 +100,7 @@ class PricingSettingSeeder extends Seeder
                     "You'll receive",
 
                 'buyer_fee_label' =>
-                    'MidPoint Service Fee',
+                    'Midpoint Service Fee',
 
                 'buyer_total_label' =>
                     'Total you pay',
@@ -116,7 +116,7 @@ class PricingSettingSeeder extends Seeder
                     'Delivery (arranged & agreed with the seller)',
 
                 'delivery_value' =>
-                    'Outside MidPoint',
+                    'Outside Midpoint',
 
 
                 /*

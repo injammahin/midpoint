@@ -585,7 +585,7 @@
             "
         >
 
-            © {{ date('Y') }} MidPoint
+            © {{ date('Y') }} Midpoint
 
             <br>
 

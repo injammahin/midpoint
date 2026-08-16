@@ -23,6 +23,7 @@ use App\Http\Controllers\SellerInvoicePaymentController;
 use App\Http\Controllers\FeaturedBusinessController;
 use App\Http\Controllers\SecureTransactionController;
 use App\Http\Controllers\PaystackPaymentController;
+use App\Http\Controllers\ContentPageController;
 
 
 /*
@@ -93,8 +94,9 @@ use App\Http\Controllers\Admin\SellerInvoiceController;
 use App\Http\Controllers\Admin\SellerSubscriptionController;
 use App\Http\Controllers\Admin\SellerApplicationController as AdminSellerApplicationController;
 use App\Http\Controllers\Admin\AdminStaffController;
-
-
+use App\Http\Controllers\Admin\HomePageController as AdminHomePageController;
+use App\Http\Controllers\Admin\ContentPageController
+    as AdminContentPageController;
 /*
 |--------------------------------------------------------------------------
 | Public Website
@@ -110,16 +112,32 @@ Route::get(
 )->name('home');
 
 
-Route::view(
+Route::get(
     '/about',
-    'frontend.pages.about'
-)->name('about');
+    [
+        ContentPageController::class,
+        'about',
+    ]
+)->name(
+    'about'
+);
 
 
-Route::view(
+/*
+|--------------------------------------------------------------------------
+| How It Works
+|--------------------------------------------------------------------------
+*/
+
+Route::get(
     '/how-it-works',
-    'frontend.pages.how-it-works'
-)->name('how-it-works');
+    [
+        ContentPageController::class,
+        'howItWorks',
+    ]
+)->name(
+    'how-it-works'
+);
 
 
 Route::get(
@@ -1682,13 +1700,167 @@ Route::prefix('admin')
             ->name('website-settings.')
             ->group(function () {
 
+        Route::get(
+            '/about-page',
+            [
+                AdminContentPageController::class,
+                'about',
+            ]
+        )->name(
+            'about-page'
+        );
 
+
+        Route::put(
+            '/about-page',
+            [
+                AdminContentPageController::class,
+                'updateAbout',
+            ]
+        )->name(
+            'about-page.update'
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | How It Works Page
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get(
+            '/how-it-works-page',
+            [
+                AdminContentPageController::class,
+                'howItWorks',
+            ]
+        )->name(
+            'how-it-works-page'
+        );
+
+
+        Route::put(
+            '/how-it-works-page',
+            [
+                AdminContentPageController::class,
+                'updateHowItWorks',
+            ]
+        )->name(
+            'how-it-works-page.update'
+        );
                 /*
                 |--------------------------------------------------------------------------
                 | Application Settings
                 |--------------------------------------------------------------------------
                 */
+                Route::get(
+                    '/home-page',
+                    [
+                        AdminHomePageController::class,
+                        'index',
+                    ]
+                )->name(
+                    'home-page'
+                );
 
+
+                Route::put(
+                    '/home-page/hero',
+                    [
+                        AdminHomePageController::class,
+                        'updateHero',
+                    ]
+                )->name(
+                    'home-page.hero.update'
+                );
+
+
+                Route::put(
+                    '/home-page/steps',
+                    [
+                        AdminHomePageController::class,
+                        'updateSteps',
+                    ]
+                )->name(
+                    'home-page.steps.update'
+                );
+
+
+                Route::put(
+                    '/home-page/why-midpoint',
+                    [
+                        AdminHomePageController::class,
+                        'updateWhy',
+                    ]
+                )->name(
+                    'home-page.why.update'
+                );
+
+
+                Route::put(
+                    '/home-page/other-content',
+                    [
+                        AdminHomePageController::class,
+                        'updateOther',
+                    ]
+                )->name(
+                    'home-page.other.update'
+                );
+
+
+                Route::put(
+                    '/home-page/testimonials-section',
+                    [
+                        AdminHomePageController::class,
+                        'updateTestimonialSection',
+                    ]
+                )->name(
+                    'home-page.testimonials.section.update'
+                );
+
+
+                Route::post(
+                    '/home-page/testimonials',
+                    [
+                        AdminHomePageController::class,
+                        'storeTestimonial',
+                    ]
+                )->name(
+                    'home-page.testimonials.store'
+                );
+
+
+                Route::put(
+                    '/home-page/testimonials/{testimonial}',
+                    [
+                        AdminHomePageController::class,
+                        'updateTestimonial',
+                    ]
+                )->name(
+                    'home-page.testimonials.update'
+                );
+
+
+                Route::patch(
+                    '/home-page/testimonials/{testimonial}/toggle',
+                    [
+                        AdminHomePageController::class,
+                        'toggleTestimonial',
+                    ]
+                )->name(
+                    'home-page.testimonials.toggle'
+                );
+
+
+                Route::delete(
+                    '/home-page/testimonials/{testimonial}',
+                    [
+                        AdminHomePageController::class,
+                        'destroyTestimonial',
+                    ]
+                )->name(
+                    'home-page.testimonials.destroy'
+                );
                 Route::get(
                     '/app-settings',
                     [

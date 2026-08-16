@@ -129,7 +129,7 @@ class DashboardController extends Controller
         |
         | There is currently no dedicated buyer-rating table in your project.
         |
-        | Because buyer and seller are the same MidPoint user account,
+        | Because buyer and seller are the same Midpoint user account,
         | if this user has actual published seller reviews, we use that
         | account rating.
         |

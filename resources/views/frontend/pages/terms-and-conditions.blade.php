@@ -1,6 +1,6 @@
 @extends('frontend.layouts.app')
 
-@section('title', 'Terms & Conditions | MidPoint')
+@section('title', 'Terms & Conditions | Midpoint')
 
 @section('content')
 
@@ -31,7 +31,7 @@
                        text-[#5A6660]"
             >
                 Last updated: 1 August 2026 ·
-                MidPoint Technologies Ltd (RC 1839204), Lagos, Nigeria
+                Midpoint Technologies Ltd (RC 1839204), Lagos, Nigeria
             </p>
 
 
@@ -63,16 +63,16 @@
 
             {{-- 1 --}}
             <h2 class="legal-title">
-                1. What MidPoint is
+                1. What Midpoint is
             </h2>
 
             <p class="legal-text">
-                MidPoint provides an escrow-style transaction service.
+                Midpoint provides an escrow-style transaction service.
                 We are not a marketplace, we do not list, sell, own,
                 inspect or warrant any item or service traded through
                 the platform, and we are not a party to the underlying
                 contract between buyer and seller. Buyers and sellers
-                find each other independently and use MidPoint only to
+                find each other independently and use Midpoint only to
                 hold and release payment.
             </p>
 
@@ -98,11 +98,11 @@
             </h2>
 
             <p class="legal-text">
-                Sellers pay a MidPoint Service Fee of 5% of the product
+                Sellers pay a Midpoint Service Fee of 5% of the product
                 price, deducted from the payout when funds are released.
                 Nigerian Value Added Tax of 7.5% is applied to the service
                 fee (not to the product price) and is remitted to the
-                Federal Inland Revenue Service. Buyers pay no MidPoint
+                Federal Inland Revenue Service. Buyers pay no Midpoint
                 service fee. Delivery is arranged directly between buyer
                 and seller; any delivery amount entered at checkout is held
                 in escrow alongside the product price and released on the
@@ -111,7 +111,7 @@
 
 
             <p class="legal-text mt-[10px]">
-                Separately from the MidPoint Service Fee, a
+                Separately from the Midpoint Service Fee, a
                 <strong>payment processing fee</strong> is charged by our
                 payment gateway when a buyer funds a transaction. This fee
                 is currently
@@ -119,7 +119,7 @@
                     1.5% of the amount paid, capped at ₦2,000,
                     plus 7.5% VAT on that fee
                 </strong>.
-                This charge is levied by the gateway, not by MidPoint,
+                This charge is levied by the gateway, not by Midpoint,
                 and is subject to change by the gateway. Please refer to
                 clause 6A for how this fee is treated on refunds and
                 cancellations.
@@ -135,7 +135,7 @@
                 Sellers are solely responsible for arranging delivery and
                 must mark the item as dispatched when it is sent. Sellers
                 must dispatch within a reasonable period after payment is
-                held. Where a seller fails to dispatch, MidPoint may, after
+                held. Where a seller fails to dispatch, Midpoint may, after
                 contacting both parties, cancel the transaction and refund
                 the buyer in full.
             </p>
@@ -162,7 +162,7 @@
 
             <p class="legal-text">
                 The following automatic release rules apply and are
-                material terms of using MidPoint:
+                material terms of using Midpoint:
             </p>
 
 
@@ -194,7 +194,7 @@
 
                     <div>
                         <strong>6.3</strong>
-                        If the buyer never confirms receipt, MidPoint may
+                        If the buyer never confirms receipt, Midpoint may
                         release funds to the seller
                         <strong>7 days</strong> after the seller marked the
                         item dispatched, provided the seller supplies
@@ -207,13 +207,13 @@
                         <strong>6.4</strong>
                         Auto-release, once executed, is final. A buyer who
                         did not act within the window may still raise a
-                        complaint, but MidPoint cannot recover funds already
+                        complaint, but Midpoint cannot recover funds already
                         paid out and any remedy lies against the seller directly.
                     </div>
 
                     <div>
                         <strong>6.5</strong>
-                        MidPoint may extend or pause any window at its
+                        Midpoint may extend or pause any window at its
                         discretion where there is credible evidence of
                         delay, fraud, or a genuine request for more
                         inspection time.
@@ -260,9 +260,9 @@
                         <strong>6A.2</strong>
                         This is because the gateway charges that fee at the
                         point the buyer's payment is collected and does not
-                        return it to MidPoint when a transaction is reversed.
-                        MidPoint cannot recover the cost and does not retain
-                        it. MidPoint charges no service fee of its own on a
+                        return it to Midpoint when a transaction is reversed.
+                        Midpoint cannot recover the cost and does not retain
+                        it. Midpoint charges no service fee of its own on a
                         refunded transaction.
                     </div>
 
@@ -273,7 +273,7 @@
                         the refund and regardless of which party is found to
                         be at fault. Where a seller is found at fault in a
                         dispute, the buyer may pursue recovery of this amount
-                        from the seller directly; MidPoint does not act as
+                        from the seller directly; Midpoint does not act as
                         collector for it.
                     </div>
 
@@ -313,17 +313,17 @@
             <p class="legal-text">
                 Disputes must be opened before the inspection window expires
                 and must include supporting evidence. The seller has 48 hours
-                to respond with their own evidence. MidPoint reviews both
+                to respond with their own evidence. Midpoint reviews both
                 submissions and issues a decision, typically within 24–72
                 hours. Possible outcomes are full refund, partial refund,
                 replacement, or release of funds to the seller. Where a full
                 refund is granted, the buyer must return the item at their own
                 cost and upload proof of postage; the refund is released once
-                the seller confirms the return has arrived, or once MidPoint
+                the seller confirms the return has arrived, or once Midpoint
                 is otherwise satisfied it has been returned. All refunds are
                 subject to the non-refundable gateway fee deduction set out
                 in clause 6A. Repeated bad-faith disputes may result in account
-                suspension. MidPoint's decision is final within the platform;
+                suspension. Midpoint's decision is final within the platform;
                 nothing in this clause removes your right to pursue legal remedies.
             </p>
 
@@ -334,11 +334,11 @@
             </h2>
 
             <p class="legal-text">
-                You may not use MidPoint for firearms, illegal drugs,
+                You may not use Midpoint for firearms, illegal drugs,
                 counterfeit goods, stolen property, human or wildlife
                 trafficking, unlicensed financial or securities products,
                 or anything unlawful under Nigerian law. You may not use
-                MidPoint to launder funds or to move money without a genuine
+                Midpoint to launder funds or to move money without a genuine
                 underlying trade.
             </p>
 
@@ -349,7 +349,7 @@
             </h2>
 
             <p class="legal-text">
-                MidPoint's role is limited to holding and releasing funds
+                Midpoint's role is limited to holding and releasing funds
                 according to these terms. We are not liable for the quality,
                 legality, safety or fitness of any item or service, for
                 delivery failures, or for losses arising from a party's own

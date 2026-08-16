@@ -157,7 +157,7 @@
                 "
             >
 
-                Your application to become a MidPoint
+                Your application to become a Midpoint
                 Verified Seller has been submitted successfully.
 
                 Our team will now review your business
@@ -355,7 +355,7 @@
             "
         >
 
-            © {{ date('Y') }} MidPoint
+            © {{ date('Y') }} Midpoint
 
             <br>
 

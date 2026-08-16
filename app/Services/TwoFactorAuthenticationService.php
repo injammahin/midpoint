@@ -82,7 +82,7 @@ class TwoFactorAuthenticationService
     ): string {
 
         $issuer =
-            'MidPoint';
+            'Midpoint';
 
 
         $account =

@@ -154,7 +154,7 @@ class SellerBusinessProfile extends Model
             .
             $businessName
             .
-            ', I found your verified business on MidPoint and would like to make an enquiry.';
+            ', I found your verified business on Midpoint and would like to make an enquiry.';
 
 
         return

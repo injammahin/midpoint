@@ -24,7 +24,7 @@
 
     <p>
         Create and manage packages available
-        to verified MidPoint sellers.
+        to verified Midpoint sellers.
     </p>
 
 </div>

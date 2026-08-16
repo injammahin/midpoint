@@ -92,7 +92,7 @@
 
 
             <p>
-                Manage how your verified business appears to buyers on MidPoint.
+                Manage how your verified business appears to buyers on Midpoint.
             </p>
 
         </div>
@@ -284,7 +284,7 @@
                         <div>
 
                             <strong>
-                                MidPoint verified identity
+                                Midpoint verified identity
                             </strong>
 
 
@@ -727,7 +727,7 @@
                             </strong>
 
                             <span>
-                                Display your verified MidPoint email publicly.
+                                Display your verified Midpoint email publicly.
                             </span>
 
                         </div>
@@ -810,7 +810,7 @@
 
                             <p>
                                 When enabled, a Message on WhatsApp button appears
-                                on your public MidPoint business profile.
+                                on your public Midpoint business profile.
                             </p>
 
                         </div>
@@ -828,7 +828,7 @@
                             </strong>
 
                             <span>
-                                Buyers can open WhatsApp directly from MidPoint.
+                                Buyers can open WhatsApp directly from Midpoint.
                             </span>
 
                         </div>
@@ -909,7 +909,7 @@
                             name="whatsapp_message"
                             maxlength="500"
                             rows="5"
-                            placeholder="Hi, I found your verified business on MidPoint and would like to make an enquiry."
+                            placeholder="Hi, I found your verified business on Midpoint and would like to make an enquiry."
                         >{{ old('whatsapp_message', $profile->whatsapp_message) }}</textarea>
 
                     </div>

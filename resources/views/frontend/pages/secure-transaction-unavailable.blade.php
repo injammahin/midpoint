@@ -1,7 +1,7 @@
 @extends('frontend.layouts.app')
 
 
-@section('title', 'Transaction Temporarily Unavailable | MidPoint')
+@section('title', 'Transaction Temporarily Unavailable | Midpoint')
 
 
 @section('content')
@@ -36,7 +36,7 @@
 
         <p class="mt-3 text-[12px] leading-6 text-[#69766F]">
 
-            The seller currently does not have an active MidPoint
+            The seller currently does not have an active Midpoint
             seller package, so this transaction cannot proceed to payment.
 
         </p>

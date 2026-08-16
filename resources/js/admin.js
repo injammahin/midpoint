@@ -196,7 +196,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const savedState =
             localStorage.getItem(
-                'midpoint_admin_sidebar'
+                'Midpoint_admin_sidebar'
             );
 
 
@@ -258,7 +258,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
                 localStorage.setItem(
-                    'midpoint_admin_sidebar',
+                    'Midpoint_admin_sidebar',
                     isCollapsed
                         ? 'collapsed'
                         : 'expanded'
@@ -768,7 +768,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const savedTheme =
         localStorage.getItem(
-            'midpoint_admin_theme'
+            'Midpoint_admin_theme'
         );
 
 
@@ -869,7 +869,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
             localStorage.setItem(
-                'midpoint_admin_theme',
+                'Midpoint_admin_theme',
                 newTheme
             );
 

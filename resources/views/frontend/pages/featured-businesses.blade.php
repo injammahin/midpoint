@@ -1,7 +1,7 @@
 @extends('frontend.layouts.app')
 
 
-@section('title', 'Featured Businesses | MidPoint')
+@section('title', 'Featured Businesses | Midpoint')
 
 
 @section('content')
@@ -32,7 +32,7 @@
 
 
             <p>
-                Discover active MidPoint Verified Sellers, search by
+                Discover active Midpoint Verified Sellers, search by
                 business, product, category or location, and visit each
                 shop before starting a secure transaction.
             </p>
@@ -323,7 +323,7 @@
                             optional($profile)->tagline
                             ?: optional($profile)->about
                             ?: optional($application)->description
-                            ?: 'Verified MidPoint seller.';
+                            ?: 'Verified Midpoint seller.';
 
                         $initials =
                             collect(

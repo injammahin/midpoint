@@ -16,7 +16,7 @@
 
 
     <title>
-        Secure MidPoint Transaction
+        Secure Midpoint Transaction
     </title>
 
 </head>
@@ -227,7 +227,7 @@
                                 {{ $sellerName }}
                             </strong>
 
-                            created a protected MidPoint transaction
+                            created a protected Midpoint transaction
                             for you.
 
                         </p>
@@ -699,7 +699,7 @@
                                         {{ $transaction->buyer_email }}
                                     </strong>.
 
-                                    You will need to log in or create a MidPoint
+                                    You will need to log in or create a Midpoint
                                     account using this email address before
                                     continuing to payment.
 
@@ -735,7 +735,7 @@
                                 font-weight:700;
                             "
                         >
-                            How MidPoint protects this transaction
+                            How Midpoint protects this transaction
                         </div>
 
 
@@ -756,7 +756,7 @@
                                         font-size:12px;
                                     "
                                 >
-                                    ✓ Secure MidPoint account login required
+                                    ✓ Secure Midpoint account login required
                                 </td>
 
                             </tr>
@@ -908,7 +908,7 @@
                                 font-weight:700;
                             "
                         >
-                            MidPoint
+                            Midpoint
                         </div>
 
 
@@ -932,7 +932,7 @@
                             "
                         >
                             If you were not expecting this transaction,
-                            do not make payment and contact MidPoint support.
+                            do not make payment and contact Midpoint support.
                         </div>
 
                     </td>

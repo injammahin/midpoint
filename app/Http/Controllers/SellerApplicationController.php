@@ -740,7 +740,7 @@ class SellerApplicationController extends Controller
         | $user->email
         |
         | which is the same email address the customer verified when
-        | registering their MidPoint account.
+        | registering their Midpoint account.
         |
         */
 

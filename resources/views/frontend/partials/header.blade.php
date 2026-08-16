@@ -482,7 +482,7 @@
 
                 @else
 
-                    Navigate MidPoint
+                    Navigate Midpoint
 
                 @endauth
 

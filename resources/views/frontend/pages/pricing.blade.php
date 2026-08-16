@@ -3,13 +3,13 @@
 
 @section(
     'title',
-    'Pricing | MidPoint'
+    'Pricing | Midpoint'
 )
 
 
 @section(
     'meta_description',
-    'Transparent MidPoint pricing for buyers and sellers.'
+    'Transparent Midpoint pricing for buyers and sellers.'
 )
 
 

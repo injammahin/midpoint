@@ -7,7 +7,7 @@
 import './bootstrap';
 import QRCode from 'qrcode';
 
-window.MidPointQRCode =
+window.MidpointQRCode =
     QRCode;
 
 /*

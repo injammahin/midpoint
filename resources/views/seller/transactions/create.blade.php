@@ -85,7 +85,7 @@
 
             <p>
                 Create a protected transaction and send the generated
-                MidPoint link directly to your buyer.
+                Midpoint link directly to your buyer.
             </p>
 
         </div>
@@ -419,7 +419,7 @@
 
                         <p class="ct-help">
                             If you choose a listed product and do not upload new
-                            images, MidPoint will automatically copy its existing
+                            images, Midpoint will automatically copy its existing
                             product images into this transaction.
                         </p>
 
@@ -645,7 +645,7 @@
 
                             <p>
                                 The person opening the link must log in to
-                                MidPoint using this email address. A different
+                                Midpoint using this email address. A different
                                 account cannot claim the transaction.
                             </p>
 

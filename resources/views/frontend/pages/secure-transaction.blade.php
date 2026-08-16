@@ -1,7 +1,7 @@
 @extends('frontend.layouts.app')
 
 
-@section('title', 'Secure Transaction | MidPoint')
+@section('title', 'Secure Transaction | Midpoint')
 
 
 @section('content')
@@ -137,7 +137,7 @@
 
             <i class="fa-solid fa-lock"></i>
 
-            Secure MidPoint transaction
+            Secure Midpoint transaction
 
         </div>
 
@@ -203,7 +203,7 @@
 
                                 <i class="fa-solid fa-circle-check"></i>
 
-                                MidPoint Verified Seller
+                                Midpoint Verified Seller
 
                             </span>
 
@@ -213,7 +213,7 @@
 
                                 <i class="fa-solid fa-shield-halved"></i>
 
-                                MidPoint Seller
+                                Midpoint Seller
 
                             </span>
 
@@ -460,7 +460,7 @@
 
                         <h2 class="st-paid-title">
 
-                            Payment secured by MidPoint
+                            Payment secured by Midpoint
 
                         </h2>
 
@@ -669,7 +669,7 @@
 
 
                                     <span>
-                                        This MidPoint transaction has been completed.
+                                        This Midpoint transaction has been completed.
                                     </span>
 
                                 </div>
@@ -687,7 +687,7 @@
                         <div class="st-protection">
 
                             <strong>
-                                MidPoint protection
+                                Midpoint protection
                             </strong>
 
 
@@ -950,7 +950,7 @@
 
                                 <span>
                                     Your card or banking information is handled by
-                                    Paystack and is never stored by MidPoint.
+                                    Paystack and is never stored by Midpoint.
                                 </span>
 
                             </div>
@@ -966,7 +966,7 @@
                         <div class="st-protection">
 
                             <strong>
-                                MidPoint protection
+                                Midpoint protection
                             </strong>
 
 
@@ -1812,7 +1812,7 @@
 
 /*
 |--------------------------------------------------------------------------
-| MidPoint Protection
+| Midpoint Protection
 |--------------------------------------------------------------------------
 */
 

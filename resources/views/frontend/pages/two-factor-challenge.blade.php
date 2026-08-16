@@ -3,7 +3,7 @@
 
 @section(
     'title',
-    'Two-Factor Authentication | MidPoint'
+    'Two-Factor Authentication | Midpoint'
 )
 
 
@@ -39,7 +39,7 @@
         <p>
 
             Enter the 6-digit code from your authenticator
-            app to finish signing in to MidPoint.
+            app to finish signing in to Midpoint.
 
             You may also enter one of your recovery codes.
 

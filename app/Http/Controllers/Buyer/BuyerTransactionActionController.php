@@ -70,7 +70,7 @@ class BuyerTransactionActionController extends Controller
                 'seller_setup_required'
             ) {
                 $message =
-                    'Order accepted successfully. Your payment release is approved; the seller must complete their payout setup before MidPoint can send the funds.';
+                    'Order accepted successfully. Your payment release is approved; the seller must complete their payout setup before Midpoint can send the funds.';
 
             } else {
                 $message =

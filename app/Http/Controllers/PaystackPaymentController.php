@@ -272,7 +272,7 @@ class PaystackPaymentController extends Controller
                                 'secure_transaction_id' =>
                                     $secureTransaction->id,
 
-                                'midpoint_reference' =>
+                                'Midpoint_reference' =>
                                     $secureTransaction->reference,
 
                                 'public_token' =>
@@ -438,7 +438,7 @@ class PaystackPaymentController extends Controller
                 )
                 ->with(
                     'error',
-                    'The returned payment reference is not recognized by MidPoint.'
+                    'The returned payment reference is not recognized by Midpoint.'
                 );
         }
 
@@ -496,7 +496,7 @@ class PaystackPaymentController extends Controller
                     )
                     ->with(
                         'success',
-                        'Payment successful. Your funds are now secured by MidPoint.'
+                        'Payment successful. Your funds are now secured by Midpoint.'
                     );
             }
 
@@ -1131,7 +1131,7 @@ if (
             $payment->reference
         ) {
             throw new RuntimeException(
-                'Paystack reference does not match MidPoint payment reference.'
+                'Paystack reference does not match Midpoint payment reference.'
             );
         }
 
@@ -1142,7 +1142,7 @@ if (
             (int) $payment->amount_subunit
         ) {
             throw new RuntimeException(
-                'Paystack amount does not match MidPoint transaction amount.'
+                'Paystack amount does not match Midpoint transaction amount.'
             );
         }
 
@@ -1155,7 +1155,7 @@ if (
             )
         ) {
             throw new RuntimeException(
-                'Paystack currency does not match MidPoint transaction currency.'
+                'Paystack currency does not match Midpoint transaction currency.'
             );
         }
 
@@ -1179,7 +1179,7 @@ if (
             )
         ) {
             throw new RuntimeException(
-                'Paystack customer email does not match the MidPoint buyer email.'
+                'Paystack customer email does not match the Midpoint buyer email.'
             );
         }
 
@@ -1322,7 +1322,7 @@ $lockedPayment->update([
                     $vatRate < 0
                 ) {
                     throw new RuntimeException(
-                        'MidPoint transaction fee configuration is invalid.'
+                        'Midpoint transaction fee configuration is invalid.'
                     );
                 }
 

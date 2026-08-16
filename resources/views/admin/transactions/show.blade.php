@@ -86,7 +86,7 @@
                 Buyer opened a dispute.
 
                 Automatic seller payout has been paused while
-                MidPoint reviews the dispute request.
+                Midpoint reviews the dispute request.
 
             </p>
 

@@ -28,7 +28,7 @@
 
             <p>
                 Review and manage dispute requests submitted
-                against paid MidPoint secure transactions.
+                against paid Midpoint secure transactions.
             </p>
 
         </div>

@@ -213,7 +213,7 @@
             >
 
                 Our verification team has reviewed your
-                MidPoint seller application.
+                Midpoint seller application.
 
                 Before we can approve it, we need you to
                 correct or update the information described below.
@@ -461,7 +461,7 @@
             "
         >
 
-            MidPoint Verified Seller Program
+            Midpoint Verified Seller Program
 
             <br>
 
@@ -470,7 +470,7 @@
 
             <br>
 
-            © {{ date('Y') }} MidPoint
+            © {{ date('Y') }} Midpoint
 
         </td>
 

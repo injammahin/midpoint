@@ -123,7 +123,7 @@
             line-height:1.7;
         "
     >
-        MidPoint has successfully verified the payment for
+        Midpoint has successfully verified the payment for
         <strong>{{ $transaction->title }}</strong>.
     </p>
 
@@ -308,7 +308,7 @@
         font-size:10px;
     "
 >
-    MidPoint secure transaction platform
+    Midpoint secure transaction platform
 </td>
 
 </tr>

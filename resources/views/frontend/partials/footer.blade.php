@@ -543,7 +543,7 @@
         >
 
             <span>
-                © {{ date('Y') }} MidPoint Technologies Ltd. Lagos, Nigeria.
+                © {{ date('Y') }} Midpoint Technologies Ltd. Lagos, Nigeria.
             </span>
 
 

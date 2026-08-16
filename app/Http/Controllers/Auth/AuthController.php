@@ -166,7 +166,7 @@ $user = User::where(function ($query) use ($login) {
                 ->withErrors([
 
                     'login' =>
-                        'Your account is currently inactive. Please contact MidPoint support.',
+                        'Your account is currently inactive. Please contact Midpoint support.',
 
                 ])
 

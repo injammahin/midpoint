@@ -12,7 +12,7 @@
     </h2>
 
     <p>
-        Manage global MidPoint website and application settings.
+        Manage global Midpoint website and application settings.
     </p>
 
 </div>

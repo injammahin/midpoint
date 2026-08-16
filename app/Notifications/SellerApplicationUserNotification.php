@@ -85,7 +85,7 @@ class SellerApplicationUserNotification extends Notification
             return (new MailMessage)
 
                 ->subject(
-                    'Action Required: Revise Your MidPoint Seller Application'
+                    'Action Required: Revise Your Midpoint Seller Application'
                 )
 
                 ->view(
@@ -115,7 +115,7 @@ class SellerApplicationUserNotification extends Notification
             return (new MailMessage)
 
                 ->subject(
-                    'Approved! Your MidPoint Seller Invoice Is Ready'
+                    'Approved! Your Midpoint Seller Invoice Is Ready'
                 )
 
                 ->view(
@@ -149,7 +149,7 @@ class SellerApplicationUserNotification extends Notification
             return (new MailMessage)
 
                 ->subject(
-                    'Payment Confirmed - Your MidPoint Seller Account Is Active'
+                    'Payment Confirmed - Your Midpoint Seller Account Is Active'
                 )
 
                 ->view(
@@ -178,7 +178,7 @@ class SellerApplicationUserNotification extends Notification
         return (new MailMessage)
 
             ->subject(
-                'MidPoint Seller Application Update'
+                'Midpoint Seller Application Update'
             )
 
             ->line(

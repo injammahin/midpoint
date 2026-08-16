@@ -97,7 +97,7 @@
                     </strong>
 
                     <span>
-                        Seller payout remains pending while MidPoint reviews the case.
+                        Seller payout remains pending while Midpoint reviews the case.
                     </span>
 
                 </div>
@@ -385,7 +385,7 @@
                         </strong>
 
                         <p>
-                            MidPoint receives your explanation and supporting files.
+                            Midpoint receives your explanation and supporting files.
                         </p>
 
                     </div>
@@ -404,7 +404,7 @@
                         </strong>
 
                         <p>
-                            The seller receives an email and MidPoint notification.
+                            The seller receives an email and Midpoint notification.
                         </p>
 
                     </div>
@@ -438,7 +438,7 @@
                     <div>
 
                         <strong>
-                            MidPoint reviews
+                            Midpoint reviews
                         </strong>
 
                         <p>

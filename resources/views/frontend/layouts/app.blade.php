@@ -72,7 +72,7 @@
     >
 
     <title>
-        @yield('title', 'MidPoint — Buy with confidence. Sell with confidence.')
+        @yield('title', 'Midpoint — Buy with confidence. Sell with confidence.')
     </title>
 
     <meta

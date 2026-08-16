@@ -1,6 +1,6 @@
 @extends('frontend.layouts.app')
 
-@section('title', 'Privacy Policy | MidPoint')
+@section('title', 'Privacy Policy | Midpoint')
 
 @section('content')
 
@@ -67,9 +67,9 @@
             </h2>
 
             <p class="legal-text">
-                MidPoint Technologies Ltd is the data controller for personal
-                data processed through midpoint.ng and the MidPoint apps.
-                Contact our Data Protection Officer at privacy@midpoint.ng.
+                Midpoint Technologies Ltd is the data controller for personal
+                data processed through Midpoint.ng and the Midpoint apps.
+                Contact our Data Protection Officer at privacy@Midpoint.ng.
             </p>
 
 
@@ -251,7 +251,7 @@
                         Verification is performed by our licensed payment
                         partner, <strong>Paystack</strong>. Your BVN is
                         transmitted securely to Paystack and is
-                        <strong>not stored in full</strong> on MidPoint systems
+                        <strong>not stored in full</strong> on Midpoint systems
                         — we retain only a verification reference, the match
                         result, and the last four digits.
                     </p>
@@ -274,7 +274,7 @@
 
                     <p>
                         You may withdraw consent at any time by emailing
-                        privacy@midpoint.ng. Payouts will be suspended until
+                        privacy@Midpoint.ng. Payouts will be suspended until
                         you re-verify.
                     </p>
 
@@ -336,7 +336,7 @@
                 correction of inaccurate data, deletion (where we are not
                 legally required to retain it), restriction of processing,
                 portability, and withdrawal of consent. Email
-                privacy@midpoint.ng; we respond within 30 days.
+                privacy@Midpoint.ng; we respond within 30 days.
                 You may also complain to the Nigeria Data Protection Commission.
             </p>
 

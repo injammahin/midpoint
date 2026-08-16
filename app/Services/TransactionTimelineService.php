@@ -123,7 +123,7 @@ class TransactionTimelineService
                                 2
                             )
                             .
-                            ' secured by MidPoint'
+                            ' secured by Midpoint'
                         : 'Waiting for payment',
             ],
 

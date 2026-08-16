@@ -96,7 +96,7 @@ class PasswordResetController extends Controller
                 ])
                 ->with(
                     'status',
-                    'If an active MidPoint account exists for this email, we have sent a password reset link.'
+                    'If an active Midpoint account exists for this email, we have sent a password reset link.'
                 );
         }
 
@@ -183,7 +183,7 @@ class PasswordResetController extends Controller
             ])
             ->with(
                 'status',
-                'If an active MidPoint account exists for this email, we have sent a password reset link.'
+                'If an active Midpoint account exists for this email, we have sent a password reset link.'
             );
     }
 

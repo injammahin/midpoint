@@ -125,7 +125,7 @@
 
 
             <h2>
-                MidPoint Command Center
+                Midpoint Command Center
             </h2>
 
 
@@ -362,7 +362,7 @@
         {{-- Service Fee --}}
         <article
             class="admin-card mp-kpi-card"
-            title="Realized MidPoint service fees from transactions where seller payout completed. VAT is shown separately and is not included as platform profit."
+            title="Realized Midpoint service fees from transactions where seller payout completed. VAT is shown separately and is not included as platform profit."
         >
 
             <div class="mp-kpi-top">
@@ -820,7 +820,7 @@
 
 
                 <p>
-                    Current workload across MidPoint's secure transaction pipeline.
+                    Current workload across Midpoint's secure transaction pipeline.
                 </p>
 
             </div>

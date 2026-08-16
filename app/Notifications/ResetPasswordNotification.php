@@ -116,14 +116,14 @@ class ResetPasswordNotification extends Notification
 
         /*
         |--------------------------------------------------------------------------
-        | Custom MidPoint Template
+        | Custom Midpoint Template
         |--------------------------------------------------------------------------
         */
 
         return (new MailMessage)
 
             ->subject(
-                'Reset your MidPoint password'
+                'Reset your Midpoint password'
             )
 
             ->view(

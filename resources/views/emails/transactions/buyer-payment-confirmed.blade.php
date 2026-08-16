@@ -115,7 +115,7 @@
     >
         Your payment for
         <strong>{{ $transaction->title }}</strong>
-        has been successfully verified by MidPoint.
+        has been successfully verified by Midpoint.
     </p>
 
     <div
@@ -288,7 +288,7 @@
         font-size:10px;
     "
 >
-    MidPoint secure transaction platform
+    Midpoint secure transaction platform
 </td>
 
 </tr>

@@ -3,13 +3,13 @@
 
 @section(
     'title',
-    'Support Centre | MidPoint'
+    'Support Centre | Midpoint'
 )
 
 
 @section(
     'meta_description',
-    'Get help with MidPoint payments, delivery, disputes, inspection periods, business verification, KYC and account security.'
+    'Get help with Midpoint payments, delivery, disputes, inspection periods, business verification, KYC and account security.'
 )
 
 
@@ -402,7 +402,7 @@
 
                         @if ($liveSupport['available'])
 
-                            Talk directly with a MidPoint
+                            Talk directly with a Midpoint
                             support specialist.
 
                         @else
@@ -579,7 +579,7 @@
 
                         <span class="ls-online-dot"></span>
 
-                        MIDPOINT SUPPORT
+                        Midpoint SUPPORT
 
                     </div>
 

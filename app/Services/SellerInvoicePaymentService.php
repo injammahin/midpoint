@@ -257,7 +257,7 @@ class SellerInvoicePaymentService
         |
         | This intentionally happens OUTSIDE the package activation transaction.
         |
-        | If subscription creation fails afterward, MidPoint still remembers
+        | If subscription creation fails afterward, Midpoint still remembers
         | that Paystack received the payment.
         |
         */
@@ -431,7 +431,7 @@ class SellerInvoicePaymentService
         ) {
 
             throw new RuntimeException(
-                'Paystack reference does not match the MidPoint seller payment reference.'
+                'Paystack reference does not match the Midpoint seller payment reference.'
             );
         }
 

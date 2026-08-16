@@ -27,7 +27,7 @@ class SecureTransactionController extends Controller
         | Guest
         |--------------------------------------------------------------------------
         |
-        | Send them to MidPoint login and remember this exact transaction.
+        | Send them to Midpoint login and remember this exact transaction.
         |
         */
 
@@ -58,7 +58,7 @@ class SecureTransactionController extends Controller
                 )
                 ->with(
                     'success',
-                    'Log in to continue to your secure MidPoint transaction.'
+                    'Log in to continue to your secure Midpoint transaction.'
                 );
         }
 
@@ -97,7 +97,7 @@ class SecureTransactionController extends Controller
                 ->withErrors([
 
                     'login' =>
-                        'Your MidPoint account is currently inactive.',
+                        'Your Midpoint account is currently inactive.',
 
                 ]);
         }
@@ -172,7 +172,7 @@ class SecureTransactionController extends Controller
         | Buyer Email Must Match
         |--------------------------------------------------------------------------
         |
-        | This prevents a leaked link from being claimed by another MidPoint user.
+        | This prevents a leaked link from being claimed by another Midpoint user.
         |
         */
 

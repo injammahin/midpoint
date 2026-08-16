@@ -354,7 +354,7 @@ if (
 
 
             status.textContent =
-                'Connecting to MidPoint Support...';
+                'Connecting to Midpoint Support...';
 
 
             try {
@@ -761,7 +761,7 @@ if (
                     Connected with
                     ${escapeHtml(
                         session.agent?.name
-                        || 'MidPoint Support'
+                        || 'Midpoint Support'
                     )}
                     `;
 

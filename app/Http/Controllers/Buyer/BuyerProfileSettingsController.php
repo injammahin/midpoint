@@ -182,7 +182,7 @@ class BuyerProfileSettingsController extends Controller
     | IMPORTANT:
     |
     | There is only ONE password because Buyer View and Seller View belong
-    | to the same MidPoint account.
+    | to the same Midpoint account.
     |
     */
 

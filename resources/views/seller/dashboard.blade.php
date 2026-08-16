@@ -233,7 +233,7 @@
                     @if($featuredAction)
                         The buyer's payment is secured. Complete the next fulfilment step only after it has actually happened.
                     @elseif($featuredTransaction->status === \App\Models\SecureTransaction::STATUS_DISPUTED)
-                        Seller payout is paused while MidPoint reviews this dispute. Open the transaction for the latest dispute status.
+                        Seller payout is paused while Midpoint reviews this dispute. Open the transaction for the latest dispute status.
                     @elseif($featuredTransaction->status === \App\Models\SecureTransaction::STATUS_INSPECTION)
                         The buyer is inspecting the item. Funds remain protected until the buyer accepts or the inspection period completes.
                     @else
@@ -464,7 +464,7 @@
                 </strong>
 
                 <span>
-                    Create your first transaction to start selling securely through MidPoint.
+                    Create your first transaction to start selling securely through Midpoint.
                 </span>
             </div>
 

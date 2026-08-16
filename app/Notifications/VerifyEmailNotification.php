@@ -87,7 +87,7 @@ class VerifyEmailNotification extends Notification
         return (new MailMessage)
 
             ->subject(
-                'Verify your MidPoint email address'
+                'Verify your Midpoint email address'
             )
 
             ->view(

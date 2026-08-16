@@ -200,7 +200,7 @@
             >
 
                 Great news — your application to become a
-                MidPoint Verified Seller has been approved.
+                Midpoint Verified Seller has been approved.
 
                 Your seller package invoice is now ready.
                 Complete payment to activate your seller account.
@@ -680,7 +680,7 @@
             "
         >
 
-            MidPoint Verified Seller Program
+            Midpoint Verified Seller Program
 
             <br>
 
@@ -689,7 +689,7 @@
 
             <br>
 
-            © {{ date('Y') }} MidPoint
+            © {{ date('Y') }} Midpoint
 
         </td>
 

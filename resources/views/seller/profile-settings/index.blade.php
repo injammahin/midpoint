@@ -361,13 +361,13 @@
                                     $user->bank_name
                                 )
                             }}"
-                            list="midpointBanks"
+                            list="MidpointBanks"
                             placeholder="Choose or type bank name"
                             required
                         >
 
 
-                        <datalist id="midpointBanks">
+                        <datalist id="MidpointBanks">
 
                             <option value="Access Bank">
 
@@ -614,7 +614,7 @@
                                     'Marketing emails',
 
                                 'description' =>
-                                    'Product news, promotions and MidPoint announcements.',
+                                    'Product news, promotions and Midpoint announcements.',
 
                                 'enabled' =>
                                     old(
@@ -717,7 +717,7 @@
 
                         <p>
 
-                            Protect access to your MidPoint account.
+                            Protect access to your Midpoint account.
 
                         </p>
 
@@ -1129,7 +1129,7 @@
 
                     Enter your current password first.
 
-                    MidPoint will then generate an authenticator
+                    Midpoint will then generate an authenticator
                     setup QR code.
 
                 </div>
@@ -3038,11 +3038,11 @@ document.addEventListener(
             if (
                 qrCanvas
                 &&
-                window.MidPointQRCode
+                window.MidpointQRCode
             ) {
 
                 window
-                    .MidPointQRCode
+                    .MidpointQRCode
                     .toCanvas(
 
                         qrCanvas,

@@ -440,7 +440,7 @@ class TransactionLifecycleService
                 $transaction,
                 'seller-payout-processing',
                 'Your payout is processing',
-                'MidPoint has approved this transaction for release. Your payout of ₦'
+                'Midpoint has approved this transaction for release. Your payout of ₦'
                 . number_format(
                     (float)
                     $transaction->seller_net_amount,
@@ -471,7 +471,7 @@ class TransactionLifecycleService
                 $transaction,
                 'payout-bank-details-required',
                 'Payout setup required',
-                'The buyer has approved this order, but MidPoint cannot send your payout until your bank account and bank code are configured.'
+                'The buyer has approved this order, but Midpoint cannot send your payout until your bank account and bank code are configured.'
             );
 
             Log::warning(
@@ -509,7 +509,7 @@ class TransactionLifecycleService
                 $transaction,
                 'seller-payout-failed',
                 'Your payout needs attention',
-                'The transaction was approved, but the payout could not be completed yet. Your funds remain pending while MidPoint retries or reviews the payout.'
+                'The transaction was approved, but the payout could not be completed yet. Your funds remain pending while Midpoint retries or reviews the payout.'
             );
         }
     }
@@ -555,7 +555,7 @@ class TransactionLifecycleService
                 'Payout requires attention',
                 'Paystack reported the seller payout as '
                 . $status
-                . '. MidPoint will keep the transaction open while the payout is resolved.'
+                . '. Midpoint will keep the transaction open while the payout is resolved.'
             );
 
             return;
@@ -731,7 +731,7 @@ class TransactionLifecycleService
 
                 default => [
                     'Transaction updated',
-                    'Your MidPoint transaction has been updated.',
+                    'Your Midpoint transaction has been updated.',
                 ],
             };
 

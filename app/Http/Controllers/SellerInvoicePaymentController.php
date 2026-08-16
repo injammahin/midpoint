@@ -615,7 +615,7 @@ class SellerInvoicePaymentController extends Controller
                 ->route('verified-sellers')
                 ->with(
                     'error',
-                    'The returned seller payment reference is not recognized by MidPoint.'
+                    'The returned seller payment reference is not recognized by Midpoint.'
                 );
         }
 
@@ -805,7 +805,7 @@ class SellerInvoicePaymentController extends Controller
                     ->route('verified-sellers')
                     ->with(
                         'error',
-                        'Your payment was confirmed by Paystack, but package activation could not finish. Do not pay again. MidPoint can safely reconcile this payment.'
+                        'Your payment was confirmed by Paystack, but package activation could not finish. Do not pay again. Midpoint can safely reconcile this payment.'
                     );
             }
 

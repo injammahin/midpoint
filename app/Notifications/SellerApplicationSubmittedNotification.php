@@ -53,7 +53,7 @@ class SellerApplicationSubmittedNotification extends Notification
         return (new MailMessage)
 
             ->subject(
-                'Seller Application Received - MidPoint'
+                'Seller Application Received - Midpoint'
             )
 
             ->view(

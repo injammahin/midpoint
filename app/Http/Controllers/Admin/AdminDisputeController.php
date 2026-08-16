@@ -825,7 +825,7 @@ class AdminDisputeController extends Controller
                                 | Fresh protection period
                                 |--------------------------------------------------------------------------
                                 |
-                                | Time spent while MidPoint reviewed the dispute
+                                | Time spent while Midpoint reviewed the dispute
                                 | must NOT count against the buyer.
                                 |
                                 */

@@ -15,7 +15,7 @@ class AdminUserSeeder extends Seeder
                 'email' => 'admin@gmail.com',
             ],
             [
-                'name' => 'MidPoint Administrator',
+                'name' => 'Midpoint Administrator',
 
                 'phone' => null,
 

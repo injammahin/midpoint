@@ -130,7 +130,7 @@ class SupportQueueService
             (
                 $settings->welcome_message
                 ?:
-                'Welcome to MidPoint Live Support. Please wait while we connect you with a support specialist.'
+                'Welcome to Midpoint Live Support. Please wait while we connect you with a support specialist.'
             );
 
 

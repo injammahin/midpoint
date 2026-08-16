@@ -1,7 +1,7 @@
 @extends('frontend.layouts.app')
 
 
-@section('title', 'Transaction Access Restricted | MidPoint')
+@section('title', 'Transaction Access Restricted | Midpoint')
 
 
 @section('content')
@@ -46,7 +46,7 @@
                 {{ $maskedEmail }}
             </strong>.
 
-            Log in using the MidPoint account with that email address.
+            Log in using the Midpoint account with that email address.
 
         </p>
 

@@ -28,7 +28,7 @@
             </h1>
 
             <p>
-                {{ $isSeller ? 'Manage the secure transactions you created for buyers.' : 'Track your paid MidPoint transactions and order progress.' }}
+                {{ $isSeller ? 'Manage the secure transactions you created for buyers.' : 'Track your paid Midpoint transactions and order progress.' }}
             </p>
 
         </div>

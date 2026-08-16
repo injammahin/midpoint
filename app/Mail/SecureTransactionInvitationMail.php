@@ -84,7 +84,7 @@ class SecureTransactionInvitationMail extends Mailable
             $transaction->seller
                 ?->name
             ?:
-            'MidPoint Seller';
+            'Midpoint Seller';
 
 
         /*
@@ -111,7 +111,7 @@ class SecureTransactionInvitationMail extends Mailable
     {
         return $this
             ->subject(
-                'You have a secure MidPoint transaction - '
+                'You have a secure Midpoint transaction - '
                 .
                 $this->transaction->reference
             )

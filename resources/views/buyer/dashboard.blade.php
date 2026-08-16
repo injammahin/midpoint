@@ -46,7 +46,7 @@
                     'Inspection in progress',
 
                 \App\Models\SecureTransaction::STATUS_DISPUTED =>
-                    'Dispute open · MidPoint review',
+                    'Dispute open · Midpoint review',
 
                 \App\Models\SecureTransaction::STATUS_PAYMENT_SECURED =>
                     'Payment protected · Seller preparing order',
@@ -208,7 +208,7 @@
             </strong>
 
             <p>
-                Total successfully paid transactions protected by MidPoint.
+                Total successfully paid transactions protected by Midpoint.
             </p>
         </article>
 
@@ -260,19 +260,19 @@
                         Your inspection period is active. Accept the item when satisfied, or open a dispute before the inspection deadline if there is a genuine problem.
 
                     @elseif($featuredTransaction->status === \App\Models\SecureTransaction::STATUS_DISPUTED)
-                        This transaction is under the MidPoint dispute process. Seller payout stays paused until the dispute reaches a valid resolution.
+                        This transaction is under the Midpoint dispute process. Seller payout stays paused until the dispute reaches a valid resolution.
 
                     @elseif($featuredTransaction->status === \App\Models\SecureTransaction::STATUS_IN_TRANSIT)
-                        Your item is in transit. MidPoint continues holding the payment until the order reaches the release stage.
+                        Your item is in transit. Midpoint continues holding the payment until the order reaches the release stage.
 
                     @elseif($featuredTransaction->status === \App\Models\SecureTransaction::STATUS_DISPATCHED)
                         The seller has marked your item as dispatched. Follow the transaction for further delivery updates.
 
                     @elseif($featuredTransaction->status === \App\Models\SecureTransaction::STATUS_RELEASE_APPROVED || $featuredTransaction->status === \App\Models\SecureTransaction::STATUS_PAYOUT_PENDING)
-                        You have completed your buyer action. MidPoint is processing the seller payout and will complete the transaction when the payout finishes.
+                        You have completed your buyer action. Midpoint is processing the seller payout and will complete the transaction when the payout finishes.
 
                     @else
-                        Your payment is secured. The seller is preparing the order and MidPoint will keep the funds protected throughout fulfilment.
+                        Your payment is secured. The seller is preparing the order and Midpoint will keep the funds protected throughout fulfilment.
                     @endif
                 </p>
 
@@ -381,7 +381,7 @@
                         @elseif($featuredTransaction->status === \App\Models\SecureTransaction::STATUS_RELEASE_APPROVED)
                             Approved for seller payout
                         @else
-                            Protected by MidPoint
+                            Protected by Midpoint
                         @endif
                     </span>
                 </div>
@@ -538,7 +538,7 @@
                 </strong>
 
                 <span>
-                    Buy through a verified MidPoint seller and your protected transactions will appear here.
+                    Buy through a verified Midpoint seller and your protected transactions will appear here.
                 </span>
             </div>
 
@@ -824,7 +824,7 @@
                         </strong>
 
                         <small>
-                            Test or inspect the item while MidPoint continues holding the funds before automatic release.
+                            Test or inspect the item while Midpoint continues holding the funds before automatic release.
                         </small>
                     </span>
                 </button>

@@ -358,7 +358,7 @@
                             <h3>Buyer Pricing</h3>
 
                             <p>
-                                Set the buyer fee to 0% when buyers pay no MidPoint fee.
+                                Set the buyer fee to 0% when buyers pay no Midpoint fee.
                             </p>
                         </div>
 

@@ -46,7 +46,7 @@ class SellerTransactionStatusController extends Controller
                 'success',
                 'Order status updated to '
                 . $secureTransaction->fresh()->status_label
-                . '. The buyer has been notified by email and in MidPoint.'
+                . '. The buyer has been notified by email and in Midpoint.'
             );
     }
 }

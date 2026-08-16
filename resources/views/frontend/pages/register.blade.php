@@ -1,6 +1,6 @@
 @extends('frontend.layouts.app')
 
-@section('title', 'Create Account | MidPoint')
+@section('title', 'Create Account | Midpoint')
 
 @section('hide_footer', '1')
 
@@ -71,7 +71,7 @@
                         </div>
 
                         <div class="mp-timeline-text !text-[#9DBBAF]">
-                            Buyers pay no MidPoint fees at all
+                            Buyers pay no Midpoint fees at all
                         </div>
 
                     </div>

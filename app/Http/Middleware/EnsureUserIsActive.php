@@ -43,7 +43,7 @@ class EnsureUserIsActive
                 ->withErrors([
 
                     'login' =>
-                        'Your account has been deactivated. Please contact MidPoint support.',
+                        'Your account has been deactivated. Please contact Midpoint support.',
 
                 ]);
 

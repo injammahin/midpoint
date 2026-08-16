@@ -29,7 +29,7 @@
 
                 const savedTheme =
                     localStorage.getItem(
-                        'midpoint_admin_theme'
+                        'Midpoint_admin_theme'
                     );
 
 
@@ -108,7 +108,7 @@
 
 
     <title>
-        @yield('title', 'Admin Dashboard') | MidPoint
+        @yield('title', 'Admin Dashboard') | Midpoint
     </title>
 
 

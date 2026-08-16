@@ -18,7 +18,7 @@
         <div class="admin-page-heading">
 
             <span>
-                MIDPOINT ADMINISTRATION
+                Midpoint ADMINISTRATION
             </span>
 
             <h1>

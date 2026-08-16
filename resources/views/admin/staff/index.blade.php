@@ -18,7 +18,7 @@
 
             <p>
                 Create administration users and control exactly
-                which MidPoint modules they can see and access.
+                which Midpoint modules they can see and access.
             </p>
         </div>
 

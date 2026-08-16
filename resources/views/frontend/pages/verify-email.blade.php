@@ -1,6 +1,6 @@
 @extends('frontend.layouts.app')
 
-@section('title', 'Verify Email | MidPoint')
+@section('title', 'Verify Email | Midpoint')
 
 @section('hide_footer', '1')
 

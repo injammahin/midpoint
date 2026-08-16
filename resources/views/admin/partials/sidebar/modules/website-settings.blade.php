@@ -1,5 +1,35 @@
 @php
 
+    /*
+    |--------------------------------------------------------------------------
+    | Permissions
+    |--------------------------------------------------------------------------
+    */
+
+    $canHome =
+        auth()
+            ->user()
+            ->hasAdminPermission(
+                'website.home_page.manage'
+            );
+
+
+    $canAbout =
+        auth()
+            ->user()
+            ->hasAdminPermission(
+                'website.about_page.manage'
+            );
+
+
+    $canHow =
+        auth()
+            ->user()
+            ->hasAdminPermission(
+                'website.how_it_works_page.manage'
+            );
+
+
     $canApp =
         auth()
             ->user()
@@ -32,7 +62,31 @@
             );
 
 
+    /*
+    |--------------------------------------------------------------------------
+    | Active
+    |--------------------------------------------------------------------------
+    */
+
     $websiteSettingsActive =
+
+        request()->routeIs(
+            'admin.website-settings.home-page*'
+        )
+
+        ||
+
+        request()->routeIs(
+            'admin.website-settings.about-page*'
+        )
+
+        ||
+
+        request()->routeIs(
+            'admin.website-settings.how-it-works-page*'
+        )
+
+        ||
 
         request()->routeIs(
             'admin.website-settings.app-settings*'
@@ -67,6 +121,12 @@
 
 
 @if(
+    $canHome
+    ||
+    $canAbout
+    ||
+    $canHow
+    ||
     $canApp
     ||
     $canFaq
@@ -75,6 +135,7 @@
     ||
     $canPackages
 )
+
 
 <div
     class="
@@ -131,6 +192,93 @@
     <div class="admin-submenu">
 
 
+        @if($canHome)
+
+            <a
+                href="{{
+                    route(
+                        'admin.website-settings.home-page'
+                    )
+                }}"
+                class="{{
+                    request()->routeIs(
+                        'admin.website-settings.home-page*'
+                    )
+                        ? 'active'
+                        : ''
+                }}"
+            >
+
+                <i class="fa-solid fa-house"></i>
+
+                <span>
+                    Home Page
+                </span>
+
+            </a>
+
+        @endif
+
+
+
+        @if($canAbout)
+
+            <a
+                href="{{
+                    route(
+                        'admin.website-settings.about-page'
+                    )
+                }}"
+                class="{{
+                    request()->routeIs(
+                        'admin.website-settings.about-page*'
+                    )
+                        ? 'active'
+                        : ''
+                }}"
+            >
+
+                <i class="fa-regular fa-building"></i>
+
+                <span>
+                    About Page
+                </span>
+
+            </a>
+
+        @endif
+
+
+
+        @if($canHow)
+
+            <a
+                href="{{
+                    route(
+                        'admin.website-settings.how-it-works-page'
+                    )
+                }}"
+                class="{{
+                    request()->routeIs(
+                        'admin.website-settings.how-it-works-page*'
+                    )
+                        ? 'active'
+                        : ''
+                }}"
+            >
+
+                <i class="fa-solid fa-route"></i>
+
+                <span>
+                    How It Works Page
+                </span>
+
+            </a>
+
+        @endif
+
+
+
         @if($canApp)
 
             <a
@@ -139,7 +287,6 @@
                         'admin.website-settings.app-settings'
                     )
                 }}"
-
                 class="{{
                     request()->routeIs(
                         'admin.website-settings.app-settings*'
@@ -169,7 +316,6 @@
                         'admin.website-settings.faqs'
                     )
                 }}"
-
                 class="{{
                     request()->routeIs(
                         'admin.website-settings.faqs*'
@@ -199,7 +345,6 @@
                         'admin.website-settings.pricing'
                     )
                 }}"
-
                 class="{{
                     request()->routeIs(
                         'admin.website-settings.pricing*'
@@ -229,7 +374,6 @@
                         'admin.website-settings.become-seller'
                     )
                 }}"
-
                 class="{{
                     request()->routeIs(
                         'admin.website-settings.become-seller*'
@@ -253,9 +397,14 @@
 
         @endif
 
+
     </div>
 
 
+
+    {{-- =========================================================
+        COLLAPSED FLYOUT
+    ========================================================== --}}
 
     <div class="admin-flyout">
 
@@ -276,7 +425,7 @@
                 </strong>
 
                 <span>
-                    Site configuration
+                    Public website content
                 </span>
 
             </div>
@@ -288,6 +437,54 @@
         <div class="admin-flyout-links">
 
 
+            @if($canHome)
+
+                <a
+                    href="{{
+                        route(
+                            'admin.website-settings.home-page'
+                        )
+                    }}"
+                >
+                    <i class="fa-solid fa-house"></i>
+                    <span>Home Page</span>
+                </a>
+
+            @endif
+
+
+            @if($canAbout)
+
+                <a
+                    href="{{
+                        route(
+                            'admin.website-settings.about-page'
+                        )
+                    }}"
+                >
+                    <i class="fa-regular fa-building"></i>
+                    <span>About Page</span>
+                </a>
+
+            @endif
+
+
+            @if($canHow)
+
+                <a
+                    href="{{
+                        route(
+                            'admin.website-settings.how-it-works-page'
+                        )
+                    }}"
+                >
+                    <i class="fa-solid fa-route"></i>
+                    <span>How It Works Page</span>
+                </a>
+
+            @endif
+
+
             @if($canApp)
 
                 <a
@@ -297,13 +494,8 @@
                         )
                     }}"
                 >
-
                     <i class="fa-solid fa-gear"></i>
-
-                    <span>
-                        App Settings
-                    </span>
-
+                    <span>App Settings</span>
                 </a>
 
             @endif
@@ -318,13 +510,8 @@
                         )
                     }}"
                 >
-
                     <i class="fa-regular fa-circle-question"></i>
-
-                    <span>
-                        FAQ Page
-                    </span>
-
+                    <span>FAQ Page</span>
                 </a>
 
             @endif
@@ -339,13 +526,8 @@
                         )
                     }}"
                 >
-
                     <i class="fa-solid fa-tags"></i>
-
-                    <span>
-                        Pricing Page
-                    </span>
-
+                    <span>Pricing Page</span>
                 </a>
 
             @endif
@@ -360,21 +542,20 @@
                         )
                     }}"
                 >
-
                     <i class="fa-solid fa-store"></i>
-
-                    <span>
-                        Become Seller Page
-                    </span>
-
+                    <span>Become Seller Page</span>
                 </a>
 
             @endif
 
+
         </div>
+
 
     </div>
 
+
 </div>
+
 
 @endif

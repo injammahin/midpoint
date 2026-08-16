@@ -1,7 +1,7 @@
 @extends('frontend.layouts.app')
 
 
-@section('title', 'Transaction Link Expired | MidPoint')
+@section('title', 'Transaction Link Expired | Midpoint')
 
 
 @section('content')
@@ -40,7 +40,7 @@
             has expired before payment was completed.
 
             Contact the seller and ask them to create a new secure
-            MidPoint transaction.
+            Midpoint transaction.
 
         </p>
 

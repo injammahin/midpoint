@@ -147,7 +147,7 @@
         "
     >
 
-        MidPoint successfully verified the buyer's payment for
+        Midpoint successfully verified the buyer's payment for
         <strong>{{ $transaction->title }}</strong>.
         You can now start preparing the order.
 
@@ -395,7 +395,7 @@
     "
 >
 
-    MidPoint secure transaction platform
+    Midpoint secure transaction platform
 
 </td>
 

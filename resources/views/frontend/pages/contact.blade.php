@@ -1,10 +1,10 @@
 @extends('frontend.layouts.app')
 
-@section('title', 'Contact | MidPoint')
+@section('title', 'Contact | Midpoint')
 
 @section(
     'meta_description',
-    'Contact MidPoint for transaction support, business verification, partnerships and general enquiries.'
+    'Contact Midpoint for transaction support, business verification, partnerships and general enquiries.'
 )
 
 @section('content')
@@ -35,7 +35,7 @@
                                font-extrabold
                                leading-[1.15]"
                     >
-                        Talk to a human at MidPoint.
+                        Talk to a human at Midpoint.
                     </h1>
 
 
@@ -165,10 +165,10 @@
                                 >
 
                                     <a
-                                        href="mailto:hello@midpoint.ng"
+                                        href="mailto:hello@Midpoint.ng"
                                         class="transition hover:text-[#12B76A]"
                                     >
-                                        hello@midpoint.ng
+                                        hello@Midpoint.ng
                                     </a>
 
                                     <span class="mx-1">
@@ -176,10 +176,10 @@
                                     </span>
 
                                     <a
-                                        href="mailto:support@midpoint.ng"
+                                        href="mailto:support@Midpoint.ng"
                                         class="transition hover:text-[#12B76A]"
                                     >
-                                        support@midpoint.ng
+                                        support@Midpoint.ng
                                     </a>
 
                                 </div>

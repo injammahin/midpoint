@@ -1,6 +1,6 @@
 @extends('frontend.layouts.app')
 
-@section('title', 'Escrow Policy | MidPoint')
+@section('title', 'Escrow Policy | Midpoint')
 
 @section('content')
 
@@ -31,7 +31,7 @@
                        text-[#5A6660]"
             >
                 Last updated: 1 August 2026 ·
-                How MidPoint holds, releases and refunds funds
+                How Midpoint holds, releases and refunds funds
             </p>
 
 
@@ -67,7 +67,7 @@
             <p class="legal-text">
                 Buyer payments are collected by our licensed payment partner
                 and held in a segregated client account. Held funds are not
-                MidPoint's property, are not used for our operating expenses,
+                Midpoint's property, are not used for our operating expenses,
                 and are not lent or invested. Each amount is ring-fenced
                 against a specific transaction reference.
             </p>
@@ -278,10 +278,10 @@
                         plus 7.5% VAT
                     </strong>.
                     The gateway does not return this fee when a payment is
-                    reversed, so MidPoint cannot refund it. It is deducted
+                    reversed, so Midpoint cannot refund it. It is deducted
                     from the buyer's refund total on every refund or
                     cancellation of a funded transaction, whatever the
-                    reason and whoever is at fault. MidPoint charges no
+                    reason and whoever is at fault. Midpoint charges no
                     service fee of its own on a refunded transaction.
                 </p>
 
@@ -375,7 +375,7 @@
                 Where a full refund follows a dispute, the buyer bears the
                 cost of returning the item and must upload proof of postage;
                 the refund is released once the seller confirms receipt of
-                the return or MidPoint is otherwise satisfied it was returned.
+                the return or Midpoint is otherwise satisfied it was returned.
                 Where a transaction is cancelled before the buyer has funded
                 it, no fee arises and nothing is deducted.
             </p>
@@ -387,11 +387,11 @@
             </h2>
 
             <p class="legal-text">
-                On release to a seller we deduct the 5% MidPoint Service Fee
+                On release to a seller we deduct the 5% Midpoint Service Fee
                 and 7.5% VAT on that fee. No deduction is applied to the
                 delivery amount, which passes through to the seller in full.
-                Buyers are never charged a MidPoint service fee. On a refund,
-                no MidPoint service fee is charged; only the gateway processing
+                Buyers are never charged a Midpoint service fee. On a refund,
+                no Midpoint service fee is charged; only the gateway processing
                 fee described in section 4 is deducted.
             </p>
 

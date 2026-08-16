@@ -35,7 +35,7 @@
    BASE
 ========================================================= */
 
-.midpoint-account-body {
+.Midpoint-account-body {
     margin: 0;
 
     background:
@@ -54,20 +54,20 @@
 }
 
 
-.midpoint-account-body * {
+.Midpoint-account-body * {
     box-sizing:
         border-box;
 }
 
 
-.midpoint-account-body button,
-.midpoint-account-body a {
+.Midpoint-account-body button,
+.Midpoint-account-body a {
     font-family:
         inherit;
 }
 
 
-.midpoint-account-body a {
+.Midpoint-account-body a {
     text-decoration:
         none;
 }

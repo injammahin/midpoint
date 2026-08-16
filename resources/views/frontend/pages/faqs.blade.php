@@ -3,13 +3,13 @@
 
 @section(
     'title',
-    'FAQs | MidPoint'
+    'FAQs | Midpoint'
 )
 
 
 @section(
     'meta_description',
-    'Frequently asked questions about MidPoint transactions, payments, delivery, inspections, disputes and seller payouts.'
+    'Frequently asked questions about Midpoint transactions, payments, delivery, inspections, disputes and seller payouts.'
 )
 
 
