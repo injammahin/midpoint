@@ -182,6 +182,14 @@ class SecureTransaction extends Model
 
         'buyer_payment_email_sent_at',
 
+        'stock_reserved_at',
+
+        'stock_reserved_until',
+
+        'stock_released_at',
+
+        'stock_deducted_at',
+
     ];
 
 
@@ -254,6 +262,13 @@ class SecureTransaction extends Model
         'seller_payment_email_sent_at' => 'datetime',
 
         'buyer_payment_email_sent_at' => 'datetime',
+        'stock_reserved_at' => 'datetime',
+
+        'stock_reserved_until' => 'datetime',
+
+        'stock_released_at' => 'datetime',
+
+        'stock_deducted_at' => 'datetime',
 
     ];
 

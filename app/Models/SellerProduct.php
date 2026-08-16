@@ -25,6 +25,8 @@ class SellerProduct extends Model
         'images',
 
         'is_active',
+        
+        'out_of_stock_notified_at',
 
     ];
 
@@ -42,6 +44,9 @@ class SellerProduct extends Model
 
         'is_active' =>
             'boolean',
+            
+        'out_of_stock_notified_at' =>
+            'datetime',
 
     ];
 

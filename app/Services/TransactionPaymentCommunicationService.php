@@ -7,7 +7,8 @@ use App\Mail\SellerPaymentReceivedMail;
 
 use App\Models\SecureTransaction;
 use App\Models\TransactionNotification;
-
+use App\Models\User;
+use App\Notifications\AdminBuyerOrderPaidNotification;
 use Illuminate\Support\Facades\Log;
 
 class TransactionPaymentCommunicationService
@@ -39,9 +40,16 @@ class TransactionPaymentCommunicationService
             $transaction
         );
 
+
         $this->buyer(
             $transaction
         );
+
+
+        $this->admins(
+            $transaction
+        );
+        
     }
 
     protected function seller(
@@ -257,5 +265,75 @@ class TransactionPaymentCommunicationService
                 $transaction
             )
         );
+    }
+    /*
+    |--------------------------------------------------------------------------
+    | Admin Payment Notification
+    |--------------------------------------------------------------------------
+    */
+
+    protected function admins(
+        SecureTransaction $transaction
+    ): void {
+
+        $admins =
+            User::query()
+
+                ->where(
+                    'role',
+                    'admin'
+                )
+
+                ->where(
+                    'status',
+                    true
+                )
+
+                ->get();
+
+
+        foreach (
+            $admins
+            as
+            $admin
+        ) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | Prevent Duplicate Notification
+            |--------------------------------------------------------------------------
+            */
+
+            $alreadyNotified =
+                $admin
+
+                    ->notifications()
+
+                    ->where(
+                        'type',
+                        AdminBuyerOrderPaidNotification::class
+                    )
+
+                    ->where(
+                        'data->secure_transaction_id',
+                        $transaction->id
+                    )
+
+                    ->exists();
+
+
+            if (
+                !$alreadyNotified
+            ) {
+
+                $admin->notify(
+
+                    new AdminBuyerOrderPaidNotification(
+                        $transaction
+                    )
+
+                );
+            }
+        }
     }
 }

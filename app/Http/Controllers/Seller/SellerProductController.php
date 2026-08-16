@@ -7,7 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\SellerPackage;
 use App\Models\SellerProduct;
 use App\Models\SellerSubscription;
-
+use App\Models\SecureTransaction;
 use App\Services\SellerSubscriptionService;
 
 use Illuminate\Http\Request;
@@ -928,10 +928,95 @@ class SellerProductController extends Controller
                     $sellerProduct,
                     $validated,
                     $description,
-                    $finalImages
+                    $finalImages,
+                    $user
                 ) {
 
-                    $sellerProduct->update([
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Lock Product
+                    |--------------------------------------------------------------------------
+                    |
+                    | Prevent stock edits racing with a buyer who is completing payment.
+                    |
+                    */
+
+                    $lockedProduct =
+                        SellerProduct::query()
+
+                            ->whereKey(
+                                $sellerProduct->id
+                            )
+
+                            ->where(
+                                'user_id',
+                                $user->id
+                            )
+
+                            ->lockForUpdate()
+
+                            ->firstOrFail();
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Release Expired Reservations
+                    |--------------------------------------------------------------------------
+                    */
+
+                    $this
+                        ->releaseExpiredStockReservations(
+                            $lockedProduct->id
+                        );
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Active Reserved Quantity
+                    |--------------------------------------------------------------------------
+                    */
+
+                    $reservedQuantity =
+                        $this
+                            ->activeReservedQuantity(
+                                $lockedProduct->id
+                            );
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Do Not Reduce Stock Below Buyer Reservations
+                    |--------------------------------------------------------------------------
+                    */
+
+                    if (
+                        (int) $validated['stock']
+                        <
+                        $reservedQuantity
+                    ) {
+
+                        throw ValidationException::withMessages([
+
+                            'stock' =>
+                                'You cannot reduce stock below '
+                                .
+                                number_format(
+                                    $reservedQuantity
+                                )
+                                .
+                                ' unit(s) because those units are currently reserved by buyers completing payment.',
+
+                        ]);
+                    }
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Update Product
+                    |--------------------------------------------------------------------------
+                    */
+
+                    $lockedProduct->update([
 
                         'name' =>
                             $validated[
@@ -957,6 +1042,20 @@ class SellerProductController extends Controller
                             $validated[
                                 'stock'
                             ],
+
+                        /*
+                        |--------------------------------------------------------------------------
+                        | Allow Future Out-of-Stock Alert After Restock
+                        |--------------------------------------------------------------------------
+                        */
+
+                        'out_of_stock_notified_at' =>
+                            (int) $validated['stock'] > 0
+
+                                ? null
+
+                                : $lockedProduct
+                                    ->out_of_stock_notified_at,
 
                         'description' =>
                             $description,
@@ -1093,22 +1192,84 @@ class SellerProductController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Images
+        | Delete Product Safely
         |--------------------------------------------------------------------------
+        |
+        | A product cannot be deleted while units are reserved by a buyer who is
+        | currently completing payment. Otherwise Paystack could charge the buyer
+        | after the product row has already been deleted.
+        |
         */
 
         $images =
-            $sellerProduct
-                ->all_images;
+            [];
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | Delete Product
-        |--------------------------------------------------------------------------
-        */
+        DB::transaction(
+            function () use (
+                $sellerProduct,
+                $user,
+                &$images
+            ) {
 
-        $sellerProduct->delete();
+                $lockedProduct =
+                    SellerProduct::query()
+
+                        ->whereKey(
+                            $sellerProduct->id
+                        )
+
+                        ->where(
+                            'user_id',
+                            $user->id
+                        )
+
+                        ->lockForUpdate()
+
+                        ->firstOrFail();
+
+
+                $this
+                    ->releaseExpiredStockReservations(
+                        $lockedProduct->id
+                    );
+
+
+                $reservedQuantity =
+                    $this
+                        ->activeReservedQuantity(
+                            $lockedProduct->id
+                        );
+
+
+                if (
+                    $reservedQuantity > 0
+                ) {
+
+                    throw ValidationException::withMessages([
+
+                        'product' =>
+                            'This product cannot be deleted right now because '
+                            .
+                            number_format(
+                                $reservedQuantity
+                            )
+                            .
+                            ' unit(s) are reserved by buyer(s) completing payment. Please try again after the reservation expires or the payment finishes.',
+
+                    ]);
+                }
+
+
+                $images =
+                    $lockedProduct
+                        ->all_images;
+
+
+                $lockedProduct
+                    ->delete();
+            }
+        );
 
 
         /*
@@ -1141,6 +1302,102 @@ class SellerProductController extends Controller
                 'success',
                 'Product deleted successfully.'
             );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Release Expired Product Reservations
+    |--------------------------------------------------------------------------
+    */
+
+    private function releaseExpiredStockReservations(
+        int $productId
+    ): void {
+
+        SecureTransaction::query()
+
+            ->where(
+                'seller_product_id',
+                $productId
+            )
+
+            ->where(
+                'transaction_type',
+                'listed'
+            )
+
+            ->whereNull(
+                'stock_deducted_at'
+            )
+
+            ->whereNull(
+                'stock_released_at'
+            )
+
+            ->whereNotNull(
+                'stock_reserved_until'
+            )
+
+            ->where(
+                'stock_reserved_until',
+                '<=',
+                now()
+            )
+
+            ->update([
+
+                'stock_released_at' =>
+                    now(),
+
+            ]);
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Active Reserved Quantity
+    |--------------------------------------------------------------------------
+    */
+
+    private function activeReservedQuantity(
+        int $productId
+    ): int {
+
+        return (int)
+            SecureTransaction::query()
+
+                ->where(
+                    'seller_product_id',
+                    $productId
+                )
+
+                ->where(
+                    'transaction_type',
+                    'listed'
+                )
+
+                ->whereNull(
+                    'stock_deducted_at'
+                )
+
+                ->whereNull(
+                    'stock_released_at'
+                )
+
+                ->whereNotNull(
+                    'stock_reserved_until'
+                )
+
+                ->where(
+                    'stock_reserved_until',
+                    '>',
+                    now()
+                )
+
+                ->sum(
+                    'quantity'
+                );
     }
 
 

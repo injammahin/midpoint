@@ -10,7 +10,8 @@ use App\Services\TransactionLifecycleService;
 use App\Services\TransactionPaymentCommunicationService;
 use App\Services\SellerInvoicePaymentService;
 use Carbon\Carbon;
-
+use App\Services\ProductInventoryService;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -23,13 +24,21 @@ class PaystackPaymentController extends Controller
 {
     protected TransactionPaymentCommunicationService $communications;
 
+    protected ProductInventoryService $inventory;
+
+
     public function __construct(
-        TransactionPaymentCommunicationService $communications
+        TransactionPaymentCommunicationService $communications,
+        ProductInventoryService $inventory
     ) {
+
         $this->communications =
             $communications;
-    }
 
+
+        $this->inventory =
+            $inventory;
+    }
 
     public function initialize(
         Request $request,
@@ -124,7 +133,40 @@ class PaystackPaymentController extends Controller
                     'This transaction is no longer awaiting payment.'
                 );
         }
+        try {
 
+            $this
+                ->inventory
+                ->reserveForPayment(
+                    $secureTransaction
+                );
+
+        } catch (
+            ValidationException $exception
+        ) {
+
+            $message =
+                collect(
+                    $exception->errors()
+                )
+                    ->flatten()
+                    ->first()
+
+                ?:
+
+                'The requested product quantity is no longer available.';
+
+
+            return redirect()
+                ->route(
+                    'secure-transactions.show',
+                    $secureTransaction
+                )
+                ->with(
+                    'error',
+                    $message
+                );
+        }
 
         $activeAttempt =
             SecureTransactionPayment::query()
@@ -178,6 +220,13 @@ class PaystackPaymentController extends Controller
         if (
             $amountSubunit <= 0
         ) {
+            $this
+                ->inventory
+                ->releaseReservation(
+                    $secureTransaction
+                );
+
+
             return redirect()
                 ->route(
                     'secure-transactions.show',
@@ -346,6 +395,11 @@ class PaystackPaymentController extends Controller
                     SecureTransactionPayment::STATUS_FAILED,
 
             ]);
+            $this
+                ->inventory
+                ->releaseReservation(
+                    $secureTransaction
+                );
 
 
             $secureTransaction->update([
@@ -457,9 +511,23 @@ class PaystackPaymentController extends Controller
             ===
             SecureTransaction::PAYMENT_PAID
         ) {
-            $this->communications->handle(
-                $transaction->fresh()
-            );
+            $freshTransaction =
+                $transaction
+                    ->fresh();
+
+
+            $this
+                ->communications
+                ->handle(
+                    $freshTransaction
+                );
+
+
+            $this
+                ->inventory
+                ->notifySellerIfOutOfStock(
+                    $freshTransaction
+                );
 
 
             return redirect()
@@ -913,11 +981,24 @@ if (
             SecureTransactionPayment::STATUS_SUCCESS
         ) {
             if ($payment->secureTransaction) {
-                $this->communications->handle(
+                $freshTransaction =
                     $payment
                         ->secureTransaction
-                        ->fresh()
-                );
+                        ->fresh();
+
+
+                $this
+                    ->communications
+                    ->handle(
+                        $freshTransaction
+                    );
+
+
+                $this
+                    ->inventory
+                    ->notifySellerIfOutOfStock(
+                        $freshTransaction
+                    );
             }
 
 
@@ -1392,7 +1473,11 @@ $lockedPayment->update([
                             8
                         )
                     );
-
+                $this
+                    ->inventory
+                    ->deductForSuccessfulPayment(
+                        $lockedTransaction
+                    );
 
                 $lockedTransaction->update([
 
@@ -1444,9 +1529,23 @@ $lockedPayment->update([
         );
 
 
-        $this->communications->handle(
-            $transaction->fresh()
-        );
+        $freshTransaction =
+            $transaction
+                ->fresh();
+
+
+        $this
+            ->communications
+            ->handle(
+                $freshTransaction
+            );
+
+
+        $this
+            ->inventory
+            ->notifySellerIfOutOfStock(
+                $freshTransaction
+            );
 
 
         return true;
@@ -1497,6 +1596,13 @@ $lockedPayment->update([
                         SecureTransaction::PAYMENT_FAILED,
 
                 ]);
+
+
+                $this
+                    ->inventory
+                    ->releaseReservation(
+                        $transaction
+                    );
             }
 
 

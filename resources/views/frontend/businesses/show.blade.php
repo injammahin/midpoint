@@ -91,16 +91,27 @@
 
 
                 $buyUrl =
-                    route(
-                        'buyer.seller-invite',
-                        [
-                            'seller' =>
-                                $seller->id,
 
-                            'product' =>
-                                $product->id,
-                        ]
-                    );
+                    (int)
+                    $product->stock
+                    >
+                    0
+
+                        ?
+
+                        route(
+                            'buyer.products.checkout',
+                            [
+
+                                'sellerProduct' =>
+                                    $product->id,
+
+                            ]
+                        )
+
+                        :
+
+                        null;
 
 
                 $whatsappUrl =
@@ -629,16 +640,27 @@
                             }
 
                             $buyUrl =
-                                route(
-                                    'buyer.seller-invite',
-                                    [
-                                        'seller' =>
-                                            $seller->id,
 
-                                        'product' =>
-                                            $product->id,
-                                    ]
-                                );
+                                (int)
+                                $product->stock
+                                >
+                                0
+
+                                    ?
+
+                                    route(
+                                        'buyer.products.checkout',
+                                        [
+
+                                            'sellerProduct' =>
+                                                $product->id,
+
+                                        ]
+                                    )
+
+                                    :
+
+                                    null;
 
                             $productWhatsappUrl =
                                 null;
@@ -808,16 +830,33 @@
 
                                 <div class="shop-product-buttons {{ $productWhatsappUrl ? 'has-whatsapp' : '' }}">
 
-                                    <a
-                                        href="{{ $buyUrl }}"
-                                        class="shop-buy-button"
-                                    >
+                                    @if ((int) $product->stock > 0)
 
-                                        <i class="fa-solid fa-shield-halved"></i>
+                                        <a
+                                            href="{{ $buyUrl }}"
+                                            class="shop-buy-button"
+                                        >
 
-                                        Buy securely
+                                            <i class="fa-solid fa-shield-halved"></i>
 
-                                    </a>
+                                            Buy securely
+
+                                        </a>
+
+                                    @else
+
+                                        <span
+                                            class="shop-buy-button shop-buy-button-disabled"
+                                            aria-disabled="true"
+                                        >
+
+                                            <i class="fa-solid fa-box-open"></i>
+
+                                            Out of stock
+
+                                        </span>
+
+                                    @endif
 
 
                                     <button
@@ -1808,7 +1847,17 @@
         gap: 15px;
         margin-bottom: 19px;
     }
+    .shop-buy-button-disabled {
+        background: #9AA7A0 !important;
+        cursor: not-allowed !important;
+        pointer-events: none;
+    }
 
+
+    .shop-modal-buy-disabled {
+        background: #9AA7A0 !important;
+        cursor: not-allowed !important;
+    }
     .shop-section-heading h2 {
         margin: 0;
         color: #101915;
@@ -2882,6 +2931,32 @@ document.addEventListener(
             document.getElementById(
                 'shopModalWhatsappButton'
             );
+                if (
+            buyButton
+        ) {
+
+            buyButton.addEventListener(
+                'click',
+                function (
+                    event
+                ) {
+
+                    if (
+                        buyButton.getAttribute(
+                            'aria-disabled'
+                        )
+                        ===
+                        'true'
+                    ) {
+
+                        event.preventDefault();
+
+                    }
+
+                }
+            );
+
+        }
 
 
         let currentImages =
@@ -3084,8 +3159,56 @@ document.addEventListener(
                 'No product description available.';
 
 
-            buyButton.href =
-                product.buy_url;
+            if (
+                Number(
+                    product.stock
+                )
+                >
+                0
+
+                &&
+
+                product.buy_url
+            ) {
+
+                buyButton.href =
+                    product.buy_url;
+
+
+                buyButton.classList.remove(
+                    'shop-modal-buy-disabled'
+                );
+
+
+                buyButton.removeAttribute(
+                    'aria-disabled'
+                );
+
+
+                buyButton.innerHTML =
+                    '<i class="fa-solid fa-shield-halved"></i> Buy securely';
+
+            } else {
+
+                buyButton.href =
+                    '#';
+
+
+                buyButton.classList.add(
+                    'shop-modal-buy-disabled'
+                );
+
+
+                buyButton.setAttribute(
+                    'aria-disabled',
+                    'true'
+                );
+
+
+                buyButton.innerHTML =
+                    '<i class="fa-solid fa-box-open"></i> Out of stock';
+
+            }
 
 
             if (

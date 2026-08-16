@@ -67,7 +67,7 @@ use App\Http\Controllers\Buyer\BuyerNotificationController;
 use App\Http\Controllers\Buyer\BuyerTransactionActionController;
 use App\Http\Controllers\Buyer\BuyerTransactionDisputeController;
 use App\Http\Controllers\Buyer\BuyerProfileSettingsController;
-
+use App\Http\Controllers\Buyer\ProductCheckoutController;
 
 /*
 |--------------------------------------------------------------------------
@@ -1007,6 +1007,22 @@ Route::middleware([
             | Buyer Dashboard
             |--------------------------------------------------------------------------
             */
+            Route::get(
+                '/products/{sellerProduct}/checkout',
+                [
+                    ProductCheckoutController::class,
+                    'show',
+                ]
+            )->name('products.checkout');
+
+
+            Route::post(
+                '/products/{sellerProduct}/checkout',
+                [
+                    ProductCheckoutController::class,
+                    'store',
+                ]
+            )->name('products.checkout.store');
 
             Route::get(
                 '/dashboard',

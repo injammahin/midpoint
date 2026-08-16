@@ -103,4 +103,15 @@ return [
 
         ),
 
+    'stock_reservation_minutes' =>
+
+        (int)
+        env(
+
+            'MIDPOINT_STOCK_RESERVATION_MINUTES',
+
+            30
+
+        ),
+
 ];
