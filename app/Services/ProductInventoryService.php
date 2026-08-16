@@ -6,6 +6,7 @@ use App\Mail\TransactionStatusUpdateMail;
 
 use App\Models\SecureTransaction;
 use App\Models\SellerProduct;
+use App\Models\MarketplaceCheckoutIntent;
 use App\Models\TransactionNotification;
 
 use Illuminate\Support\Facades\DB;
@@ -242,7 +243,41 @@ class ProductInventoryService
                 | Available Quantity
                 |--------------------------------------------------------------------------
                 */
+$marketplaceReservedQuantity =
+    (int)
+    MarketplaceCheckoutIntent::query()
 
+        ->where(
+            'seller_product_id',
+            $product->id
+        )
+
+        ->whereNull(
+            'secure_transaction_id'
+        )
+
+        ->whereIn(
+            'payment_status',
+            [
+
+                MarketplaceCheckoutIntent::STATUS_CREATED,
+
+                MarketplaceCheckoutIntent::STATUS_INITIALIZED,
+
+                MarketplaceCheckoutIntent::STATUS_PENDING,
+
+            ]
+        )
+
+        ->where(
+            'reserved_until',
+            '>',
+            now()
+        )
+
+        ->sum(
+            'quantity'
+        );
                 $availableQuantity =
                     max(
                         0,
@@ -253,8 +288,11 @@ class ProductInventoryService
                         -
 
                         $reservedQuantity
-                    );
 
+                        -
+
+                        $marketplaceReservedQuantity
+                    );
 
                 if (
                     (int)
@@ -809,7 +847,209 @@ class ProductInventoryService
                 ]);
         }
     }
+    public function availableStockForProduct(
+        SellerProduct $product,
+        ?int $currentBuyerId = null
+    ): int {
 
+        /*
+        |--------------------------------------------------------------------------
+        | Expire Old Marketplace Reservations
+        |--------------------------------------------------------------------------
+        */
+
+        MarketplaceCheckoutIntent::query()
+
+            ->where(
+                'seller_product_id',
+                $product->id
+            )
+
+            ->whereNull(
+                'secure_transaction_id'
+            )
+
+            ->whereIn(
+                'payment_status',
+                [
+
+                    MarketplaceCheckoutIntent::STATUS_CREATED,
+
+                    MarketplaceCheckoutIntent::STATUS_INITIALIZED,
+
+                    MarketplaceCheckoutIntent::STATUS_PENDING,
+
+                ]
+            )
+
+            ->whereNotNull(
+                'reserved_until'
+            )
+
+            ->where(
+                'reserved_until',
+                '<=',
+                now()
+            )
+
+            ->update([
+
+                'payment_status' =>
+                    MarketplaceCheckoutIntent::STATUS_EXPIRED,
+
+            ]);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Seller-Created Secure Transaction Reservations
+        |--------------------------------------------------------------------------
+        |
+        | Keep your original secure-transaction reservation protection.
+        |
+        */
+
+        $secureTransactionReservations =
+            (int)
+            SecureTransaction::query()
+
+                ->where(
+                    'seller_product_id',
+                    $product->id
+                )
+
+                ->whereNull(
+                    'stock_deducted_at'
+                )
+
+                ->whereNull(
+                    'stock_released_at'
+                )
+
+                ->whereNotNull(
+                    'stock_reserved_until'
+                )
+
+                ->where(
+                    'stock_reserved_until',
+                    '>',
+                    now()
+                )
+
+                ->sum(
+                    'quantity'
+                );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Marketplace Reservations
+        |--------------------------------------------------------------------------
+        */
+
+        $marketplaceReservationQuery =
+            MarketplaceCheckoutIntent::query()
+
+                ->where(
+                    'seller_product_id',
+                    $product->id
+                )
+
+                ->whereNull(
+                    'secure_transaction_id'
+                )
+
+                ->whereIn(
+                    'payment_status',
+                    [
+
+                        MarketplaceCheckoutIntent::STATUS_CREATED,
+
+                        MarketplaceCheckoutIntent::STATUS_INITIALIZED,
+
+                        MarketplaceCheckoutIntent::STATUS_PENDING,
+
+                    ]
+                )
+
+                ->whereNotNull(
+                    'reserved_until'
+                )
+
+                ->where(
+                    'reserved_until',
+                    '>',
+                    now()
+                );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Do NOT Count Current Buyer's Own Reservation
+        |--------------------------------------------------------------------------
+        |
+        | Example:
+        |
+        | Stock = 1
+        |
+        | Buyer A started Paystack but closed it.
+        |
+        | Buyer A should still see:
+        |
+        | 1 available
+        |
+        | But Buyer B should see:
+        |
+        | 0 available
+        |
+        */
+
+        if (
+            $currentBuyerId
+            !==
+            null
+        ) {
+
+            $marketplaceReservationQuery
+                ->where(
+                    'buyer_id',
+                    '!=',
+                    $currentBuyerId
+                );
+        }
+
+
+        $marketplaceReservations =
+            (int)
+            $marketplaceReservationQuery
+                ->sum(
+                    'quantity'
+                );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Available Quantity
+        |--------------------------------------------------------------------------
+        */
+
+        return max(
+
+            0,
+
+            (int)
+            $product->stock
+
+            -
+
+            $secureTransactionReservations
+
+            -
+
+            $marketplaceReservations
+
+        );
+    }
 
     /*
     |--------------------------------------------------------------------------

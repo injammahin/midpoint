@@ -17,9 +17,11 @@
 
 
     $stock =
-        (int)
-        $sellerProduct
-            ->stock;
+        (int) (
+            $availableStock
+            ??
+            $sellerProduct->stock
+        );
 
 
     $oldQuantity =
@@ -1396,9 +1398,46 @@ document.addEventListener(
 
 
         refreshTotal();
+        const checkoutForm =
+            document.getElementById(
+                'marketCheckoutForm'
+            );
 
-    }
-);
+
+        const payButton =
+            document.getElementById(
+                'marketPayButton'
+            );
+
+
+        if (
+            checkoutForm
+            &&
+            payButton
+        ) {
+
+            checkoutForm.addEventListener(
+                'submit',
+                function () {
+
+                    if (
+                        payButton.disabled
+                    ) {
+                        return;
+                    }
+
+
+                    payButton.disabled =
+                        true;
+
+
+                    payButton.innerHTML =
+                        '<i class="fa-solid fa-spinner fa-spin"></i> Opening Paystack…';
+                }
+            );
+        }
+            }
+        );
 
 </script>
 

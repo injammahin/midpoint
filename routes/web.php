@@ -272,6 +272,16 @@ Route::get(
 */
 
 Route::get(
+    '/payments/paystack/marketplace/callback',
+    [
+        ProductCheckoutController::class,
+        'paystackCallback',
+    ]
+)->name(
+    'payments.paystack.marketplace.callback'
+);
+
+Route::get(
     '/payments/paystack/callback',
     [
         PaystackPaymentController::class,

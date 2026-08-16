@@ -4,18 +4,14 @@ namespace App\Http\Controllers\Buyer;
 
 use App\Http\Controllers\Controller;
 
-use App\Models\SecureTransaction;
+use App\Models\MarketplaceCheckoutIntent;
 use App\Models\SellerProduct;
 
+use App\Services\MarketplaceCheckoutPaymentService;
+use App\Services\PaystackService;
 use App\Services\ProductInventoryService;
 
 use Illuminate\Http\Request;
-
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
-
-use Illuminate\Support\Str;
-
 use Illuminate\Validation\ValidationException;
 
 use Throwable;
@@ -31,7 +27,8 @@ class ProductCheckoutController extends Controller
 
     public function show(
         Request $request,
-        SellerProduct $sellerProduct
+        SellerProduct $sellerProduct,
+        ProductInventoryService $inventory
     ) {
 
         $buyer =
@@ -62,7 +59,7 @@ class ProductCheckoutController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Product Must Still Exist And Be Active
+        | Active Product
         |--------------------------------------------------------------------------
         */
 
@@ -82,7 +79,7 @@ class ProductCheckoutController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Seller Must Still Have Active Package
+        | Seller Package
         |--------------------------------------------------------------------------
         */
 
@@ -116,7 +113,7 @@ class ProductCheckoutController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Seller Cannot Buy Own Product
+        | Own Product
         |--------------------------------------------------------------------------
         */
 
@@ -139,7 +136,7 @@ class ProductCheckoutController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Business Information
+        | Business Name
         |--------------------------------------------------------------------------
         */
 
@@ -156,6 +153,12 @@ class ProductCheckoutController extends Controller
 
             $seller->name;
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | Business Location
+        |--------------------------------------------------------------------------
+        */
 
         $businessLocation =
 
@@ -174,6 +177,28 @@ class ProductCheckoutController extends Controller
             )->location;
 
 
+        /*
+        |--------------------------------------------------------------------------
+        | REAL Available Stock
+        |--------------------------------------------------------------------------
+        |
+        | stock itself is only decreased after payment.
+        |
+        | Therefore temporary active reservations must be deducted here.
+        |
+        */
+
+        $availableStock =
+            $inventory
+                ->availableStockForProduct(
+
+                    $sellerProduct,
+
+                    (int) $buyer->id
+
+                );
+
+
         return view(
             'frontend.products.checkout',
             compact(
@@ -181,7 +206,8 @@ class ProductCheckoutController extends Controller
                 'seller',
                 'buyer',
                 'businessName',
-                'businessLocation'
+                'businessLocation',
+                'availableStock'
             )
         );
     }
@@ -189,14 +215,17 @@ class ProductCheckoutController extends Controller
 
     /*
     |--------------------------------------------------------------------------
-    | Create Transaction From Listed Product
+    | Start Marketplace Checkout
     |--------------------------------------------------------------------------
+    |
+    | NO SecureTransaction is created here.
+    |
     */
 
     public function store(
         Request $request,
         SellerProduct $sellerProduct,
-        ProductInventoryService $inventory
+        MarketplaceCheckoutPaymentService $marketplacePayments
     ) {
 
         $buyer =
@@ -223,7 +252,7 @@ class ProductCheckoutController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Checkout Validation
+        | Validate Checkout
         |--------------------------------------------------------------------------
         */
 
@@ -232,53 +261,67 @@ class ProductCheckoutController extends Controller
                 [
 
                     'quantity' => [
+
                         'required',
+
                         'integer',
+
                         'min:1',
+
                         'max:100',
+
                     ],
 
 
-                    /*
-                    |--------------------------------------------------------------------------
-                    | REQUIRED
-                    |--------------------------------------------------------------------------
-                    |
-                    | 0 is valid when there is no delivery fee.
-                    |
-                    */
-
                     'delivery_fee' => [
+
                         'required',
+
                         'numeric',
+
                         'min:0',
+
                         'max:999999999.99',
+
                     ],
 
 
                     'delivery_address' => [
+
                         'required',
+
                         'string',
+
                         'max:2000',
+
                     ],
 
 
                     'buyer_phone' => [
+
                         'required',
+
                         'string',
+
                         'max:40',
+
                     ],
 
                 ],
                 [
 
                     'delivery_fee.required' =>
+
                         'Delivery price as discussed with seller is required. Enter 0 if there is no delivery charge.',
 
+
                     'delivery_address.required' =>
+
                         'Please enter the delivery address.',
 
+
                     'buyer_phone.required' =>
+
                         'Please enter the rider/delivery phone number.',
 
                 ]
@@ -287,667 +330,370 @@ class ProductCheckoutController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | References
+        | Start Temporary Checkout + Paystack
         |--------------------------------------------------------------------------
         */
-
-        $reference =
-            SecureTransaction::generateReference();
-
-
-        $publicToken =
-            SecureTransaction::generatePublicToken();
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Copy Product Images
-        |--------------------------------------------------------------------------
-        |
-        | Same idea your seller transaction creation already uses.
-        |
-        | We snapshot the product image so deleting/changing the seller product
-        | later does not change transaction evidence.
-        |
-        */
-
-        $storedImages =
-            $this
-                ->copyProductImages(
-
-                    $sellerProduct,
-
-                    $reference
-
-                );
-
 
         try {
 
-            /*
-            |--------------------------------------------------------------------------
-            | Create Existing SecureTransaction
-            |--------------------------------------------------------------------------
-            */
-
-            $transaction =
-                DB::transaction(
-                    function () use (
+            $intent =
+                $marketplacePayments
+                    ->start(
 
                         $sellerProduct,
 
                         $buyer,
 
-                        $validated,
+                        $validated
 
-                        $reference,
+                    );
 
-                        $publicToken,
 
-                        $storedImages
-
-                    ) {
-
-                        /*
-                        |--------------------------------------------------------------------------
-                        | Lock Product
-                        |--------------------------------------------------------------------------
-                        */
-
-                        $product =
-                            SellerProduct::query()
-
-                                ->with([
-
-                                    'user.activeSellerSubscription',
-
-                                ])
-
-                                ->whereKey(
-                                    $sellerProduct->id
-                                )
-
-                                ->lockForUpdate()
-
-                                ->firstOrFail();
-
-
-                        /*
-                        |--------------------------------------------------------------------------
-                        | Active Product
-                        |--------------------------------------------------------------------------
-                        */
-
-                        if (
-                            !$product
-                                ->is_active
-                        ) {
-
-                            throw ValidationException::withMessages([
-
-                                'product' =>
-                                    'This product is currently unavailable.',
-
-                            ]);
-                        }
-
-
-                        /*
-                        |--------------------------------------------------------------------------
-                        | Active Seller Package
-                        |--------------------------------------------------------------------------
-                        */
-
-                        if (
-                            !$product
-                                ->user
-                                ?->activeSellerSubscription
-                        ) {
-
-                            throw ValidationException::withMessages([
-
-                                'product' =>
-                                    'This seller is not currently available for marketplace purchases.',
-
-                            ]);
-                        }
-
-
-                        /*
-                        |--------------------------------------------------------------------------
-                        | Cannot Buy Own Product
-                        |--------------------------------------------------------------------------
-                        */
-
-                        if (
-                            (int)
-                            $product->user_id
-
-                            ===
-
-                            (int)
-                            $buyer->id
-                        ) {
-
-                            abort(
-                                403,
-                                'You cannot purchase your own listed product.'
-                            );
-                        }
-
-
-                        $quantity =
-                            (int)
-                            $validated[
-                                'quantity'
-                            ];
-
-
-                        /*
-                        |--------------------------------------------------------------------------
-                        | Out Of Stock
-                        |--------------------------------------------------------------------------
-                        */
-
-                        if (
-                            (int)
-                            $product->stock
-                            <=
-                            0
-                        ) {
-
-                            throw ValidationException::withMessages([
-
-                                'quantity' =>
-                                    'This product is currently out of stock.',
-
-                            ]);
-                        }
-
-
-                        /*
-                        |--------------------------------------------------------------------------
-                        | Requested Quantity
-                        |--------------------------------------------------------------------------
-                        */
-
-                        if (
-                            $quantity
-
-                            >
-
-                            (int)
-                            $product->stock
-                        ) {
-
-                            throw ValidationException::withMessages([
-
-                                'quantity' =>
-                                    'Only '
-                                    .
-                                    number_format(
-                                        $product->stock
-                                    )
-                                    .
-                                    ' unit(s) are currently in stock.',
-
-                            ]);
-                        }
-
-
-                        /*
-                        |--------------------------------------------------------------------------
-                        | IMPORTANT: Product Price Comes From Database
-                        |--------------------------------------------------------------------------
-                        |
-                        | Never trust a price sent from JavaScript/browser.
-                        |
-                        */
-
-                        $unitPrice =
-                            round(
-                                (float)
-                                $product->price,
-                                2
-                            );
-
-
-                        /*
-                        |--------------------------------------------------------------------------
-                        | Subtotal
-                        |--------------------------------------------------------------------------
-                        */
-
-                        $subtotal =
-                            round(
-                                $unitPrice
-                                *
-                                $quantity,
-                                2
-                            );
-
-
-                        /*
-                        |--------------------------------------------------------------------------
-                        | Delivery
-                        |--------------------------------------------------------------------------
-                        */
-
-                        $deliveryFee =
-                            round(
-                                (float)
-                                $validated[
-                                    'delivery_fee'
-                                ],
-                                2
-                            );
-
-
-                        /*
-                        |--------------------------------------------------------------------------
-                        | Total
-                        |--------------------------------------------------------------------------
-                        */
-
-                        $totalAmount =
-                            round(
-                                $subtotal
-                                +
-                                $deliveryFee,
-                                2
-                            );
-
-
-                        /*
-                        |--------------------------------------------------------------------------
-                        | Existing Secure Transaction
-                        |--------------------------------------------------------------------------
-                        */
-
-                        return SecureTransaction::create([
-
-                            'reference' =>
-                                $reference,
-
-
-                            'public_token' =>
-                                $publicToken,
-
-
-                            /*
-                            |--------------------------------------------------------------------------
-                            | Seller / Buyer
-                            |--------------------------------------------------------------------------
-                            */
-
-                            'seller_id' =>
-                                $product->user_id,
-
-
-                            /*
-                            |--------------------------------------------------------------------------
-                            | Buyer Is Already Logged In
-                            |--------------------------------------------------------------------------
-                            */
-
-                            'buyer_id' =>
-                                $buyer->id,
-
-
-                            /*
-                            |--------------------------------------------------------------------------
-                            | Existing Product
-                            |--------------------------------------------------------------------------
-                            */
-
-                            'seller_product_id' =>
-                                $product->id,
-
-
-                            'transaction_type' =>
-                                'listed',
-
-
-                            /*
-                            |--------------------------------------------------------------------------
-                            | Transaction Source
-                            |--------------------------------------------------------------------------
-                            |
-                            | This transaction was created because a buyer selected a product from
-                            | the seller's public/listed products and checked out directly.
-                            |
-                            */
-
-                            'transaction_source' =>
-                                SecureTransaction::SOURCE_MARKETPLACE_CHECKOUT,
-
-
-                            /*
-                            |--------------------------------------------------------------------------
-                            | Product Snapshot
-                            |--------------------------------------------------------------------------
-                            */
-
-                            'title' =>
-                                $product->name,
-
-
-                            'description' =>
-                                $product->description,
-
-
-                            'images' =>
-                                $storedImages,
-
-
-                            /*
-                            |--------------------------------------------------------------------------
-                            | Quantity
-                            |--------------------------------------------------------------------------
-                            */
-
-                            'quantity' =>
-                                $quantity,
-
-
-                            /*
-                            |--------------------------------------------------------------------------
-                            | Amounts
-                            |--------------------------------------------------------------------------
-                            */
-
-                            'unit_price' =>
-                                $unitPrice,
-
-
-                            'subtotal' =>
-                                $subtotal,
-
-
-                            'delivery_fee' =>
-                                $deliveryFee,
-
-
-                            'total_amount' =>
-                                $totalAmount,
-
-
-                            'currency' =>
-                                'NGN',
-
-
-                            /*
-                            |--------------------------------------------------------------------------
-                            | Buyer
-                            |--------------------------------------------------------------------------
-                            */
-
-                            'buyer_email' =>
-                                strtolower(
-                                    trim(
-                                        $buyer->email
-                                    )
-                                ),
-
-
-                            'buyer_phone' =>
-                                trim(
-                                    $validated[
-                                        'buyer_phone'
-                                    ]
-                                ),
-
-
-                            /*
-                            |--------------------------------------------------------------------------
-                            | Delivery Address
-                            |--------------------------------------------------------------------------
-                            |
-                            | Your existing transaction architecture already uses
-                            | delivery_note, therefore we intentionally reuse it.
-                            |
-                            */
-
-                            'delivery_note' =>
-                                trim(
-                                    $validated[
-                                        'delivery_address'
-                                    ]
-                                ),
-
-
-                            /*
-                            |--------------------------------------------------------------------------
-                            | Inspection
-                            |--------------------------------------------------------------------------
-                            */
-
-                            'inspection_hours' =>
-                                (int)
-                                config(
-                                    'secure_transactions.inspection_hours',
-                                    8
-                                ),
-
-
-                            /*
-                            |--------------------------------------------------------------------------
-                            | Initial Status
-                            |--------------------------------------------------------------------------
-                            */
-
-                            'status' =>
-                                SecureTransaction::STATUS_AWAITING_PAYMENT,
-
-
-                            'payment_status' =>
-                                SecureTransaction::PAYMENT_UNPAID,
-
-
-                            /*
-                            |--------------------------------------------------------------------------
-                            | Already Claimed
-                            |--------------------------------------------------------------------------
-                            */
-
-                            'claimed_at' =>
-                                now(),
-
-
-                            /*
-                            |--------------------------------------------------------------------------
-                            | Link
-                            |--------------------------------------------------------------------------
-                            */
-
-                            'link_expires_at' =>
-                                now()
-                                    ->addDays(
-                                        (int)
-                                        config(
-                                            'secure_transactions.link_expiry_days',
-                                            7
-                                        )
-                                    ),
-
-                        ]);
-                    }
-                );
-
-        } catch (Throwable $exception) {
-
-            foreach (
-                $storedImages
-                as
-                $path
-            ) {
-
-                Storage::disk(
-                    'public'
-                )->delete(
-                    $path
-                );
-            }
-
+        } catch (
+            ValidationException $exception
+        ) {
 
             throw $exception;
-        }
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | Reserve Quantity
-        |--------------------------------------------------------------------------
-        |
-        | The real product stock is still NOT changed.
-        |
-        */
+        } catch (
+            Throwable $exception
+        ) {
 
-        try {
-
-            $inventory
-                ->reserveForPayment(
-                    $transaction
-                );
-
-        } catch (Throwable $exception) {
-
-            /*
-            |--------------------------------------------------------------------------
-            | Remove Created Unpaid Transaction
-            |--------------------------------------------------------------------------
-            */
-
-            DB::transaction(
-                function () use (
-                    $transaction
-                ) {
-
-                    $transaction
-                        ->delete();
-
-                }
+            report(
+                $exception
             );
 
 
-            /*
-            |--------------------------------------------------------------------------
-            | Remove Snapshot Files
-            |--------------------------------------------------------------------------
-            */
+            return back()
 
-            foreach (
-                $storedImages
-                as
-                $path
-            ) {
+                ->withInput()
 
-                Storage::disk(
-                    'public'
-                )->delete(
-                    $path
+                ->with(
+                    'error',
+                    'We could not open Paystack checkout. No transaction was created. Please try again.'
                 );
-            }
-
-
-            throw $exception;
         }
 
 
         /*
         |--------------------------------------------------------------------------
-        | Continue Into EXISTING Paystack Algorithm
+        | DIRECT PAYSTACK REDIRECT
         |--------------------------------------------------------------------------
+        |
+        | This removes your second screenshot:
+        |
+        | "Opening secure payment"
+        | "Continue to secure payment"
+        |
         */
 
-        return view(
-            'frontend.products.redirect-to-payment',
-            compact(
-                'transaction'
-            )
-        );
+        return redirect()
+            ->away(
+                $intent
+                    ->authorization_url
+            );
     }
 
 
     /*
     |--------------------------------------------------------------------------
-    | Copy Product Images
+    | Marketplace Paystack Callback
     |--------------------------------------------------------------------------
     */
 
-    private function copyProductImages(
-        SellerProduct $product,
-        string $reference
-    ): array {
+    public function paystackCallback(
+        Request $request,
+        PaystackService $paystack,
+        MarketplaceCheckoutPaymentService $marketplacePayments
+    ) {
 
-        $copied =
-            [];
+        /*
+        |--------------------------------------------------------------------------
+        | Reference
+        |--------------------------------------------------------------------------
+        */
+
+        $reference =
+            trim(
+                (string)
+                (
+                    $request->query(
+                        'reference'
+                    )
+
+                    ?:
+
+                    $request->query(
+                        'trxref'
+                    )
+                )
+            );
 
 
-        foreach (
-            $product->all_images
-            as
-            $source
+        if (
+            $reference
+            ===
+            ''
         ) {
 
-            if (
-                !Storage::disk(
-                    'public'
-                )->exists(
-                    $source
+            return redirect()
+
+                ->route(
+                    'home'
                 )
-            ) {
-                continue;
-            }
 
-
-            $extension =
-                pathinfo(
-                    $source,
-                    PATHINFO_EXTENSION
+                ->with(
+                    'error',
+                    'Paystack did not return a payment reference. No transaction was created.'
                 );
+        }
 
 
-            if (!$extension) {
+        /*
+        |--------------------------------------------------------------------------
+        | Find Temporary Intent
+        |--------------------------------------------------------------------------
+        */
 
-                $extension =
-                    'jpg';
+        $intent =
+            MarketplaceCheckoutIntent::query()
 
-            }
+                ->where(
+                    'paystack_reference',
+                    $reference
+                )
+
+                ->first();
 
 
-            $destination =
-                'secure-transactions/'
-                .
-                $reference
-                .
-                '/'
-                .
-                Str::uuid()
-                .
-                '.'
-                .
-                strtolower(
-                    $extension
+        if (!$intent) {
+
+            return redirect()
+
+                ->route(
+                    'home'
+                )
+
+                ->with(
+                    'error',
+                    'The returned marketplace payment reference is not recognized.'
                 );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Already Finalized?
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            $intent
+                ->secure_transaction_id
+        ) {
+
+            $transaction =
+                $intent
+                    ->secureTransaction()
+                    ->first();
 
 
             if (
-                Storage::disk(
-                    'public'
-                )->copy(
-                    $source,
-                    $destination
-                )
+                $transaction
             ) {
 
-                $copied[] =
-                    $destination;
+                return redirect()
 
+                    ->route(
+                        'secure-transactions.show',
+                        $transaction
+                    )
+
+                    ->with(
+                        'success',
+                        'Payment already confirmed and your order is secured.'
+                    );
             }
         }
 
 
-        return $copied;
+        /*
+        |--------------------------------------------------------------------------
+        | Verify Directly With Paystack
+        |--------------------------------------------------------------------------
+        */
+
+        try {
+
+            $data =
+                $paystack
+                    ->verifyTransaction(
+                        $reference
+                    );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Create Real Transaction ONLY If Successful
+            |--------------------------------------------------------------------------
+            */
+
+            $transaction =
+                $marketplacePayments
+                    ->processVerifiedPayment(
+
+                        $intent,
+
+                        $data
+
+                    );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Success
+            |--------------------------------------------------------------------------
+            */
+
+            if (
+                $transaction
+            ) {
+
+                return redirect()
+
+                    ->route(
+                        'secure-transactions.show',
+                        $transaction
+                    )
+
+                    ->with(
+                        'success',
+                        'Payment successful. Your order has now been created and secured by Midpoint.'
+                    );
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Failed / Pending / Abandoned
+            |--------------------------------------------------------------------------
+            */
+
+            return $this
+                ->redirectAfterUnsuccessfulPayment(
+
+                    $request,
+
+                    $intent,
+
+                    'Payment was not successful. No transaction was created.'
+
+                );
+
+
+        } catch (
+            Throwable $exception
+        ) {
+
+            report(
+                $exception
+            );
+
+
+            return $this
+                ->redirectAfterUnsuccessfulPayment(
+
+                    $request,
+
+                    $intent,
+
+                    'We could not verify the payment right now. No transaction has been created yet. If you were charged, do not pay again until the payment is verified.'
+
+                );
+        }
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Return Buyer After Failed Payment
+    |--------------------------------------------------------------------------
+    */
+
+    private function redirectAfterUnsuccessfulPayment(
+        Request $request,
+        MarketplaceCheckoutIntent $intent,
+        string $message
+    ) {
+
+        $user =
+            $request->user();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Buyer Still Logged In
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+
+            $user
+
+            &&
+
+            (int)
+            $user->id
+
+            ===
+
+            (int)
+            $intent->buyer_id
+
+            &&
+
+            SellerProduct::query()
+
+                ->whereKey(
+                    $intent
+                        ->seller_product_id
+                )
+
+                ->exists()
+
+        ) {
+
+            return redirect()
+
+                ->route(
+                    'buyer.products.checkout',
+                    $intent
+                        ->seller_product_id
+                )
+
+                ->with(
+                    'error',
+                    $message
+                );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Fallback
+        |--------------------------------------------------------------------------
+        */
+
+        return redirect()
+
+            ->route(
+                'home'
+            )
+
+            ->with(
+                'error',
+                $message
+            );
     }
 }

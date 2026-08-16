@@ -16,7 +16,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
-
+use App\Models\MarketplaceCheckoutIntent;
+use App\Services\MarketplaceCheckoutPaymentService;
 use RuntimeException;
 use Throwable;
 
@@ -706,7 +707,108 @@ class PaystackPaymentController extends Controller
                 200
             );
         }
+        $marketplaceIntent =
+            MarketplaceCheckoutIntent::query()
 
+                ->where(
+                    'paystack_reference',
+                    $reference
+                )
+
+                ->first();
+
+
+        if (
+            $marketplaceIntent
+        ) {
+
+            try {
+
+                /*
+                |--------------------------------------------------------------------------
+                | Verify Directly With Paystack
+                |--------------------------------------------------------------------------
+                */
+
+                $verifiedData =
+                    $paystack
+                        ->verifyTransaction(
+                            $reference
+                        );
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Finalize Marketplace Purchase
+                |--------------------------------------------------------------------------
+                |
+                | Creates SecureTransaction only if verified status = success.
+                |
+                */
+
+                app(
+                    MarketplaceCheckoutPaymentService::class
+                )
+                    ->processVerifiedPayment(
+
+                        $marketplaceIntent,
+
+                        $verifiedData
+
+                    );
+
+
+                return response(
+                    'OK',
+                    200
+                );
+
+
+            } catch (
+                Throwable $exception
+            ) {
+
+                Log::error(
+                    'Marketplace Paystack webhook verification/finalization failed.',
+                    [
+
+                        'reference' =>
+                            $reference,
+
+
+                        'marketplace_checkout_intent_id' =>
+                            $marketplaceIntent
+                                ->id,
+
+
+                        'error' =>
+                            $exception
+                                ->getMessage(),
+
+                    ]
+                );
+
+
+                report(
+                    $exception
+                );
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Return 500
+                |--------------------------------------------------------------------------
+                |
+                | This allows Paystack to retry.
+                |
+                */
+
+                return response(
+                    'Verification failed',
+                    500
+                );
+            }
+        }
 
         $payment =
             SecureTransactionPayment::query()
