@@ -32,7 +32,7 @@
     "src": "node_modules/@fortawesome/fontawesome-free/webfonts/fa-v4compatibility.woff2"
   },
   "resources/css/account-dashboard.css": {
-    "file": "assets/account-dashboard-21a0ca82.css",
+    "file": "assets/account-dashboard-0fcc37e8.css",
     "isEntry": true,
     "src": "resources/css/account-dashboard.css"
   },
@@ -42,7 +42,7 @@
     "src": "resources/css/admin.css"
   },
   "resources/css/app.css": {
-    "file": "assets/app-1df59309.css",
+    "file": "assets/app-edc3f687.css",
     "isEntry": true,
     "src": "resources/css/app.css"
   },
@@ -52,7 +52,7 @@
     "src": "resources/js/account-dashboard.js"
   },
   "resources/js/admin.js": {
-    "file": "assets/admin-5b82b334.js",
+    "file": "assets/admin-69cb4e39.js",
     "imports": [
       "_live-support-52361d42.js"
     ],
@@ -60,7 +60,7 @@
     "src": "resources/js/admin.js"
   },
   "resources/js/app.js": {
-    "file": "assets/app-0fb45730.js",
+    "file": "assets/app-6308428d.js",
     "imports": [
       "_live-support-52361d42.js"
     ],
