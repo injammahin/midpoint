@@ -76,6 +76,11 @@ class SecureTransaction extends Model
 
     public const PAYOUT_REVERSED = 'reversed';
 
+    public const PAYOUT_WALLET_PENDING =
+    'wallet_pending';
+
+    public const PAYOUT_WALLET_CREDITED =
+        'wallet_credited';
 
     /*
     |--------------------------------------------------------------------------
@@ -295,6 +300,18 @@ class SecureTransaction extends Model
     | Generate Transaction Reference
     |--------------------------------------------------------------------------
     */
+    public function walletRelease()
+    {
+        return $this
+            ->hasOne(
+                SellerWalletTransaction::class,
+                'secure_transaction_id'
+            )
+            ->where(
+                'type',
+                SellerWalletTransaction::TYPE_TRANSACTION_RELEASE
+            );
+    }
 
     public static function generateReference(): string
     {

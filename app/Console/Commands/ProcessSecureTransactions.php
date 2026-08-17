@@ -13,15 +13,26 @@ class ProcessSecureTransactions extends Command
     protected $signature =
         'transactions:process';
 
+
     protected $description =
-        'Process Midpoint transaction countdowns and seller payouts';
+        'Process Midpoint transaction countdowns, seller wallet releases, and legacy payouts';
+
 
     public function handle(
         TransactionLifecycleService $lifecycle,
         SellerPayoutService $payouts
     ) {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Automatic Release After Delivery / Inspection Timeout
+        |--------------------------------------------------------------------------
+        */
+
         SecureTransaction::query()
-            ->with('dispute')
+            ->with(
+                'dispute'
+            )
             ->whereIn(
                 'status',
                 [
@@ -29,7 +40,9 @@ class ProcessSecureTransactions extends Command
                     SecureTransaction::STATUS_INSPECTION,
                 ]
             )
-            ->whereNotNull('auto_complete_at')
+            ->whereNotNull(
+                'auto_complete_at'
+            )
             ->where(
                 'auto_complete_at',
                 '<=',
@@ -40,16 +53,21 @@ class ProcessSecureTransactions extends Command
                 function ($transactions) use (
                     $lifecycle
                 ) {
+
                     foreach (
                         $transactions
                         as
                         $transaction
                     ) {
+
                         try {
+
                             $lifecycle->autoRelease(
                                 $transaction
                             );
+
                         } catch (Throwable $exception) {
+
                             report(
                                 $exception
                             );
@@ -59,45 +77,87 @@ class ProcessSecureTransactions extends Command
             );
 
 
+        /*
+        |--------------------------------------------------------------------------
+        | Recover Release-Approved Transactions Into Wallet
+        |--------------------------------------------------------------------------
+        |
+        | This solves transactions such as the one in your screenshot.
+        |
+        | Old behavior:
+        |
+        | release_approved
+        | seller_setup_required
+        |
+        | New behavior:
+        |
+        | release_approved
+        |        ->
+        | wallet credit
+        |        ->
+        | completed
+        |
+        |
+        | Only transactions WITHOUT an existing Paystack transfer reference are
+        | allowed here.
+        |
+        */
+
         SecureTransaction::query()
-            ->with('seller')
             ->where(
                 'status',
                 SecureTransaction::STATUS_RELEASE_APPROVED
             )
             ->where(
-                'payout_status',
-                'seller_setup_required'
+                'payment_status',
+                SecureTransaction::PAYMENT_PAID
+            )
+            ->whereNull(
+                'funds_released_at'
+            )
+            ->whereNull(
+                'paystack_transfer_reference'
+            )
+            ->where(
+                function ($query) {
+
+                    $query
+                        ->whereNull(
+                            'payout_status'
+                        )
+                        ->orWhereIn(
+                            'payout_status',
+                            [
+                                SecureTransaction::PAYOUT_LOCKED,
+
+                                'seller_setup_required',
+
+                                SecureTransaction::PAYOUT_WALLET_PENDING,
+                            ]
+                        );
+                }
             )
             ->chunkById(
                 50,
                 function ($transactions) use (
                     $lifecycle
                 ) {
+
                     foreach (
                         $transactions
                         as
                         $transaction
                     ) {
-                        if (
-                            !$transaction->seller
-                            ||
-                            !$transaction
-                                ->seller
-                                ->bank_account_number
-                            ||
-                            !$transaction
-                                ->seller
-                                ->bank_code
-                        ) {
-                            continue;
-                        }
 
                         try {
-                            $lifecycle->retryPayout(
-                                $transaction
-                            );
+
+                            $lifecycle
+                                ->creditApprovedReleaseToWallet(
+                                    $transaction
+                                );
+
                         } catch (Throwable $exception) {
+
                             report(
                                 $exception
                             );
@@ -106,6 +166,18 @@ class ProcessSecureTransactions extends Command
                 }
             );
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | Legacy Direct Bank Transfers
+        |--------------------------------------------------------------------------
+        |
+        | Do NOT start new bank transfers.
+        |
+        | Only verify old transfers that were already initialized before the
+        | wallet system was introduced.
+        |
+        */
 
         SecureTransaction::query()
             ->where(
@@ -121,16 +193,20 @@ class ProcessSecureTransactions extends Command
                     $lifecycle,
                     $payouts
                 ) {
+
                     foreach (
                         $transactions
                         as
                         $transaction
                     ) {
+
                         try {
+
                             $data =
                                 $payouts->verify(
                                     $transaction
                                 );
+
 
                             $lifecycle->handleTransferStatus(
                                 $transaction,
@@ -140,6 +216,7 @@ class ProcessSecureTransactions extends Command
                             );
 
                         } catch (Throwable $exception) {
+
                             report(
                                 $exception
                             );

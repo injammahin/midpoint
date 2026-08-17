@@ -162,7 +162,69 @@
         </p>
 
     </div>
+    <section class="seller-wallet-overview dashboard-card">
 
+        <div class="seller-wallet-overview-left">
+
+            <div class="seller-wallet-overview-icon">
+
+                <i class="fa-solid fa-wallet"></i>
+
+            </div>
+
+
+            <div>
+
+                <span class="seller-wallet-eyebrow">
+                    Available Midpoint balance
+                </span>
+
+
+                <strong class="seller-wallet-amount">
+                    {{ $walletSummary['formatted_available_balance'] }}
+                </strong>
+
+
+                <p>
+                    Completed transaction funds collect here.
+                    They are not sent automatically to your bank account.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="seller-wallet-overview-right">
+
+            <div class="seller-wallet-mini-stat">
+
+                <span>
+                    Total released to wallet
+                </span>
+
+
+                <strong>
+                    {{ $walletSummary['formatted_total_credited'] }}
+                </strong>
+
+            </div>
+
+
+            <div class="seller-wallet-coming-soon">
+
+                <i class="fa-solid fa-shield-halved"></i>
+
+                <span>
+                    Withdrawal accounts + KYC will be connected
+                    to this balance next.
+                </span>
+
+            </div>
+
+        </div>
+
+    </section>
     <a
         href="{{ route('seller.transactions.create') }}"
         class="dashboard-primary-button"
@@ -284,7 +346,7 @@
             <div class="seller-highlight-payout">
 
                 <span class="dashboard-muted">
-                    Your payout on completion
+                    Your Midpoint balance credit
                 </span>
 
                 <div class="seller-payout-box">
@@ -299,6 +361,8 @@
 
                 <p>
                     Released after buyer acceptance, automatic completion, or a resolved dispute that approves seller payout.
+                    Added to your Midpoint balance after buyer acceptance,
+                    automatic completion, or an eligible resolved dispute.
                 </p>
 
             </div>
@@ -682,7 +746,195 @@
     /* =========================================================
        DASHBOARD FUNCTIONAL ADDITIONS
     ========================================================= */
+.seller-wallet-overview {
+    margin-bottom: 20px;
 
+    padding:
+        20px
+        22px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 24px;
+
+    border-color:
+        var(--mp-mint-2);
+}
+
+
+.seller-wallet-overview-left {
+    min-width: 0;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 16px;
+}
+
+
+.seller-wallet-overview-icon {
+    width: 52px;
+
+    height: 52px;
+
+    flex: 0 0 52px;
+
+    display: grid;
+
+    place-items: center;
+
+    border-radius: 15px;
+
+    background:
+        var(--mp-mint);
+
+    color:
+        var(--mp-forest);
+
+    font-size: 20px;
+}
+
+
+.seller-wallet-eyebrow {
+    display: block;
+
+    color:
+        var(--mp-slate);
+
+    font-size: 12px;
+
+    font-weight: 700;
+}
+
+
+.seller-wallet-amount {
+    display: block;
+
+    margin-top: 3px;
+
+    color:
+        var(--mp-ink);
+
+    font-family:
+        'Bricolage Grotesque',
+        sans-serif;
+
+    font-size: 30px;
+
+    line-height: 1.1;
+}
+
+
+.seller-wallet-overview-left p {
+    margin:
+        5px
+        0
+        0;
+
+    color:
+        var(--mp-slate);
+
+    font-size: 12px;
+
+    line-height: 1.5;
+}
+
+
+.seller-wallet-overview-right {
+    width: 290px;
+
+    min-width: 290px;
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 9px;
+}
+
+
+.seller-wallet-mini-stat {
+    padding:
+        10px
+        12px;
+
+    border:
+        1px
+        solid
+        var(--mp-line);
+
+    border-radius: 11px;
+
+    background:
+        var(--mp-paper);
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 12px;
+
+    font-size: 11px;
+
+    color:
+        var(--mp-slate);
+}
+
+
+.seller-wallet-mini-stat strong {
+    color:
+        var(--mp-forest);
+
+    font-size: 13px;
+}
+
+
+.seller-wallet-coming-soon {
+    display: flex;
+
+    align-items: flex-start;
+
+    gap: 7px;
+
+    color:
+        var(--mp-slate);
+
+    font-size: 11px;
+
+    line-height: 1.45;
+}
+
+
+.seller-wallet-coming-soon i {
+    margin-top: 2px;
+
+    color:
+        var(--mp-emerald);
+}
+
+
+@media (max-width: 760px) {
+
+    .seller-wallet-overview {
+        align-items: stretch;
+
+        flex-direction: column;
+    }
+
+
+    .seller-wallet-overview-right {
+        width: 100%;
+
+        min-width: 0;
+    }
+}
     .dashboard-inline-form {
         margin: 0;
     }

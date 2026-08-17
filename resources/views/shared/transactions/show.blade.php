@@ -958,7 +958,7 @@
                         <div class="total">
 
                             <span>
-                                Seller receives
+                                Seller receives in Midpoint balance
                             </span>
 
                             <strong>

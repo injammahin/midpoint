@@ -10,15 +10,23 @@ use Throwable;
 
 class BuyerTransactionActionController extends Controller
 {
+    /*
+    |--------------------------------------------------------------------------
+    | Start Inspection
+    |--------------------------------------------------------------------------
+    */
+
     public function inspection(
         Request $request,
         SecureTransaction $secureTransaction,
         TransactionLifecycleService $lifecycle
     ) {
+
         $lifecycle->startInspection(
             $secureTransaction,
             $request->user()
         );
+
 
         $hours =
             (int)
@@ -26,6 +34,7 @@ class BuyerTransactionActionController extends Controller
                 'secure_transactions.inspection_hours',
                 8
             );
+
 
         return redirect()
             ->route(
@@ -38,44 +47,78 @@ class BuyerTransactionActionController extends Controller
             ->with(
                 'success',
                 'Your '
-                . $hours
-                . '-hour inspection period has started.'
+                .
+                $hours
+                .
+                '-hour inspection period has started.'
             );
     }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Accept Order + Release To Seller Midpoint Wallet
+    |--------------------------------------------------------------------------
+    */
 
     public function accept(
         Request $request,
         SecureTransaction $secureTransaction,
         TransactionLifecycleService $lifecycle
     ) {
+
         try {
+
             $lifecycle->acceptAndRelease(
                 $secureTransaction,
                 $request->user()
             );
 
+
             $secureTransaction->refresh();
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | New Wallet-Based Completion
+            |--------------------------------------------------------------------------
+            */
 
             if (
                 $secureTransaction->status
                 ===
                 SecureTransaction::STATUS_COMPLETED
-            ) {
-                $message =
-                    'Order accepted successfully and the seller payout has been completed.';
-
-            } elseif (
+                &&
                 $secureTransaction->payout_status
                 ===
-                'seller_setup_required'
+                SecureTransaction::PAYOUT_WALLET_CREDITED
             ) {
+
                 $message =
-                    'Order accepted successfully. Your payment release is approved; the seller must complete their payout setup before Midpoint can send the funds.';
+                    'Order accepted successfully. The seller funds have been released to the seller\'s Midpoint balance.';
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Old Transaction Already Has Bank Transfer
+            |--------------------------------------------------------------------------
+            */
+
+            } elseif (
+                $secureTransaction
+                    ->paystack_transfer_reference
+            ) {
+
+                $message =
+                    'Order accepted successfully. This older transaction already has a bank payout in progress.';
+
 
             } else {
+
                 $message =
-                    'Order accepted successfully. Seller payout is now being processed.';
+                    'Order accepted successfully. The release has been approved and Midpoint is finalizing the seller wallet credit.';
             }
+
 
             return redirect()
                 ->route(
@@ -91,9 +134,11 @@ class BuyerTransactionActionController extends Controller
                 );
 
         } catch (Throwable $exception) {
+
             report(
                 $exception
             );
+
 
             return redirect()
                 ->route(
@@ -105,7 +150,7 @@ class BuyerTransactionActionController extends Controller
                 )
                 ->with(
                     'error',
-                    'We could not complete this action right now. Please try again.'
+                    'The order was accepted, but Midpoint could not finalize the fund release right now. Please try again or allow the automatic processor to retry.'
                 );
         }
     }

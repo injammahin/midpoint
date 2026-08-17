@@ -10,20 +10,42 @@ class Kernel extends ConsoleKernel
     protected function schedule(
         Schedule $schedule
     ) {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Secure Transaction Processor
+        |--------------------------------------------------------------------------
+        */
+
         $schedule
             ->command(
-                'transactions:process',
+                'transactions:process'
+            )
+            ->everyMinute()
+            ->withoutOverlapping();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Seller Subscription Expiration
+        |--------------------------------------------------------------------------
+        */
+
+        $schedule
+            ->command(
                 'seller-subscriptions:expire'
             )
             ->everyMinute()
             ->withoutOverlapping();
     }
 
+
     protected function commands()
     {
         $this->load(
             __DIR__ . '/Commands'
         );
+
 
         require base_path(
             'routes/console.php'

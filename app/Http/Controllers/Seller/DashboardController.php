@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\SecureTransaction;
 use App\Models\TransactionNotification;
 use Illuminate\Http\Request;
+use App\Models\SellerWallet;
 
 class DashboardController extends Controller
 {
@@ -58,7 +59,85 @@ class DashboardController extends Controller
                 ?: 'Location not set',
 
         ];
+        $wallet =
+            SellerWallet::query()
+                ->where(
+                    'seller_id',
+                    $user->id
+                )
+                ->first();
 
+
+        $walletSummary = [
+
+            /*
+            |--------------------------------------------------------------------------
+            | Available For Future Withdrawal
+            |--------------------------------------------------------------------------
+            */
+
+            'available_balance' =>
+                (float) (
+                    $wallet?->available_balance
+                    ?: 0
+                ),
+
+            'formatted_available_balance' =>
+                $this->money(
+                    (float) (
+                        $wallet?->available_balance
+                        ?: 0
+                    )
+                ),
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Lifetime Released
+            |--------------------------------------------------------------------------
+            */
+
+            'total_credited' =>
+                (float) (
+                    $wallet?->total_credited
+                    ?: 0
+                ),
+
+            'formatted_total_credited' =>
+                $this->money(
+                    (float) (
+                        $wallet?->total_credited
+                        ?: 0
+                    )
+                ),
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Reserved For Future Withdrawal Feature
+            |--------------------------------------------------------------------------
+            */
+
+            'pending_withdrawal_balance' =>
+                (float) (
+                    $wallet?->pending_withdrawal_balance
+                    ?: 0
+                ),
+
+            'formatted_pending_withdrawal_balance' =>
+                $this->money(
+                    (float) (
+                        $wallet?->pending_withdrawal_balance
+                        ?: 0
+                    )
+                ),
+
+
+            'currency' =>
+                $wallet?->currency
+                ?: 'NGN',
+
+        ];
 
         /*
         |--------------------------------------------------------------------------
@@ -898,6 +977,7 @@ class DashboardController extends Controller
                 'statistics',
                 'transactions',
                 'notifications',
+                'walletSummary',
                 'unreadNotificationCount',
                 'revenueSummary'
             )

@@ -259,13 +259,13 @@ class TransactionTimelineService
                             .
                             number_format(
                                 (float)
-                                $transaction
-                                    ->seller_net_amount,
+                                $transaction->seller_net_amount,
                                 2
                             )
                             .
-                            ' released to seller'
-                        : 'Released after acceptance or protection window',
+                            ' released to seller Midpoint balance'
+
+                        : 'Released to seller Midpoint balance after acceptance or protection window',
             ],
 
             [

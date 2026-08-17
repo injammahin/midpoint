@@ -676,4 +676,20 @@ public function secureTransactionsAsBuyer()
         'buyer_id'
     );
 }
+public function sellerWallet()
+{
+    return $this->hasOne(
+        SellerWallet::class,
+        'seller_id'
+    );
+}
+
+
+public function sellerWalletTransactions()
+{
+    return $this->hasMany(
+        SellerWalletTransaction::class,
+        'seller_id'
+    );
+}
 }
