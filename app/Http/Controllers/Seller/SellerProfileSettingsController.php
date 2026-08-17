@@ -174,70 +174,14 @@ class SellerProfileSettingsController extends Controller
     public function updateBank(
         Request $request
     ) {
-        $validated =
-            $request->validate([
-                'bank_name' => [
-                    'required',
-                    'string',
-                    'max:150',
-                ],
 
-                'bank_account_name' => [
-                    'required',
-                    'string',
-                    'max:180',
-                ],
-
-                'bank_account_number' => [
-                    'required',
-                    'string',
-                    'regex:/^[0-9]{6,20}$/',
-                ],
-            ]);
-
-
-        $user =
-            User::query()
-                ->findOrFail(
-                    $request->user()->id
-                );
-
-
-        $user->forceFill([
-            'bank_name' =>
-                trim(
-                    $validated[
-                        'bank_name'
-                    ]
-                ),
-
-            'bank_account_name' =>
-                trim(
-                    $validated[
-                        'bank_account_name'
-                    ]
-                ),
-
-            'bank_account_number' =>
-                trim(
-                    $validated[
-                        'bank_account_number'
-                    ]
-                ),
-        ])->saveOrFail();
-
-
-        $user->refresh();
-
-        Auth::setUser(
-            $user
-        );
-
-
-        return back()
+        return redirect()
+            ->route(
+                'seller.wallet'
+            )
             ->with(
-                'success',
-                'Bank details updated successfully.'
+                'error',
+                'Payout bank details are now managed from Wallet & Withdrawals. Add and verify a bank account there.'
             );
     }
 

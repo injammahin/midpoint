@@ -28,6 +28,18 @@
             );
 
 
+    /*
+    |--------------------------------------------------------------------------
+    | Seller KYC Permission
+    |--------------------------------------------------------------------------
+    |
+    | For now Seller KYC uses the same permission as seller applications.
+    |
+    */
+
+
+
+
     $canInvoices =
         auth()
             ->user()
@@ -46,7 +58,7 @@
 
     /*
     |--------------------------------------------------------------------------
-    | Active
+    | Active Routes
     |--------------------------------------------------------------------------
     */
 
@@ -68,6 +80,8 @@
         );
 
 
+
+
     $invoicesActive =
         request()->routeIs(
             'admin.billing.invoices.*'
@@ -80,6 +94,12 @@
         );
 
 
+    /*
+    |--------------------------------------------------------------------------
+    | Parent Module Active
+    |--------------------------------------------------------------------------
+    */
+
     $moduleActive =
         $usersActive
         ||
@@ -91,6 +111,12 @@
         ||
         $subscriptionsActive;
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Visible Menu Count
+    |--------------------------------------------------------------------------
+    */
 
     $visibleCount =
         collect([
@@ -111,225 +137,81 @@
     $visibleCount > 0
 )
 
-<div
-    class="
-        admin-menu-group
-        {{ $moduleActive ? 'is-open' : '' }}
-    "
->
-
-
-    <button
-        type="button"
-
+    <div
         class="
-            admin-menu-link
-            admin-menu-toggle
-            {{ $moduleActive ? 'active-parent' : '' }}
+            admin-menu-group
+            {{ $moduleActive ? 'is-open' : '' }}
         "
-
-        data-sidebar-group
-
-        data-tooltip="Users & Applications"
-
-        aria-expanded="{{ $moduleActive ? 'true' : 'false' }}"
     >
 
-        <span class="admin-menu-icon">
 
-            <i class="fa-solid fa-user-group"></i>
+        {{-- =====================================================
+            MAIN MENU BUTTON
+        ====================================================== --}}
 
-        </span>
+        <button
+            type="button"
 
+            class="
+                admin-menu-link
+                admin-menu-toggle
+                {{ $moduleActive ? 'active-parent' : '' }}
+            "
 
-        <span class="admin-menu-label">
+            data-sidebar-group
 
-            Users & Applications
+            data-tooltip="Users & Applications"
 
-        </span>
+            aria-expanded="{{ $moduleActive ? 'true' : 'false' }}"
+        >
 
-
-        <span class="admin-menu-chevron">
-
-            <i class="fa-solid fa-chevron-down"></i>
-
-        </span>
-
-    </button>
-
-
-
-    <div class="admin-submenu">
-
-
-        @if($canUsers)
-
-            <a
-                href="{{ route('admin.users.index') }}"
-                class="{{ $usersActive ? 'active' : '' }}"
-            >
-
-                <i class="fa-solid fa-users"></i>
-
-                <span>
-                    User Management
-                </span>
-
-            </a>
-
-        @endif
-
-
-
-        @if($canStaff)
-
-            <a
-                href="{{ route('admin.staff.index') }}"
-                class="{{ $staffActive ? 'active' : '' }}"
-            >
-
-                <i class="fa-solid fa-user-shield"></i>
-
-                <span>
-                    Role Management
-                </span>
-
-            </a>
-
-        @endif
-
-
-
-        @if($canApplications)
-
-            <a
-                href="{{
-                    route(
-                        'admin.website-settings.seller-applications.index'
-                    )
-                }}"
-
-                class="{{
-                    $sellerApplicationsActive
-                        ? 'active'
-                        : ''
-                }}"
-            >
-
-                <i class="fa-solid fa-file-signature"></i>
-
-                <span>
-                    Seller Applications
-                </span>
-
-            </a>
-
-        @endif
-
-
-
-        @if($canInvoices)
-
-            <a
-                href="{{
-                    route(
-                        'admin.billing.invoices.index'
-                    )
-                }}"
-
-                class="{{
-                    $invoicesActive
-                        ? 'active'
-                        : ''
-                }}"
-            >
-
-                <i class="fa-solid fa-file-invoice-dollar"></i>
-
-                <span>
-                    Seller Invoices
-                </span>
-
-            </a>
-
-        @endif
-
-
-
-        @if($canSubscriptions)
-
-            <a
-                href="{{
-                    route(
-                        'admin.billing.subscriptions.index'
-                    )
-                }}"
-
-                class="{{
-                    $subscriptionsActive
-                        ? 'active'
-                        : ''
-                }}"
-            >
-
-                <i class="fa-solid fa-box-open"></i>
-
-                <span>
-                    Purchased Packages
-                </span>
-
-            </a>
-
-        @endif
-
-    </div>
-
-
-
-    {{-- =====================================================
-        COLLAPSED SIDEBAR FLYOUT
-    ====================================================== --}}
-
-    <div class="admin-flyout">
-
-
-        <div class="admin-flyout-head">
-
-            <span class="admin-flyout-icon">
+            <span class="admin-menu-icon">
 
                 <i class="fa-solid fa-user-group"></i>
 
             </span>
 
 
-            <div>
+            <span class="admin-menu-label">
 
-                <strong>
-                    Users & Applications
-                </strong>
+                Users & Applications
 
-                <span>
+            </span>
 
-                    {{ $visibleCount }}
 
-                    submenu{{ $visibleCount === 1 ? '' : 's' }}
+            <span class="admin-menu-chevron">
 
-                </span>
+                <i class="fa-solid fa-chevron-down"></i>
 
-            </div>
+            </span>
 
-        </div>
+        </button>
 
 
 
-        <div class="admin-flyout-links">
+        {{-- =====================================================
+            NORMAL EXPANDED SIDEBAR SUBMENU
+        ====================================================== --}}
 
+        <div class="admin-submenu">
+
+
+            {{-- User Management --}}
 
             @if($canUsers)
 
-                <a href="{{ route('admin.users.index') }}">
+                <a
+                    href="{{ route('admin.users.index') }}"
+
+                    class="{{
+                        $usersActive
+                            ? 'active'
+                            : ''
+                    }}"
+                >
 
                     <i class="fa-solid fa-users"></i>
+
 
                     <span>
                         User Management
@@ -340,11 +222,23 @@
             @endif
 
 
+
+            {{-- Role Management --}}
+
             @if($canStaff)
 
-                <a href="{{ route('admin.staff.index') }}">
+                <a
+                    href="{{ route('admin.staff.index') }}"
+
+                    class="{{
+                        $staffActive
+                            ? 'active'
+                            : ''
+                    }}"
+                >
 
                     <i class="fa-solid fa-user-shield"></i>
+
 
                     <span>
                         Role Management
@@ -355,6 +249,9 @@
             @endif
 
 
+
+            {{-- Seller Applications --}}
+
             @if($canApplications)
 
                 <a
@@ -363,9 +260,16 @@
                             'admin.website-settings.seller-applications.index'
                         )
                     }}"
+
+                    class="{{
+                        $sellerApplicationsActive
+                            ? 'active'
+                            : ''
+                    }}"
                 >
 
                     <i class="fa-solid fa-file-signature"></i>
+
 
                     <span>
                         Seller Applications
@@ -376,6 +280,13 @@
             @endif
 
 
+
+
+
+
+
+            {{-- Seller Invoices --}}
+
             @if($canInvoices)
 
                 <a
@@ -384,9 +295,16 @@
                             'admin.billing.invoices.index'
                         )
                     }}"
+
+                    class="{{
+                        $invoicesActive
+                            ? 'active'
+                            : ''
+                    }}"
                 >
 
                     <i class="fa-solid fa-file-invoice-dollar"></i>
+
 
                     <span>
                         Seller Invoices
@@ -397,6 +315,9 @@
             @endif
 
 
+
+            {{-- Purchased Packages --}}
+
             @if($canSubscriptions)
 
                 <a
@@ -405,9 +326,16 @@
                             'admin.billing.subscriptions.index'
                         )
                     }}"
+
+                    class="{{
+                        $subscriptionsActive
+                            ? 'active'
+                            : ''
+                    }}"
                 >
 
                     <i class="fa-solid fa-box-open"></i>
+
 
                     <span>
                         Purchased Packages
@@ -419,8 +347,205 @@
 
         </div>
 
-    </div>
 
-</div>
+
+        {{-- =====================================================
+            COLLAPSED SIDEBAR FLYOUT
+        ====================================================== --}}
+
+        <div class="admin-flyout">
+
+
+            {{-- Flyout Header --}}
+
+            <div class="admin-flyout-head">
+
+                <span class="admin-flyout-icon">
+
+                    <i class="fa-solid fa-user-group"></i>
+
+                </span>
+
+
+                <div>
+
+                    <strong>
+                        Users & Applications
+                    </strong>
+
+
+                    <span>
+
+                        {{ $visibleCount }}
+
+                        submenu{{ $visibleCount === 1 ? '' : 's' }}
+
+                    </span>
+
+                </div>
+
+            </div>
+
+
+
+            {{-- Flyout Links --}}
+
+            <div class="admin-flyout-links">
+
+
+                {{-- User Management --}}
+
+                @if($canUsers)
+
+                    <a
+                        href="{{ route('admin.users.index') }}"
+
+                        class="{{
+                            $usersActive
+                                ? 'active'
+                                : ''
+                        }}"
+                    >
+
+                        <i class="fa-solid fa-users"></i>
+
+
+                        <span>
+                            User Management
+                        </span>
+
+                    </a>
+
+                @endif
+
+
+
+                {{-- Role Management --}}
+
+                @if($canStaff)
+
+                    <a
+                        href="{{ route('admin.staff.index') }}"
+
+                        class="{{
+                            $staffActive
+                                ? 'active'
+                                : ''
+                        }}"
+                    >
+
+                        <i class="fa-solid fa-user-shield"></i>
+
+
+                        <span>
+                            Role Management
+                        </span>
+
+                    </a>
+
+                @endif
+
+
+
+                {{-- Seller Applications --}}
+
+                @if($canApplications)
+
+                    <a
+                        href="{{
+                            route(
+                                'admin.website-settings.seller-applications.index'
+                            )
+                        }}"
+
+                        class="{{
+                            $sellerApplicationsActive
+                                ? 'active'
+                                : ''
+                        }}"
+                    >
+
+                        <i class="fa-solid fa-file-signature"></i>
+
+
+                        <span>
+                            Seller Applications
+                        </span>
+
+                    </a>
+
+                @endif
+
+
+
+
+
+
+
+                {{-- Seller Invoices --}}
+
+                @if($canInvoices)
+
+                    <a
+                        href="{{
+                            route(
+                                'admin.billing.invoices.index'
+                            )
+                        }}"
+
+                        class="{{
+                            $invoicesActive
+                                ? 'active'
+                                : ''
+                        }}"
+                    >
+
+                        <i class="fa-solid fa-file-invoice-dollar"></i>
+
+
+                        <span>
+                            Seller Invoices
+                        </span>
+
+                    </a>
+
+                @endif
+
+
+
+                {{-- Purchased Packages --}}
+
+                @if($canSubscriptions)
+
+                    <a
+                        href="{{
+                            route(
+                                'admin.billing.subscriptions.index'
+                            )
+                        }}"
+
+                        class="{{
+                            $subscriptionsActive
+                                ? 'active'
+                                : ''
+                        }}"
+                    >
+
+                        <i class="fa-solid fa-box-open"></i>
+
+
+                        <span>
+                            Purchased Packages
+                        </span>
+
+                    </a>
+
+                @endif
+
+            </div>
+
+        </div>
+
+    </div>
 
 @endif

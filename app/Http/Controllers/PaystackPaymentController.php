@@ -20,6 +20,8 @@ use App\Models\MarketplaceCheckoutIntent;
 use App\Services\MarketplaceCheckoutPaymentService;
 use RuntimeException;
 use Throwable;
+use App\Services\SellerWithdrawalService;
+
 
 class PaystackPaymentController extends Controller
 {
@@ -608,10 +610,11 @@ class PaystackPaymentController extends Controller
 
 
     public function webhook(
-    Request $request,
-    PaystackService $paystack,
-    TransactionLifecycleService $lifecycle,
-    SellerInvoicePaymentService $sellerInvoicePayments
+        Request $request,
+        PaystackService $paystack,
+        TransactionLifecycleService $lifecycle,
+        SellerInvoicePaymentService $sellerInvoicePayments,
+        SellerWithdrawalService $sellerWithdrawals
     ) {
         $rawPayload =
             $request->getContent();
@@ -672,7 +675,8 @@ class PaystackPaymentController extends Controller
             return $this->handleTransferWebhook(
                 $eventName,
                 $event,
-                $lifecycle
+                $lifecycle,
+                $sellerWithdrawals
             );
         }
 
@@ -1154,7 +1158,8 @@ if (
     private function handleTransferWebhook(
         string $eventName,
         array $event,
-        TransactionLifecycleService $lifecycle
+        TransactionLifecycleService $lifecycle,
+        SellerWithdrawalService $sellerWithdrawals
     ) {
         $reference =
             $event['data']['reference']
@@ -1168,7 +1173,76 @@ if (
                 200
             );
         }
+        /*
+        |--------------------------------------------------------------------------
+        | Seller Wallet Withdrawal
+        |--------------------------------------------------------------------------
+        |
+        | First determine whether this transfer belongs to the new seller-wallet
+        | withdrawal system.
+        |
+        | If it doesn't, we allow your existing old transaction payout webhook
+        | handler to continue normally.
+        |
+        */
 
+        try {
+
+            $sellerWithdrawal =
+                $sellerWithdrawals
+                    ->handlePaystackEvent(
+                        $eventName,
+                        $event[
+                            'data'
+                        ]
+                        ??
+                        []
+                    );
+
+
+            /*
+            * This was one of our wallet withdrawals.
+            *
+            * It has already been safely processed.
+            */
+            if (
+                $sellerWithdrawal
+            ) {
+
+                return response(
+                    'OK',
+                    200
+                );
+            }
+
+        } catch (
+            Throwable $exception
+        ) {
+
+            Log::error(
+                'Paystack seller wallet withdrawal webhook processing failed.',
+                [
+                    'reference' =>
+                        $reference,
+
+                    'event' =>
+                        $eventName,
+
+                    'error' =>
+                        $exception
+                            ->getMessage(),
+                ]
+            );
+
+
+            /*
+            * Return non-200 so webhook provider can retry.
+            */
+            return response(
+                'Withdrawal processing failed',
+                500
+            );
+        }
 
         $transaction =
             SecureTransaction::query()

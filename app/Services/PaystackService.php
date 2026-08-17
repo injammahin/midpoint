@@ -150,7 +150,171 @@ class PaystackService
             'Unable to verify payment.'
         );
     }
+public function listBanks(
+    string $country = 'nigeria'
+): array {
 
+    $banks = [];
+    $next = null;
+
+
+    for (
+        $page = 0;
+        $page < 5;
+        $page++
+    ) {
+
+        $query = [
+            'country' =>
+                $country,
+
+            'perPage' =>
+                100,
+
+            'use_cursor' =>
+                'true',
+        ];
+
+
+        if ($next) {
+
+            $query['next'] =
+                $next;
+        }
+
+
+        $response =
+            Http::withToken(
+                $this->secretKey
+            )
+
+                ->acceptJson()
+
+                ->timeout(
+                    30
+                )
+
+                ->retry(
+                    2,
+                    300
+                )
+
+                ->get(
+                    $this->baseUrl
+                    .
+                    '/bank',
+                    $query
+                );
+
+
+        $data =
+            $this->extractData(
+                $response,
+                'Unable to load supported banks.'
+            );
+
+
+        $banks =
+            array_merge(
+                $banks,
+                $data
+            );
+
+
+        $json =
+            $response->json();
+
+
+        $next =
+            is_array(
+                $json
+            )
+
+                ? data_get(
+                    $json,
+                    'meta.next'
+                )
+
+                : null;
+
+
+        if (!$next) {
+            break;
+        }
+    }
+
+
+    return collect(
+        $banks
+    )
+        ->filter(
+            fn ($bank) =>
+                is_array(
+                    $bank
+                )
+                &&
+                !empty(
+                    $bank['code']
+                )
+        )
+
+        ->unique(
+            fn ($bank) =>
+                (string) $bank['code']
+        )
+
+        ->values()
+
+        ->all();
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Resolve Bank Account
+|--------------------------------------------------------------------------
+*/
+
+public function resolveBankAccount(
+    string $accountNumber,
+    string $bankCode
+): array {
+
+    $response =
+        Http::withToken(
+            $this->secretKey
+        )
+
+            ->acceptJson()
+
+            ->timeout(
+                30
+            )
+
+            ->retry(
+                2,
+                300
+            )
+
+            ->get(
+                $this->baseUrl
+                .
+                '/bank/resolve',
+                [
+                    'account_number' =>
+                        $accountNumber,
+
+                    'bank_code' =>
+                        $bankCode,
+                ]
+            );
+
+
+    return $this->extractData(
+        $response,
+        'Unable to verify this bank account.'
+    );
+}
 
     /*
     |--------------------------------------------------------------------------

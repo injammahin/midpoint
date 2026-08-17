@@ -16,6 +16,12 @@ class SellerWalletTransaction extends Model
     public const TYPE_TRANSACTION_RELEASE =
         'transaction_release';
 
+    public const TYPE_WITHDRAWAL_REQUEST =
+        'withdrawal_request';
+
+    public const TYPE_WITHDRAWAL_REFUND =
+        'withdrawal_refund';
+
 
     /*
     |--------------------------------------------------------------------------
@@ -36,14 +42,21 @@ class SellerWalletTransaction extends Model
     |--------------------------------------------------------------------------
     */
 
+    public const STATUS_PENDING =
+        'pending';
+
     public const STATUS_POSTED =
         'posted';
+
+    public const STATUS_FAILED =
+        'failed';
 
 
     protected $fillable = [
         'seller_wallet_id',
         'seller_id',
         'secure_transaction_id',
+        'seller_withdrawal_id',
         'reference',
         'type',
         'direction',
@@ -76,12 +89,6 @@ class SellerWalletTransaction extends Model
     ];
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Wallet
-    |--------------------------------------------------------------------------
-    */
-
     public function wallet()
     {
         return $this->belongsTo(
@@ -90,12 +97,6 @@ class SellerWalletTransaction extends Model
         );
     }
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Seller
-    |--------------------------------------------------------------------------
-    */
 
     public function seller()
     {
@@ -106,12 +107,6 @@ class SellerWalletTransaction extends Model
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Secure Transaction
-    |--------------------------------------------------------------------------
-    */
-
     public function secureTransaction()
     {
         return $this->belongsTo(
@@ -121,11 +116,14 @@ class SellerWalletTransaction extends Model
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Generate Wallet Reference
-    |--------------------------------------------------------------------------
-    */
+    public function withdrawal()
+    {
+        return $this->belongsTo(
+            SellerWithdrawal::class,
+            'seller_withdrawal_id'
+        );
+    }
+
 
     public static function generateReference(): string
     {
@@ -154,6 +152,7 @@ class SellerWalletTransaction extends Model
                 )
                 ->exists()
         );
+
 
         return $reference;
     }

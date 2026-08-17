@@ -692,4 +692,42 @@ public function sellerWalletTransactions()
         'seller_id'
     );
 }
+public function sellerWithdrawalAccounts()
+{
+    return $this->hasMany(
+        SellerWithdrawalAccount::class,
+        'seller_id'
+    );
+}
+
+
+public function activeSellerWithdrawalAccount()
+{
+    return $this->hasOne(
+        SellerWithdrawalAccount::class,
+        'seller_id'
+    )
+        ->where(
+            'is_active',
+            true
+        );
+}
+
+
+public function sellerKycVerification()
+{
+    return $this->hasOne(
+        SellerKycVerification::class,
+        'seller_id'
+    );
+}
+
+
+public function sellerWithdrawals()
+{
+    return $this->hasMany(
+        SellerWithdrawal::class,
+        'seller_id'
+    );
+}
 }

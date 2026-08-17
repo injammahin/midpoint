@@ -332,142 +332,62 @@
                 </div>
 
 
-                <form
-                    method="POST"
-                    action="{{
-                        route(
-                            'seller.profile-settings.bank'
-                        )
-                    }}"
+            <section class="ps-card">
+
+                <div class="ps-card-heading">
+
+                    <div class="ps-card-icon">
+
+                        <i class="fa-solid fa-building-columns"></i>
+
+                    </div>
+
+
+                    <div>
+
+                        <h2>
+                            Withdrawal bank accounts
+                        </h2>
+
+                        <p>
+                            Verified payout accounts are managed securely from your wallet.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div class="ps-bank-note">
+
+                    <i class="fa-solid fa-shield-halved"></i>
+
+                    <span>
+
+                        For security, verified bank details cannot be edited.
+
+                        You can add up to two accounts,
+                        choose one active account,
+                        or delete an account and replace it.
+
+                    </span>
+
+                </div>
+
+
+                <a
+                    href="{{ route('seller.wallet') }}#bank-accounts"
+                    class="ps-primary-button"
+                    style="text-decoration:none;"
                 >
 
-                    @csrf
-                    @method('PUT')
+                    <i class="fa-solid fa-wallet"></i>
 
+                    Manage withdrawal accounts
 
-                    <div class="ps-field">
+                </a>
 
-                        <label>
-                            Bank
-                        </label>
-
-
-                        <input
-                            type="text"
-                            name="bank_name"
-                            value="{{
-                                old(
-                                    'bank_name',
-                                    $user->bank_name
-                                )
-                            }}"
-                            list="MidpointBanks"
-                            placeholder="Choose or type bank name"
-                            required
-                        >
-
-
-                        <datalist id="MidpointBanks">
-
-                            <option value="Access Bank">
-
-                            <option value="First Bank">
-
-                            <option value="GTBank">
-
-                            <option value="UBA">
-
-                            <option value="Zenith Bank">
-
-                            <option value="Fidelity Bank">
-
-                            <option value="Stanbic IBTC">
-
-                            <option value="Sterling Bank">
-
-                            <option value="Union Bank">
-
-                            <option value="Wema Bank">
-
-                        </datalist>
-
-                    </div>
-
-
-                    <div class="ps-field">
-
-                        <label>
-                            Account name
-                        </label>
-
-
-                        <input
-                            type="text"
-                            name="bank_account_name"
-                            value="{{
-                                old(
-                                    'bank_account_name',
-                                    $user->bank_account_name
-                                )
-                            }}"
-                            placeholder="Name registered with the bank"
-                            required
-                        >
-
-                    </div>
-
-
-                    <div class="ps-field">
-
-                        <label>
-                            Account number
-                        </label>
-
-
-                        <input
-                            type="text"
-                            inputmode="numeric"
-                            name="bank_account_number"
-                            value="{{
-                                old(
-                                    'bank_account_number',
-                                    $user->bank_account_number
-                                )
-                            }}"
-                            placeholder="Enter bank account number"
-                            required
-                        >
-
-                    </div>
-
-
-                    <div class="ps-bank-note">
-
-                        <i class="fa-solid fa-circle-info"></i>
-
-
-                        <span>
-
-                            Saving a bank account here does not itself
-                            verify ownership. When a payment provider is
-                            integrated, account-name resolution can be
-                            connected to this section.
-
-                        </span>
-
-                    </div>
-
-
-                    <button
-                        type="submit"
-                        class="ps-primary-button"
-                    >
-
-                        Save bank details
-
-                    </button>
-
-                </form>
+            </section>
 
             </section>
 

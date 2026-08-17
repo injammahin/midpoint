@@ -2,6 +2,65 @@
 
 return [
 
+
+
+        'dojah' => [
+
+            'app_id' =>
+                env(
+                    'DOJAH_APP_ID'
+                ),
+
+            'secret_key' =>
+                env(
+                    'DOJAH_SECRET_KEY'
+                ),
+
+            'base_url' =>
+                env(
+                    'DOJAH_BASE_URL',
+                    'https://sandbox.dojah.io'
+                ),
+
+            /*
+            |--------------------------------------------------------------------------
+            | LOCAL TEST MODE
+            |--------------------------------------------------------------------------
+            */
+
+            'fake_kyc' =>
+                env(
+                    'DOJAH_FAKE_KYC',
+                    false
+                ),
+
+            /*
+            |--------------------------------------------------------------------------
+            | Automated Approval Thresholds
+            |--------------------------------------------------------------------------
+            */
+
+            'face_confidence_min' =>
+                (float)
+                env(
+                    'DOJAH_FACE_CONFIDENCE_MIN',
+                    90
+                ),
+
+            'liveness_probability_min' =>
+                (float)
+                env(
+                    'DOJAH_LIVENESS_PROBABILITY_MIN',
+                    70
+                ),
+
+            'name_match_threshold' =>
+                (float)
+                env(
+                    'DOJAH_NAME_MATCH_THRESHOLD',
+                    0.80
+                ),
+        ],
     /*
     |--------------------------------------------------------------------------
     | Third Party Services
@@ -14,6 +73,23 @@ return [
     |
     */
     'paystack' => [
+        'fake_bank_verification' =>
+            env(
+                'PAYSTACK_FAKE_BANK_VERIFICATION',
+                false
+            ),
+
+        'fake_withdrawals' =>
+            env(
+                'PAYSTACK_FAKE_WITHDRAWALS',
+                false
+            ),
+
+        'minimum_withdrawal' =>
+            env(
+                'PAYSTACK_MINIMUM_WITHDRAWAL',
+                1000
+            ),
 
         'mode' =>
             env(
@@ -25,6 +101,7 @@ return [
             env(
                 'PAYSTACK_PUBLIC_KEY'
             ),
+            
 
         'secret_key' =>
             env(

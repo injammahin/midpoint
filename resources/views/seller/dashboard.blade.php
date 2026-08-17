@@ -211,16 +211,19 @@
             </div>
 
 
-            <div class="seller-wallet-coming-soon">
+            <a
+                href="{{ route('seller.wallet') }}"
+                class="seller-wallet-coming-soon"
+                style="text-decoration:none;"
+            >
 
-                <i class="fa-solid fa-shield-halved"></i>
+                <i class="fa-solid fa-money-bill-transfer"></i>
 
                 <span>
-                    Withdrawal accounts + KYC will be connected
-                    to this balance next.
+                    Manage bank accounts, KYC and withdraw funds →
                 </span>
 
-            </div>
+            </a>
 
         </div>
 

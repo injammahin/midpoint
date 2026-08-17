@@ -53,7 +53,9 @@ use App\Http\Controllers\Seller\SellerSecureTransactionController;
 use App\Http\Controllers\Seller\SellerTransactionController;
 use App\Http\Controllers\Seller\SellerNotificationController;
 use App\Http\Controllers\Seller\SellerTransactionStatusController;
-
+use App\Http\Controllers\Seller\SellerWalletController;
+use App\Http\Controllers\Seller\SellerWithdrawalAccountController;
+use App\Http\Controllers\Seller\SellerKycController;
 
 /*
 |--------------------------------------------------------------------------
@@ -95,8 +97,11 @@ use App\Http\Controllers\Admin\SellerSubscriptionController;
 use App\Http\Controllers\Admin\SellerApplicationController as AdminSellerApplicationController;
 use App\Http\Controllers\Admin\AdminStaffController;
 use App\Http\Controllers\Admin\HomePageController as AdminHomePageController;
-use App\Http\Controllers\Admin\ContentPageController
-    as AdminContentPageController;
+use App\Http\Controllers\Admin\ContentPageController as AdminContentPageController;
+
+
+
+
 /*
 |--------------------------------------------------------------------------
 | Public Website
@@ -739,7 +744,111 @@ Route::middleware([
                     'index',
                 ]
             )->name('dashboard');
+            Route::get(
+                '/wallet',
+                [
+                    SellerWalletController::class,
+                    'index',
+                ]
+            )->name(
+                'wallet'
+            );
 
+
+            Route::post(
+                '/wallet/withdraw',
+                [
+                    SellerWalletController::class,
+                    'withdraw',
+                ]
+            )->name(
+                'wallet.withdraw'
+            );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Verify Bank
+            |--------------------------------------------------------------------------
+            */
+
+            Route::post(
+                '/wallet/banks/resolve',
+                [
+                    SellerWithdrawalAccountController::class,
+                    'resolve',
+                ]
+            )->name(
+                'wallet.banks.resolve'
+            );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Add Verified Bank
+            |--------------------------------------------------------------------------
+            */
+
+            Route::post(
+                '/wallet/banks',
+                [
+                    SellerWithdrawalAccountController::class,
+                    'store',
+                ]
+            )->name(
+                'wallet.banks.store'
+            );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Make Bank Active
+            |--------------------------------------------------------------------------
+            */
+
+            Route::patch(
+                '/wallet/banks/{withdrawalAccount}/activate',
+                [
+                    SellerWithdrawalAccountController::class,
+                    'activate',
+                ]
+            )->name(
+                'wallet.banks.activate'
+            );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Delete Bank
+            |--------------------------------------------------------------------------
+            */
+
+            Route::delete(
+                '/wallet/banks/{withdrawalAccount}',
+                [
+                    SellerWithdrawalAccountController::class,
+                    'destroy',
+                ]
+            )->name(
+                'wallet.banks.destroy'
+            );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Seller KYC
+            |--------------------------------------------------------------------------
+            */
+
+            Route::post(
+                '/wallet/kyc',
+                [
+                    SellerKycController::class,
+                    'store',
+                ]
+            )->name(
+                'wallet.kyc.store'
+            );
 
             /*
             |--------------------------------------------------------------------------
@@ -1269,6 +1378,15 @@ Route::middleware([
 | Admin Panel
 |--------------------------------------------------------------------------
 */
+Route::post(
+    '/wallet/kyc',
+    [
+        SellerKycController::class,
+        'store',
+    ]
+)->name(
+    'wallet.kyc.store'
+);
 
 Route::prefix('admin')
     ->name('admin.')
