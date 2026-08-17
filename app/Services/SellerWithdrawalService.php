@@ -8,9 +8,9 @@ use App\Models\SellerWalletTransaction;
 use App\Models\SellerWithdrawal;
 use App\Models\SellerWithdrawalAccount;
 use App\Models\User;
-use App\Support\IdentityNameMatcher;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use RuntimeException;
 use Throwable;
@@ -25,7 +25,7 @@ class SellerWithdrawalService
 
     /*
     |--------------------------------------------------------------------------
-    | Create Withdrawal
+    | Request Withdrawal
     |--------------------------------------------------------------------------
     */
 
@@ -49,8 +49,15 @@ class SellerWithdrawalService
             );
 
 
+        /*
+        |--------------------------------------------------------------------------
+        | Minimum Withdrawal
+        |--------------------------------------------------------------------------
+        */
+
         if (
-            $amount < $minimum
+            $amount <
+            $minimum
         ) {
 
             throw ValidationException::withMessages([
@@ -69,7 +76,7 @@ class SellerWithdrawalService
 
         /*
         |--------------------------------------------------------------------------
-        | Reserve Seller Money
+        | Reserve Seller Funds
         |--------------------------------------------------------------------------
         */
 
@@ -81,20 +88,28 @@ class SellerWithdrawalService
                 ) {
 
                     /*
-                     * Lock seller so important seller-level operations
-                     * cannot race against each other.
-                     */
+                    |--------------------------------------------------------------------------
+                    | Lock Seller
+                    |--------------------------------------------------------------------------
+                    */
+
                     User::query()
+
                         ->whereKey(
                             $seller->id
                         )
+
                         ->lockForUpdate()
+
                         ->firstOrFail();
 
 
                     /*
-                     * KYC must be approved.
-                     */
+                    |--------------------------------------------------------------------------
+                    | KYC
+                    |--------------------------------------------------------------------------
+                    */
+
                     $kyc =
                         SellerKycVerification::query()
 
@@ -119,32 +134,37 @@ class SellerWithdrawalService
                                 'Complete and verify your KYC before withdrawing funds.',
                         ]);
                     }
-$account =
-    SellerWithdrawalAccount::query()
-
-        ->where(
-            'seller_id',
-            $seller->id
-        )
-
-        ->where(
-            'is_verified',
-            true
-        )
-
-        ->where(
-            'is_active',
-            true
-        )
-
-        ->lockForUpdate()
-
-        ->first();
 
 
                     /*
-                     * Seller must have one active verified account.
-                     */
+                    |--------------------------------------------------------------------------
+                    | Automated Bank / KYC Match
+                    |--------------------------------------------------------------------------
+                    */
+
+                    if (
+                        $kyc->bank_name_match
+                        !==
+                        null
+                        &&
+                        $kyc->bank_name_match
+                        ===
+                        false
+                    ) {
+
+                        throw ValidationException::withMessages([
+                            'amount' =>
+                                'Your verified bank account does not match your verified identity.',
+                        ]);
+                    }
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Active Verified Bank
+                    |--------------------------------------------------------------------------
+                    */
+
                     $account =
                         SellerWithdrawalAccount::query()
 
@@ -177,22 +197,64 @@ $account =
                                 'Add, verify, and activate a bank account before withdrawing funds.',
                         ]);
                     }
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Recipient Code
+                    |--------------------------------------------------------------------------
+                    */
+
                     if (
-                        !IdentityNameMatcher::matches(
-                            $kyc->verified_full_name,
-                            $account->account_name
+                        !$account
+                            ->paystack_recipient_code
+                    ) {
+
+                        throw new RuntimeException(
+                            'The active bank account is missing its Paystack recipient code.'
+                        );
+                    }
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Protect Production From Local Fake Accounts
+                    |--------------------------------------------------------------------------
+                    |
+                    | RCP_LOCAL_ accounts are ONLY allowed when APP_ENV=local.
+                    |
+                    */
+
+                    $isLocalRecipient =
+                        Str::startsWith(
+                            (string)
+                            $account
+                                ->paystack_recipient_code,
+                            'RCP_LOCAL_'
+                        );
+
+
+                    if (
+                        $isLocalRecipient
+                        &&
+                        !app()->environment(
+                            'local'
                         )
                     ) {
 
                         throw ValidationException::withMessages([
                             'amount' =>
-                                'Your active withdrawal bank account does not match your verified government identity.',
+                                'This test withdrawal bank account cannot be used in production.',
                         ]);
                     }
 
+
                     /*
-                     * Lock wallet before checking/deducting balance.
-                     */
+                    |--------------------------------------------------------------------------
+                    | Seller Wallet
+                    |--------------------------------------------------------------------------
+                    */
+
                     $wallet =
                         SellerWallet::query()
 
@@ -208,10 +270,27 @@ $account =
 
                     if (
                         !$wallet
-                        ||
-                        (float)
-                        $wallet
-                            ->available_balance
+                    ) {
+
+                        throw ValidationException::withMessages([
+                            'amount' =>
+                                'Seller wallet could not be found.',
+                        ]);
+                    }
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Balance Check
+                    |--------------------------------------------------------------------------
+                    */
+
+                    if (
+                        (
+                            (float)
+                            $wallet
+                                ->available_balance
+                        )
                         <
                         $amount
                     ) {
@@ -223,25 +302,10 @@ $account =
                     }
 
 
-                    if (
-                        !$account
-                            ->paystack_recipient_code
-                    ) {
-
-                        throw new RuntimeException(
-                            'The active bank account is missing its Paystack recipient code.'
-                        );
-                    }
-
-
                     /*
                     |--------------------------------------------------------------------------
-                    | Reserve Funds
+                    | Balance Before
                     |--------------------------------------------------------------------------
-                    |
-                    | Available balance goes DOWN immediately.
-                    | Pending withdrawal goes UP immediately.
-                    |
                     */
 
                     $balanceBefore =
@@ -253,6 +317,12 @@ $account =
                         );
 
 
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Balance After
+                    |--------------------------------------------------------------------------
+                    */
+
                     $balanceAfter =
                         round(
                             $balanceBefore
@@ -262,29 +332,48 @@ $account =
                         );
 
 
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Pending Withdrawal Balance
+                    |--------------------------------------------------------------------------
+                    */
+
                     $pendingAfter =
                         round(
-                            (float)
-                            $wallet
-                                ->pending_withdrawal_balance
+                            (
+                                (float)
+                                $wallet
+                                    ->pending_withdrawal_balance
+                            )
                             +
                             $amount,
                             2
                         );
 
 
-                    $wallet->forceFill([
-                        'available_balance' =>
-                            $balanceAfter,
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Reserve Wallet Balance
+                    |--------------------------------------------------------------------------
+                    */
 
-                        'pending_withdrawal_balance' =>
-                            $pendingAfter,
-                    ])->save();
+                    $wallet
+                        ->forceFill([
+                            'available_balance' =>
+                                $balanceAfter,
+
+                            'pending_withdrawal_balance' =>
+                                $pendingAfter,
+                        ])
+                        ->save();
 
 
                     /*
-                     * Generate our own reference.
-                     */
+                    |--------------------------------------------------------------------------
+                    | Generate Withdrawal Reference
+                    |--------------------------------------------------------------------------
+                    */
+
                     $reference =
                         SellerWithdrawal::generateReference(
                             $seller->id
@@ -292,11 +381,11 @@ $account =
 
 
                     /*
-                     * Save bank snapshot.
-                     *
-                     * Even if seller deletes the account later,
-                     * withdrawal history remains complete.
-                     */
+                    |--------------------------------------------------------------------------
+                    | Create Withdrawal
+                    |--------------------------------------------------------------------------
+                    */
+
                     $withdrawal =
                         SellerWithdrawal::create([
                             'seller_wallet_id' =>
@@ -311,6 +400,11 @@ $account =
                             'reference' =>
                                 $reference,
 
+                            /*
+                             * Important:
+                             *
+                             * The same reference is used for Paystack.
+                             */
                             'paystack_transfer_reference' =>
                                 $reference,
 
@@ -318,6 +412,12 @@ $account =
                                 $account
                                     ->paystack_recipient_code,
 
+                            /*
+                             * Snapshot bank information.
+                             *
+                             * Even if seller deletes bank later,
+                             * withdrawal history remains accurate.
+                             */
                             'bank_name' =>
                                 $account
                                     ->bank_name,
@@ -346,12 +446,15 @@ $account =
 
                             'requested_at' =>
                                 now(),
+
+                            'failure_reason' =>
+                                null,
                         ]);
 
 
                     /*
                     |--------------------------------------------------------------------------
-                    | Wallet Ledger Debit
+                    | Wallet Ledger
                     |--------------------------------------------------------------------------
                     */
 
@@ -381,7 +484,8 @@ $account =
                             SellerWalletTransaction::STATUS_PENDING,
 
                         'currency' =>
-                            $withdrawal->currency,
+                            $withdrawal
+                                ->currency,
 
                         'amount' =>
                             $amount,
@@ -395,7 +499,8 @@ $account =
                         'description' =>
                             'Withdrawal requested to '
                             .
-                            $account->bank_name
+                            $account
+                                ->bank_name
                             .
                             ' ••••'
                             .
@@ -407,10 +512,12 @@ $account =
                                 $reference,
 
                             'bank_name' =>
-                                $account->bank_name,
+                                $account
+                                    ->bank_name,
 
                             'account_name' =>
-                                $account->account_name,
+                                $account
+                                    ->account_name,
 
                             'account_last4' =>
                                 $account
@@ -427,8 +534,48 @@ $account =
 
         /*
         |--------------------------------------------------------------------------
-        | Send Transfer To Paystack
+        | LOCAL AUTOMATIC WITHDRAWAL SIMULATION
         |--------------------------------------------------------------------------
+        |
+        | This is the missing part in your existing service.
+        |
+        | If:
+        |
+        | APP_ENV=local
+        |
+        | AND
+        |
+        | PAYSTACK_FAKE_WITHDRAWALS=true
+        |
+        | OR recipient begins RCP_LOCAL_
+        |
+        | we DO NOT contact Paystack.
+        |
+        | Instead we simulate transfer.success.
+        |
+        */
+
+        if (
+            $this
+                ->shouldSimulateWithdrawal(
+                    $withdrawal
+                )
+        ) {
+
+            return $this
+                ->simulateSuccessfulWithdrawal(
+                    $withdrawal
+                );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | REAL PAYSTACK TRANSFER
+        |--------------------------------------------------------------------------
+        |
+        | Only reached when this is NOT a local fake withdrawal.
+        |
         */
 
         try {
@@ -441,14 +588,17 @@ $account =
                             'balance',
 
                         /*
-                         * Paystack amount is Kobo.
+                         * Paystack expects kobo.
+                         *
+                         * ₦1,000 = 100000
                          */
                         'amount' =>
                             (int)
                             round(
                                 (
                                     (float)
-                                    $withdrawal->amount
+                                    $withdrawal
+                                        ->amount
                                 )
                                 *
                                 100
@@ -458,9 +608,6 @@ $account =
                             $withdrawal
                                 ->paystack_recipient_code,
 
-                        /*
-                         * SAME reference is intentionally used.
-                         */
                         'reference' =>
                             $withdrawal
                                 ->paystack_transfer_reference,
@@ -477,6 +624,12 @@ $account =
                     ]);
 
 
+            /*
+            |--------------------------------------------------------------------------
+            | Paystack Status
+            |--------------------------------------------------------------------------
+            */
+
             $providerStatus =
                 strtolower(
                     (string) (
@@ -489,58 +642,51 @@ $account =
                 );
 
 
-            $localStatus =
-                $providerStatus
-                ===
-                'otp'
-
-                    ? SellerWithdrawal::STATUS_OTP
-
-                    : SellerWithdrawal::STATUS_PROCESSING;
-
-
-            $withdrawal->forceFill([
-                'paystack_transfer_code' =>
-                    $data[
-                        'transfer_code'
-                    ]
-                    ??
-                    null,
-
-                'status' =>
-                    $localStatus,
-
-                'initiated_at' =>
-                    now(),
-
-                'meta' =>
-                    array_merge(
-                        $withdrawal->meta
-                        ??
-                        [],
-                        [
-                            'paystack_initial_status' =>
-                                $providerStatus,
-
-                            'paystack_transfer_id' =>
-                                $data[
-                                    'id'
-                                ]
-                                ??
-                                null,
-                        ]
-                    ),
-            ])->save();
-
-
             /*
-             * Test transfers can respond immediately as success.
-             */
+            |--------------------------------------------------------------------------
+            | Immediate Success
+            |--------------------------------------------------------------------------
+            */
+
             if (
                 $providerStatus
                 ===
                 'success'
             ) {
+
+                $withdrawal
+                    ->forceFill([
+                        'paystack_transfer_code' =>
+                            $data[
+                                'transfer_code'
+                            ]
+                            ??
+                            null,
+
+                        'initiated_at' =>
+                            now(),
+
+                        'meta' =>
+                            array_merge(
+                                $withdrawal
+                                    ->meta
+                                ??
+                                [],
+                                [
+                                    'paystack_initial_status' =>
+                                        $providerStatus,
+
+                                    'paystack_transfer_id' =>
+                                        $data[
+                                            'id'
+                                        ]
+                                        ??
+                                        null,
+                                ]
+                            ),
+                    ])
+                    ->save();
+
 
                 return $this
                     ->markSuccessful(
@@ -551,7 +697,144 @@ $account =
             }
 
 
-            return $withdrawal
+            /*
+            |--------------------------------------------------------------------------
+            | Immediate Failure
+            |--------------------------------------------------------------------------
+            */
+
+            if (
+                in_array(
+                    $providerStatus,
+                    [
+                        'failed',
+                        'abandoned',
+                        'blocked',
+                        'rejected',
+                    ],
+                    true
+                )
+            ) {
+
+                return $this
+                    ->restoreReservedFunds(
+                        $withdrawal
+                            ->reference,
+
+                        SellerWithdrawal::STATUS_FAILED,
+
+                        (string) (
+                            $data[
+                                'reason'
+                            ]
+                            ??
+                            $data[
+                                'message'
+                            ]
+                            ??
+                            'Paystack transfer was not accepted.'
+                        )
+                    );
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Reversed
+            |--------------------------------------------------------------------------
+            */
+
+            if (
+                $providerStatus
+                ===
+                'reversed'
+            ) {
+
+                return $this
+                    ->restoreReservedFunds(
+                        $withdrawal
+                            ->reference,
+
+                        SellerWithdrawal::STATUS_REVERSED,
+
+                        (string) (
+                            $data[
+                                'reason'
+                            ]
+                            ??
+                            'Paystack transfer was reversed.'
+                        )
+                    );
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Pending / Received / OTP
+            |--------------------------------------------------------------------------
+            */
+
+            $localStatus =
+                $providerStatus
+                ===
+                'otp'
+
+                    ? SellerWithdrawal::STATUS_OTP
+
+                    : SellerWithdrawal::STATUS_PROCESSING;
+
+
+            $freshWithdrawal =
+                SellerWithdrawal::query()
+
+                    ->findOrFail(
+                        $withdrawal
+                            ->id
+                    );
+
+
+            $freshWithdrawal
+                ->forceFill([
+                    'paystack_transfer_code' =>
+                        $data[
+                            'transfer_code'
+                        ]
+                        ??
+                        $freshWithdrawal
+                            ->paystack_transfer_code,
+
+                    'status' =>
+                        $localStatus,
+
+                    'initiated_at' =>
+                        now(),
+
+                    'failure_reason' =>
+                        null,
+
+                    'meta' =>
+                        array_merge(
+                            $freshWithdrawal
+                                ->meta
+                            ??
+                            [],
+                            [
+                                'paystack_initial_status' =>
+                                    $providerStatus,
+
+                                'paystack_transfer_id' =>
+                                    $data[
+                                        'id'
+                                    ]
+                                    ??
+                                    null,
+                            ]
+                        ),
+                ])
+                ->save();
+
+
+            return $freshWithdrawal
                 ->fresh();
 
         } catch (
@@ -560,21 +843,15 @@ $account =
 
             /*
             |--------------------------------------------------------------------------
-            | CRITICAL: DO NOT IMMEDIATELY REFUND
+            | IMPORTANT: UNCERTAIN TRANSFER
             |--------------------------------------------------------------------------
             |
-            | Example:
+            | Do NOT automatically refund here.
             |
-            | 1. Paystack accepts transfer.
-            | 2. Your server connection times out.
-            | 3. Laravel receives exception.
+            | Paystack may have received the transfer request but Laravel
+            | may have lost the HTTP response.
             |
-            | If we refunded immediately, seller might receive:
-            |
-            | bank payout + wallet refund.
-            |
-            | Therefore funds remain reserved until Paystack status is
-            | reconciled using the SAME transfer reference.
+            | The scheduled reconciliation or webhook will resolve it.
             |
             */
 
@@ -582,7 +859,8 @@ $account =
                 'Seller withdrawal Paystack initiation response was not confirmed.',
                 [
                     'withdrawal_id' =>
-                        $withdrawal->id,
+                        $withdrawal
+                            ->id,
 
                     'reference' =>
                         $withdrawal
@@ -599,30 +877,256 @@ $account =
             );
 
 
-            $withdrawal->forceFill([
+            $freshWithdrawal =
+                SellerWithdrawal::query()
+
+                    ->findOrFail(
+                        $withdrawal
+                            ->id
+                    );
+
+
+            $freshWithdrawal
+                ->forceFill([
+                    'status' =>
+                        SellerWithdrawal::STATUS_PROCESSING,
+
+                    'failure_reason' =>
+                        'Paystack initiation response is awaiting reconciliation.',
+
+                    'meta' =>
+                        array_merge(
+                            $freshWithdrawal
+                                ->meta
+                            ??
+                            [],
+                            [
+                                'initiation_exception' =>
+                                    $exception
+                                        ->getMessage(),
+                            ]
+                        ),
+                ])
+                ->save();
+
+
+            return $freshWithdrawal
+                ->fresh();
+        }
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Should Simulate Withdrawal?
+    |--------------------------------------------------------------------------
+    |
+    | IMPORTANT SECURITY RULE:
+    |
+    | Fake payouts are ONLY possible when APP_ENV=local.
+    |
+    */
+
+    protected function shouldSimulateWithdrawal(
+        SellerWithdrawal $withdrawal
+    ): bool {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Production Must Never Simulate
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            !app()->environment(
+                'local'
+            )
+        ) {
+
+            return false;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Explicit Fake Mode
+        |--------------------------------------------------------------------------
+        */
+
+        $fakeWithdrawalEnabled =
+            (bool)
+            config(
+                'services.paystack.fake_withdrawals',
+                false
+            );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Local Fake Recipient
+        |--------------------------------------------------------------------------
+        */
+
+        $localRecipient =
+            Str::startsWith(
+                (string)
+                $withdrawal
+                    ->paystack_recipient_code,
+                'RCP_LOCAL_'
+            );
+
+
+        /*
+         * Either one enables simulation locally.
+         */
+        return
+            $fakeWithdrawalEnabled
+            ||
+            $localRecipient;
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Simulate Successful Local Withdrawal
+    |--------------------------------------------------------------------------
+    */
+
+    protected function simulateSuccessfulWithdrawal(
+        SellerWithdrawal $withdrawal
+    ): SellerWithdrawal {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Fake Paystack Transfer Code
+        |--------------------------------------------------------------------------
+        */
+
+        $transferCode =
+            'TRF_LOCAL_'
+            .
+            Str::upper(
+                Str::random(
+                    18
+                )
+            );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Fake Paystack Response
+        |--------------------------------------------------------------------------
+        */
+
+        $fakeProviderData = [
+            'id' =>
+                random_int(
+                    100000,
+                    999999
+                ),
+
+            'status' =>
+                'success',
+
+            'transfer_code' =>
+                $transferCode,
+
+            'reference' =>
+                $withdrawal
+                    ->paystack_transfer_reference,
+
+            'recipient' =>
+                $withdrawal
+                    ->paystack_recipient_code,
+
+            /*
+             * Kobo
+             */
+            'amount' =>
+                (int)
+                round(
+                    (
+                        (float)
+                        $withdrawal
+                            ->amount
+                    )
+                    *
+                    100
+                ),
+
+            'currency' =>
+                $withdrawal
+                    ->currency,
+
+            'reason' =>
+                'Midpoint local seller withdrawal test',
+
+            'test_mode' =>
+                true,
+
+            'simulated' =>
+                true,
+        ];
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Save Simulation Information
+        |--------------------------------------------------------------------------
+        */
+
+        $withdrawal
+            ->forceFill([
+                'paystack_transfer_code' =>
+                    $transferCode,
+
                 'status' =>
                     SellerWithdrawal::STATUS_PROCESSING,
 
+                'initiated_at' =>
+                    now(),
+
                 'failure_reason' =>
-                    'Paystack initiation response is awaiting reconciliation.',
+                    null,
 
                 'meta' =>
                     array_merge(
-                        $withdrawal->meta
+                        $withdrawal
+                            ->meta
                         ??
                         [],
                         [
-                            'initiation_exception' =>
-                                $exception
-                                    ->getMessage(),
+                            'local_test' =>
+                                true,
+
+                            'simulated_paystack_transfer' =>
+                                true,
+
+                            'paystack_initial_status' =>
+                                'success',
+
+                            'paystack_transfer_id' =>
+                                $fakeProviderData[
+                                    'id'
+                                ],
                         ]
                     ),
-            ])->save();
+            ])
+            ->save();
 
 
-            return $withdrawal
-                ->fresh();
-        }
+        /*
+        |--------------------------------------------------------------------------
+        | Finish Exactly Like transfer.success Webhook
+        |--------------------------------------------------------------------------
+        */
+
+        return $this
+            ->markSuccessful(
+                $withdrawal
+                    ->reference,
+                $fakeProviderData
+            );
     }
 
 
@@ -680,9 +1184,10 @@ $account =
             $withdrawal
         ) {
 
-            $this->reconcile(
-                $withdrawal
-            );
+            $this
+                ->reconcile(
+                    $withdrawal
+                );
         }
     }
 
@@ -697,6 +1202,12 @@ $account =
         SellerWithdrawal $withdrawal
     ): SellerWithdrawal {
 
+        /*
+        |--------------------------------------------------------------------------
+        | Already Final
+        |--------------------------------------------------------------------------
+        */
+
         if (
             $withdrawal
                 ->isFinal()
@@ -705,6 +1216,42 @@ $account =
             return $withdrawal;
         }
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | LOCAL OLD / STUCK TEST WITHDRAWAL
+        |--------------------------------------------------------------------------
+        |
+        | This is useful for withdrawals created BEFORE this fix.
+        |
+        | If you already have:
+        |
+        | status = processing
+        | recipient = RCP_LOCAL_...
+        |
+        | refreshing the wallet can now complete it automatically.
+        |
+        */
+
+        if (
+            $this
+                ->shouldSimulateWithdrawal(
+                    $withdrawal
+                )
+        ) {
+
+            return $this
+                ->simulateSuccessfulWithdrawal(
+                    $withdrawal
+                );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Real Paystack Reconciliation
+        |--------------------------------------------------------------------------
+        */
 
         try {
 
@@ -729,6 +1276,12 @@ $account =
                 );
 
 
+            /*
+            |--------------------------------------------------------------------------
+            | Success
+            |--------------------------------------------------------------------------
+            */
+
             if (
                 $status
                 ===
@@ -743,6 +1296,12 @@ $account =
                     );
             }
 
+
+            /*
+            |--------------------------------------------------------------------------
+            | Failed
+            |--------------------------------------------------------------------------
+            */
 
             if (
                 in_array(
@@ -769,17 +1328,21 @@ $account =
                                 'reason'
                             ]
                             ??
-                            (
-                                'Paystack transfer ended with status: '
-                                .
-                                $status
-                                .
-                                '.'
-                            )
+                            'Paystack transfer ended with status: '
+                            .
+                            $status
+                            .
+                            '.'
                         )
                     );
             }
 
+
+            /*
+            |--------------------------------------------------------------------------
+            | Reversed
+            |--------------------------------------------------------------------------
+            */
 
             if (
                 $status
@@ -806,32 +1369,58 @@ $account =
 
 
             /*
-             * Still processing.
-             */
-            $withdrawal->forceFill([
-                'status' =>
-                    $status
-                    ===
-                    'otp'
+            |--------------------------------------------------------------------------
+            | Still Pending
+            |--------------------------------------------------------------------------
+            */
 
-                        ? SellerWithdrawal::STATUS_OTP
+            $freshWithdrawal =
+                SellerWithdrawal::query()
 
-                        : SellerWithdrawal::STATUS_PROCESSING,
-
-                'paystack_transfer_code' =>
-                    $data[
-                        'transfer_code'
-                    ]
-                    ??
-                    $withdrawal
-                        ->paystack_transfer_code,
-
-                'failure_reason' =>
-                    null,
-            ])->save();
+                    ->findOrFail(
+                        $withdrawal
+                            ->id
+                    );
 
 
-            return $withdrawal
+            $freshWithdrawal
+                ->forceFill([
+                    'status' =>
+                        $status
+                        ===
+                        'otp'
+
+                            ? SellerWithdrawal::STATUS_OTP
+
+                            : SellerWithdrawal::STATUS_PROCESSING,
+
+                    'paystack_transfer_code' =>
+                        $data[
+                            'transfer_code'
+                        ]
+                        ??
+                        $freshWithdrawal
+                            ->paystack_transfer_code,
+
+                    'failure_reason' =>
+                        null,
+
+                    'meta' =>
+                        array_merge(
+                            $freshWithdrawal
+                                ->meta
+                            ??
+                            [],
+                            [
+                                'paystack_last_status' =>
+                                    $status,
+                            ]
+                        ),
+                ])
+                ->save();
+
+
+            return $freshWithdrawal
                 ->fresh();
 
         } catch (
@@ -839,11 +1428,11 @@ $account =
         ) {
 
             /*
-             * If initiation failed before Paystack ever created the
-             * transfer, verification may return "not found".
-             *
-             * We don't release instantly because of race/network safety.
-             */
+            |--------------------------------------------------------------------------
+            | Check Transfer Not Found
+            |--------------------------------------------------------------------------
+            */
+
             $notFound =
                 str_contains(
                     strtolower(
@@ -853,6 +1442,12 @@ $account =
                     'not found'
                 );
 
+
+            /*
+            |--------------------------------------------------------------------------
+            | If Not Found For > 2 Minutes, Refund
+            |--------------------------------------------------------------------------
+            */
 
             if (
                 $notFound
@@ -886,7 +1481,8 @@ $account =
                 'Seller withdrawal reconciliation is still pending.',
                 [
                     'withdrawal_id' =>
-                        $withdrawal->id,
+                        $withdrawal
+                            ->id,
 
                     'reference' =>
                         $withdrawal
@@ -916,6 +1512,12 @@ $account =
         array $data
     ): ?SellerWithdrawal {
 
+        /*
+        |--------------------------------------------------------------------------
+        | Reference
+        |--------------------------------------------------------------------------
+        */
+
         $reference =
             trim(
                 (string) (
@@ -936,6 +1538,12 @@ $account =
         }
 
 
+        /*
+        |--------------------------------------------------------------------------
+        | Find Withdrawal
+        |--------------------------------------------------------------------------
+        */
+
         $withdrawal =
             SellerWithdrawal::query()
 
@@ -952,11 +1560,6 @@ $account =
                 ->first();
 
 
-        /*
-         * Not a new seller-wallet withdrawal.
-         *
-         * Existing legacy transaction payout handler can continue.
-         */
         if (
             !$withdrawal
         ) {
@@ -965,56 +1568,68 @@ $account =
         }
 
 
+        /*
+        |--------------------------------------------------------------------------
+        | Handle Event
+        |--------------------------------------------------------------------------
+        */
+
         return match (
             $eventName
         ) {
 
             'transfer.success' =>
-                $this->markSuccessful(
-                    $withdrawal
-                        ->reference,
-                    $data
-                ),
+                $this
+                    ->markSuccessful(
+                        $withdrawal
+                            ->reference,
+                        $data
+                    ),
+
 
             'transfer.failed' =>
-                $this->restoreReservedFunds(
-                    $withdrawal
-                        ->reference,
+                $this
+                    ->restoreReservedFunds(
+                        $withdrawal
+                            ->reference,
 
-                    SellerWithdrawal::STATUS_FAILED,
+                        SellerWithdrawal::STATUS_FAILED,
 
-                    (string) (
-                        $data[
-                            'reason'
-                        ]
-                        ??
-                        $data[
-                            'message'
-                        ]
-                        ??
-                        'Paystack transfer failed.'
-                    )
-                ),
+                        (string) (
+                            $data[
+                                'reason'
+                            ]
+                            ??
+                            $data[
+                                'message'
+                            ]
+                            ??
+                            'Paystack transfer failed.'
+                        )
+                    ),
+
 
             'transfer.reversed' =>
-                $this->restoreReservedFunds(
-                    $withdrawal
-                        ->reference,
+                $this
+                    ->restoreReservedFunds(
+                        $withdrawal
+                            ->reference,
 
-                    SellerWithdrawal::STATUS_REVERSED,
+                        SellerWithdrawal::STATUS_REVERSED,
 
-                    (string) (
-                        $data[
-                            'reason'
-                        ]
-                        ??
-                        $data[
-                            'message'
-                        ]
-                        ??
-                        'Paystack transfer was reversed.'
-                    )
-                ),
+                        (string) (
+                            $data[
+                                'reason'
+                            ]
+                            ??
+                            $data[
+                                'message'
+                            ]
+                            ??
+                            'Paystack transfer was reversed.'
+                        )
+                    ),
+
 
             default =>
                 $withdrawal,
@@ -1039,6 +1654,12 @@ $account =
                 $providerData
             ) {
 
+                /*
+                |--------------------------------------------------------------------------
+                | Lock Withdrawal
+                |--------------------------------------------------------------------------
+                */
+
                 $withdrawal =
                     SellerWithdrawal::query()
 
@@ -1053,11 +1674,17 @@ $account =
 
 
                 /*
-                 * Idempotency:
-                 * webhook may arrive more than once.
-                 */
+                |--------------------------------------------------------------------------
+                | Idempotency
+                |--------------------------------------------------------------------------
+                |
+                | Webhook can be delivered more than once.
+                |
+                */
+
                 if (
-                    $withdrawal->status
+                    $withdrawal
+                        ->status
                     ===
                     SellerWithdrawal::STATUS_SUCCESSFUL
                 ) {
@@ -1067,12 +1694,14 @@ $account =
 
 
                 /*
-                 * Don't change an already-final failed withdrawal
-                 * into successful due to a stale event.
+                 * A failed/reversed withdrawal has already been refunded.
+                 *
+                 * Do not debit wallet again.
                  */
                 if (
                     in_array(
-                        $withdrawal->status,
+                        $withdrawal
+                            ->status,
                         [
                             SellerWithdrawal::STATUS_FAILED,
                             SellerWithdrawal::STATUS_REVERSED,
@@ -1084,6 +1713,12 @@ $account =
                     return $withdrawal;
                 }
 
+
+                /*
+                |--------------------------------------------------------------------------
+                | Lock Wallet
+                |--------------------------------------------------------------------------
+                */
 
                 $wallet =
                     SellerWallet::query()
@@ -1097,6 +1732,12 @@ $account =
 
                         ->firstOrFail();
 
+
+                /*
+                |--------------------------------------------------------------------------
+                | Amount
+                |--------------------------------------------------------------------------
+                */
 
                 $amount =
                     round(
@@ -1116,8 +1757,16 @@ $account =
                     );
 
 
+                /*
+                |--------------------------------------------------------------------------
+                | Safety Check
+                |--------------------------------------------------------------------------
+                */
+
                 if (
-                    $pending + 0.001
+                    $pending
+                    +
+                    0.001
                     <
                     $amount
                 ) {
@@ -1129,40 +1778,56 @@ $account =
 
 
                 /*
-                 * Pending decreases.
-                 * Total withdrawn increases.
-                 *
-                 * Available was already deducted during request.
-                 */
-                $wallet->forceFill([
-                    'pending_withdrawal_balance' =>
-                        round(
-                            $pending
-                            -
-                            $amount,
-                            2
-                        ),
+                |--------------------------------------------------------------------------
+                | Finalize Wallet
+                |--------------------------------------------------------------------------
+                |
+                | available_balance was already reduced when withdrawal started.
+                |
+                | Now:
+                |
+                | pending -= amount
+                | total_withdrawn += amount
+                |
+                */
 
-                    'total_withdrawn' =>
-                        round(
-                            (float)
-                            $wallet
-                                ->total_withdrawn
-                            +
-                            $amount,
-                            2
-                        ),
-                ])->save();
+                $wallet
+                    ->forceFill([
+                        'pending_withdrawal_balance' =>
+                            round(
+                                $pending
+                                -
+                                $amount,
+                                2
+                            ),
+
+                        'total_withdrawn' =>
+                            round(
+                                (
+                                    (float)
+                                    $wallet
+                                        ->total_withdrawn
+                                )
+                                +
+                                $amount,
+                                2
+                            ),
+                    ])
+                    ->save();
 
 
                 /*
-                 * Finalize debit ledger.
-                 */
+                |--------------------------------------------------------------------------
+                | Post Wallet Debit
+                |--------------------------------------------------------------------------
+                */
+
                 SellerWalletTransaction::query()
 
                     ->where(
                         'seller_withdrawal_id',
-                        $withdrawal->id
+                        $withdrawal
+                            ->id
                     )
 
                     ->where(
@@ -1182,35 +1847,58 @@ $account =
                     ]);
 
 
-                $withdrawal->forceFill([
-                    'status' =>
-                        SellerWithdrawal::STATUS_SUCCESSFUL,
+                /*
+                |--------------------------------------------------------------------------
+                | Final Withdrawal
+                |--------------------------------------------------------------------------
+                */
 
-                    'paystack_transfer_code' =>
-                        $providerData[
-                            'transfer_code'
-                        ]
-                        ??
-                        $withdrawal
-                            ->paystack_transfer_code,
+                $withdrawal
+                    ->forceFill([
+                        'status' =>
+                            SellerWithdrawal::STATUS_SUCCESSFUL,
 
-                    'completed_at' =>
-                        now(),
-
-                    'failure_reason' =>
-                        null,
-
-                    'meta' =>
-                        array_merge(
-                            $withdrawal->meta
-                            ??
-                            [],
-                            [
-                                'paystack_final_status' =>
-                                    'success',
+                        'paystack_transfer_code' =>
+                            $providerData[
+                                'transfer_code'
                             ]
-                        ),
-                ])->save();
+                            ??
+                            $withdrawal
+                                ->paystack_transfer_code,
+
+                        'completed_at' =>
+                            now(),
+
+                        'failed_at' =>
+                            null,
+
+                        'failure_reason' =>
+                            null,
+
+                        'meta' =>
+                            array_merge(
+                                $withdrawal
+                                    ->meta
+                                ??
+                                [],
+                                [
+                                    'paystack_final_status' =>
+                                        'success',
+
+                                    'paystack_transfer_id' =>
+                                        $providerData[
+                                            'id'
+                                        ]
+                                        ??
+                                        data_get(
+                                            $withdrawal
+                                                ->meta,
+                                            'paystack_transfer_id'
+                                        ),
+                                ]
+                            ),
+                    ])
+                    ->save();
 
 
                 return $withdrawal
@@ -1223,7 +1911,7 @@ $account =
 
     /*
     |--------------------------------------------------------------------------
-    | Return Failed/Reversed Withdrawal To Wallet
+    | Restore Reserved Funds
     |--------------------------------------------------------------------------
     */
 
@@ -1240,6 +1928,12 @@ $account =
                 $reason
             ) {
 
+                /*
+                |--------------------------------------------------------------------------
+                | Withdrawal
+                |--------------------------------------------------------------------------
+                */
+
                 $withdrawal =
                     SellerWithdrawal::query()
 
@@ -1254,11 +1948,15 @@ $account =
 
 
                 /*
-                 * Already restored.
-                 */
+                |--------------------------------------------------------------------------
+                | Already Failed / Reversed
+                |--------------------------------------------------------------------------
+                */
+
                 if (
                     in_array(
-                        $withdrawal->status,
+                        $withdrawal
+                            ->status,
                         [
                             SellerWithdrawal::STATUS_FAILED,
                             SellerWithdrawal::STATUS_REVERSED,
@@ -1272,17 +1970,22 @@ $account =
 
 
                 /*
-                 * A successful withdrawal may later be reversed.
-                 */
+                |--------------------------------------------------------------------------
+                | Was Successful?
+                |--------------------------------------------------------------------------
+                */
+
                 $wasSuccessful =
-                    $withdrawal->status
+                    $withdrawal
+                        ->status
                     ===
                     SellerWithdrawal::STATUS_SUCCESSFUL;
 
 
                 /*
-                 * Successful withdrawal should only be undone
-                 * by a genuine Paystack reversal.
+                 * Don't convert successful to failed.
+                 *
+                 * Only successful → reversed is valid.
                  */
                 if (
                     $wasSuccessful
@@ -1295,6 +1998,12 @@ $account =
                     return $withdrawal;
                 }
 
+
+                /*
+                |--------------------------------------------------------------------------
+                | Wallet
+                |--------------------------------------------------------------------------
+                */
 
                 $wallet =
                     SellerWallet::query()
@@ -1309,6 +2018,12 @@ $account =
                         ->firstOrFail();
 
 
+                /*
+                |--------------------------------------------------------------------------
+                | Amount
+                |--------------------------------------------------------------------------
+                */
+
                 $amount =
                     round(
                         (float)
@@ -1317,6 +2032,12 @@ $account =
                         2
                     );
 
+
+                /*
+                |--------------------------------------------------------------------------
+                | Available Balance
+                |--------------------------------------------------------------------------
+                */
 
                 $availableBefore =
                     round(
@@ -1336,6 +2057,12 @@ $account =
                     );
 
 
+                /*
+                |--------------------------------------------------------------------------
+                | Pending Balance
+                |--------------------------------------------------------------------------
+                */
+
                 $pendingBefore =
                     round(
                         (float)
@@ -1345,28 +2072,39 @@ $account =
                     );
 
 
+                /*
+                |--------------------------------------------------------------------------
+                | Wallet Updates
+                |--------------------------------------------------------------------------
+                */
+
                 $walletUpdates = [
                     'available_balance' =>
                         $availableAfter,
                 ];
 
 
+                /*
+                |--------------------------------------------------------------------------
+                | Reversal After Success
+                |--------------------------------------------------------------------------
+                */
+
                 if (
                     $wasSuccessful
                 ) {
 
-                    /*
-                     * Successful transfer was later reversed.
-                     */
                     $walletUpdates[
                         'total_withdrawn'
                     ] =
                         max(
                             0,
                             round(
-                                (float)
-                                $wallet
-                                    ->total_withdrawn
+                                (
+                                    (float)
+                                    $wallet
+                                        ->total_withdrawn
+                                )
                                 -
                                 $amount,
                                 2
@@ -1376,8 +2114,11 @@ $account =
                 } else {
 
                     /*
-                     * It was still reserved.
-                     */
+                    |--------------------------------------------------------------------------
+                    | Failure Before Success
+                    |--------------------------------------------------------------------------
+                    */
+
                     $walletUpdates[
                         'pending_withdrawal_balance'
                     ] =
@@ -1401,8 +2142,11 @@ $account =
 
 
                 /*
-                 * Original withdrawal debit failed.
-                 */
+                |--------------------------------------------------------------------------
+                | Original Debit Failed
+                |--------------------------------------------------------------------------
+                */
+
                 if (
                     !$wasSuccessful
                 ) {
@@ -1411,7 +2155,8 @@ $account =
 
                         ->where(
                             'seller_withdrawal_id',
-                            $withdrawal->id
+                            $withdrawal
+                                ->id
                         )
 
                         ->where(
@@ -1433,20 +2178,24 @@ $account =
 
 
                 /*
-                 * firstOrCreate means duplicate webhook cannot
-                 * create multiple refunds.
-                 */
+                |--------------------------------------------------------------------------
+                | Refund Ledger Entry
+                |--------------------------------------------------------------------------
+                */
+
                 SellerWalletTransaction::firstOrCreate(
                     [
                         'seller_withdrawal_id' =>
-                            $withdrawal->id,
+                            $withdrawal
+                                ->id,
 
                         'type' =>
                             SellerWalletTransaction::TYPE_WITHDRAWAL_REFUND,
                     ],
                     [
                         'seller_wallet_id' =>
-                            $wallet->id,
+                            $wallet
+                                ->id,
 
                         'seller_id' =>
                             $withdrawal
@@ -1500,27 +2249,36 @@ $account =
                 );
 
 
-                $withdrawal->forceFill([
-                    'status' =>
-                        $finalStatus,
+                /*
+                |--------------------------------------------------------------------------
+                | Withdrawal Final State
+                |--------------------------------------------------------------------------
+                */
 
-                    'failure_reason' =>
-                        $reason,
+                $withdrawal
+                    ->forceFill([
+                        'status' =>
+                            $finalStatus,
 
-                    'failed_at' =>
-                        now(),
+                        'failure_reason' =>
+                            $reason,
 
-                    'meta' =>
-                        array_merge(
-                            $withdrawal->meta
-                            ??
-                            [],
-                            [
-                                'paystack_final_status' =>
-                                    $finalStatus,
-                            ]
-                        ),
-                ])->save();
+                        'failed_at' =>
+                            now(),
+
+                        'meta' =>
+                            array_merge(
+                                $withdrawal
+                                    ->meta
+                                ??
+                                [],
+                                [
+                                    'paystack_final_status' =>
+                                        $finalStatus,
+                                ]
+                            ),
+                    ])
+                    ->save();
 
 
                 return $withdrawal

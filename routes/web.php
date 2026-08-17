@@ -24,8 +24,8 @@ use App\Http\Controllers\FeaturedBusinessController;
 use App\Http\Controllers\SecureTransactionController;
 use App\Http\Controllers\PaystackPaymentController;
 use App\Http\Controllers\ContentPageController;
-
-
+use App\Http\Controllers\PaystackTransferApprovalController;
+use App\Http\Controllers\SellerSubscriptionRenewalController;
 /*
 |--------------------------------------------------------------------------
 | Authentication Controllers
@@ -98,7 +98,7 @@ use App\Http\Controllers\Admin\SellerApplicationController as AdminSellerApplica
 use App\Http\Controllers\Admin\AdminStaffController;
 use App\Http\Controllers\Admin\HomePageController as AdminHomePageController;
 use App\Http\Controllers\Admin\ContentPageController as AdminContentPageController;
-
+use App\Http\Controllers\Admin\SellerWithdrawalController as AdminSellerWithdrawalController;
 
 
 
@@ -312,6 +312,20 @@ Route::post(
     ]
 )->name('webhooks.paystack');
 
+Route::post(
+    '/paystack/transfer-approval/{token}',
+    [
+        PaystackTransferApprovalController::class,
+        'approve',
+    ]
+)
+    ->where(
+        'token',
+        '[A-Fa-f0-9]{64}'
+    )
+    ->name(
+        'paystack.transfer-approval'
+    );
 
 /*
 |--------------------------------------------------------------------------
@@ -614,7 +628,19 @@ Route::middleware([
     'active',
     'verified',
 ])->group(function () {
-
+Route::post(
+    '/verified-sellers/renew',
+    [
+        SellerSubscriptionRenewalController::class,
+        'store',
+    ]
+)
+    ->middleware(
+        'throttle:10,1'
+    )
+    ->name(
+        'seller-subscriptions.renew'
+    );
 
     /*
     |--------------------------------------------------------------------------
@@ -1413,7 +1439,77 @@ Route::prefix('admin')
         | This must NOT be inside the Route::prefix('staff') group.
         |
         */
+/*
+|--------------------------------------------------------------------------
+| Seller Withdrawals
+|--------------------------------------------------------------------------
+*/
 
+Route::prefix(
+    'withdrawals'
+)
+    ->name(
+        'withdrawals.'
+    )
+    ->group(
+        function () {
+
+            /*
+            |--------------------------------------------------------------------------
+            | List
+            |--------------------------------------------------------------------------
+            */
+
+            Route::get(
+                '/',
+                [
+                    AdminSellerWithdrawalController::class,
+                    'index',
+                ]
+            )->name(
+                'index'
+            );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Show
+            |--------------------------------------------------------------------------
+            */
+
+            Route::get(
+                '/{withdrawal}',
+                [
+                    AdminSellerWithdrawalController::class,
+                    'show',
+                ]
+            )->name(
+                'show'
+            );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Sync Paystack Status
+            |--------------------------------------------------------------------------
+            |
+            | This is NOT payout approval.
+            |
+            */
+
+            Route::post(
+                '/{withdrawal}/sync',
+                [
+                    AdminSellerWithdrawalController::class,
+                    'sync',
+                ]
+            )->name(
+                'sync'
+            );
+
+        }
+    );
+    
         Route::get(
             '/staff-dashboard',
             [

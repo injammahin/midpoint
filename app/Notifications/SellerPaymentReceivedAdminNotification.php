@@ -4,7 +4,6 @@ namespace App\Notifications;
 
 use App\Models\SellerApplication;
 use App\Models\SellerInvoice;
-
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
@@ -13,28 +12,12 @@ class SellerPaymentReceivedAdminNotification extends Notification
     use Queueable;
 
 
-    protected SellerApplication $application;
-
-    protected SellerInvoice $invoice;
-
-
     public function __construct(
-        SellerApplication $application,
-        SellerInvoice $invoice
+        protected SellerApplication $application,
+        protected SellerInvoice $invoice
     ) {
-        $this->application =
-            $application;
-
-        $this->invoice =
-            $invoice;
     }
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Channel
-    |--------------------------------------------------------------------------
-    */
 
     public function via(
         $notifiable
@@ -46,67 +29,122 @@ class SellerPaymentReceivedAdminNotification extends Notification
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Database
-    |--------------------------------------------------------------------------
-    */
-
     public function toDatabase(
         $notifiable
     ): array {
 
-        return [
+        $title =
+            match (
+                $this
+                    ->invoice
+                    ->purchase_type
+            ) {
 
+                SellerInvoice::TYPE_RENEWAL =>
+                    'Seller package renewed',
+
+                SellerInvoice::TYPE_UPGRADE =>
+                    'Seller package upgraded',
+
+                SellerInvoice::TYPE_DOWNGRADE =>
+                    'Seller changed package',
+
+                default =>
+                    'Seller payment received',
+            };
+
+
+        $action =
+            match (
+                $this
+                    ->invoice
+                    ->purchase_type
+            ) {
+
+                SellerInvoice::TYPE_RENEWAL =>
+                    'renewed',
+
+                SellerInvoice::TYPE_UPGRADE =>
+                    'upgraded to',
+
+                SellerInvoice::TYPE_DOWNGRADE =>
+                    'changed to',
+
+                default =>
+                    'purchased',
+            };
+
+
+        return [
             'type' =>
                 'seller_payment',
 
             'title' =>
-                'Seller payment received',
+                $title,
 
             'message' =>
-                $this->application
+                $this
+                    ->application
                     ->business_name
                 .
-                ' paid ₦'
+                ' '
+                .
+                $action
+                .
+                ' the '
+                .
+                $this
+                    ->invoice
+                    ->effective_package_name
+                .
+                ' package for ₦'
                 .
                 number_format(
                     (float)
-                    $this->invoice
+                    $this
+                        ->invoice
                         ->amount,
                     0
                 )
                 .
-                ' for the '
-                .
-                $this->application
-                    ->package_name
-                .
-                ' package.',
+                '.',
+
+            'purchase_type' =>
+                $this
+                    ->invoice
+                    ->purchase_type,
 
             'application_id' =>
-                $this->application->id,
+                $this
+                    ->application
+                    ->id,
 
             'invoice_id' =>
-                $this->invoice->id,
+                $this
+                    ->invoice
+                    ->id,
 
             'invoice_number' =>
-                $this->invoice
+                $this
+                    ->invoice
                     ->invoice_number,
 
             'payment_reference' =>
-                $this->invoice
+                $this
+                    ->invoice
                     ->payment_reference,
 
             'icon' =>
-                'fa-credit-card',
+                'fa-crown',
 
+            /*
+             * Admin lands on purchase history where the renewal
+             * is clearly visible.
+             */
             'url' =>
                 route(
-                    'admin.website-settings.seller-applications.show',
-                    $this->application
+                    'admin.billing.subscriptions.index'
                 ),
-
         ];
     }
 
@@ -115,8 +153,9 @@ class SellerPaymentReceivedAdminNotification extends Notification
         $notifiable
     ): array {
 
-        return $this->toDatabase(
-            $notifiable
-        );
+        return $this
+            ->toDatabase(
+                $notifiable
+            );
     }
 }

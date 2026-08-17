@@ -7,21 +7,22 @@ use Illuminate\Support\Str;
 
 class SellerApplication extends Model
 {
-    const STATUS_SUBMITTED =
+    public const STATUS_SUBMITTED =
         'submitted';
 
-    const STATUS_REVISION_REQUIRED =
+    public const STATUS_REVISION_REQUIRED =
         'revision_required';
 
-    const STATUS_SUPERSEDED =
+    public const STATUS_SUPERSEDED =
         'superseded';
 
-    const STATUS_PAYMENT_PENDING =
+    public const STATUS_PAYMENT_PENDING =
         'payment_pending';
 
-    const STATUS_ACTIVE =
+    public const STATUS_ACTIVE =
         'active';
-    const STATUS_EXPIRED =
+
+    public const STATUS_EXPIRED =
         'expired';
 
 
@@ -68,7 +69,6 @@ class SellerApplication extends Model
         'approved_at',
 
         'activated_at',
-
     ];
 
 
@@ -91,15 +91,8 @@ class SellerApplication extends Model
 
         'activated_at' =>
             'datetime',
-
     ];
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Generate Reference
-    |--------------------------------------------------------------------------
-    */
 
     public static function generateReference(): string
     {
@@ -115,14 +108,20 @@ class SellerApplication extends Model
                 '-'
                 .
                 Str::upper(
-                    Str::random(6)
+                    Str::random(
+                        6
+                    )
                 );
 
         } while (
-            static::where(
-                'reference',
-                $reference
-            )->exists()
+            static::query()
+
+                ->where(
+                    'reference',
+                    $reference
+                )
+
+                ->exists()
         );
 
 
@@ -161,9 +160,36 @@ class SellerApplication extends Model
     }
 
 
+    /*
+    |--------------------------------------------------------------------------
+    | Original Application Invoice
+    |--------------------------------------------------------------------------
+    */
+
     public function invoice()
     {
         return $this->hasOne(
+            SellerInvoice::class
+        )
+            ->where(
+                'purchase_type',
+                SellerInvoice::TYPE_INITIAL
+            );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | All Invoices
+    |--------------------------------------------------------------------------
+    |
+    | Initial + Renewal + Upgrade + Downgrade
+    |
+    */
+
+    public function invoices()
+    {
+        return $this->hasMany(
             SellerInvoice::class
         );
     }
@@ -180,13 +206,13 @@ class SellerApplication extends Model
 
     /*
     |--------------------------------------------------------------------------
-    | Labels
+    | Status Label
     |--------------------------------------------------------------------------
     */
 
     public function getStatusLabelAttribute()
     {
-        return match(
+        return match (
             $this->status
         ) {
 
@@ -201,6 +227,7 @@ class SellerApplication extends Model
 
             self::STATUS_ACTIVE =>
                 'Active seller',
+
             self::STATUS_EXPIRED =>
                 'Package expired',
 

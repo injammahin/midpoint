@@ -43,6 +43,59 @@
 
     /*
     |--------------------------------------------------------------------------
+    | Defensive Defaults
+    |--------------------------------------------------------------------------
+    |
+    | These variables should be passed from VerifiedSellerController.
+    | Defaults prevent Blade "undefined variable" errors while deploying
+    | controller/view changes together.
+    |
+    */
+
+    $latestSubscription =
+        $latestSubscription
+        ?? null;
+
+
+    $approvedApplication =
+        $approvedApplication
+        ?? null;
+
+
+    $latestPaidInvoice =
+        $latestPaidInvoice
+        ?? null;
+
+
+    $downloadInvoice =
+        $latestPaidInvoice;
+
+
+    if (
+        !$downloadInvoice
+        &&
+        $latestApplication
+        &&
+        $latestApplication->invoice
+        &&
+        $latestApplication->invoice->status === 'paid'
+    ) {
+
+        $downloadInvoice =
+            $latestApplication->invoice;
+    }
+
+
+    $canQuickRenew =
+        (bool) (
+            $canQuickRenew
+            ?? false
+        );
+
+
+
+    /*
+    |--------------------------------------------------------------------------
     | Latest Application Status
     |--------------------------------------------------------------------------
     */
@@ -58,11 +111,6 @@
     |--------------------------------------------------------------------------
     | Active Subscription
     |--------------------------------------------------------------------------
-    |
-    | This comes from VerifiedSellerController:
-    |
-    | $activeSubscription
-    |
     */
 
     $hasActiveSubscription =
@@ -76,22 +124,67 @@
 
     /*
     |--------------------------------------------------------------------------
-    | Can Apply
+    | Previously Approved Seller Can Quick Renew
     |--------------------------------------------------------------------------
     |
-    | Can apply when:
+    | IMPORTANT:
     |
-    | - No application exists
-    | - Revision required
-    | - Old application superseded
-    | - Previous package expired
+    | An approved seller whose package expired does NOT submit another
+    | seller application. They select a package, receive an invoice,
+    | pay, and the package is activated again.
     |
-    | Cannot apply while an active subscription exists.
+    */
+
+    $quickRenewAvailable =
+        auth()->check()
+        &&
+        !$hasActiveSubscription
+        &&
+        $canQuickRenew;
+
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Expired Seller
+    |--------------------------------------------------------------------------
+    */
+
+    $isExpiredSeller =
+        auth()->check()
+        &&
+        !$hasActiveSubscription
+        &&
+        (
+            $quickRenewAvailable
+            ||
+            (
+                $applicationStatus === 'expired'
+                &&
+                $approvedApplication
+                &&
+                $latestSubscription
+            )
+        );
+
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Can Submit Seller Application
+    |--------------------------------------------------------------------------
+    |
+    | Only first-time sellers and revision-required sellers submit the
+    | verification form.
+    |
+    | Expired approved sellers are intentionally excluded.
     |
     */
 
     $canApply =
         !$hasActiveSubscription
+        &&
+        !$isExpiredSeller
         &&
         (
             !$latestApplication
@@ -103,7 +196,6 @@
                 [
                     'revision_required',
                     'superseded',
-                    'expired',
                 ],
                 true
             )
@@ -141,14 +233,24 @@
     |--------------------------------------------------------------------------
     | Payment Pending
     |--------------------------------------------------------------------------
+    |
+    | This may be either:
+    |
+    | 1. First seller package invoice
+    | 2. Renewal / upgrade / package-change invoice
+    |
+    | Therefore application status must NOT be used as the only condition.
+    |
     */
 
     $isPaymentPending =
         auth()->check()
         &&
-        $applicationStatus === 'payment_pending'
+        isset($pendingInvoice)
         &&
-        $pendingInvoice;
+        $pendingInvoice
+        &&
+        $pendingInvoice->status === 'unpaid';
 
 
 
@@ -156,32 +258,12 @@
     |--------------------------------------------------------------------------
     | Active Seller
     |--------------------------------------------------------------------------
-    |
-    | IMPORTANT:
-    |
-    | We use the subscription now, not only the application status.
-    |
     */
 
     $isActiveSeller =
         auth()->check()
         &&
         $hasActiveSubscription;
-
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Expired Seller
-    |--------------------------------------------------------------------------
-    */
-
-    $isExpiredSeller =
-        auth()->check()
-        &&
-        !$hasActiveSubscription
-        &&
-        $applicationStatus === 'expired';
 
 @endphp
 
@@ -832,9 +914,13 @@
 
                                 Your previous seller package is no longer active.
 
-                                You can now select any available package below
-                                and submit a new application to renew or upgrade
-                                your seller account.
+                                Because Midpoint has already approved your seller
+                                verification, you do not need to submit your
+                                business information or verification documents again.
+
+                                Simply choose a package below, pay the renewal
+                                invoice, and your seller account will reactivate
+                                automatically.
 
                             </p>
 
@@ -1217,6 +1303,100 @@
                                 </button>
 
 
+                            @elseif($showRenewUpgrade)
+
+                                @php
+
+                                    $samePackage =
+                                        $latestSubscription
+                                        &&
+                                        (int) $latestSubscription->seller_package_id
+                                        ===
+                                        (int) $package->id;
+
+
+                                    $previousPrice =
+                                        $latestSubscription
+                                            ? (float) (
+                                                $latestSubscription->price
+                                                ?:
+                                                $latestSubscription->package_price
+                                            )
+                                            : 0;
+
+
+                                    $newPrice =
+                                        (float) $package->price;
+
+
+                                    if ($samePackage) {
+
+                                        $renewButtonText =
+                                            'Renew '
+                                            .
+                                            $package->name;
+
+                                        $renewButtonIcon =
+                                            'fa-rotate';
+
+                                    } elseif ($newPrice > $previousPrice) {
+
+                                        $renewButtonText =
+                                            'Upgrade to '
+                                            .
+                                            $package->name;
+
+                                        $renewButtonIcon =
+                                            'fa-arrow-trend-up';
+
+                                    } else {
+
+                                        $renewButtonText =
+                                            'Switch to '
+                                            .
+                                            $package->name;
+
+                                        $renewButtonIcon =
+                                            'fa-right-left';
+                                    }
+
+                                @endphp
+
+
+                                <form
+                                    method="POST"
+                                    action="{{ route('seller-subscriptions.renew') }}"
+                                    class="mt-auto"
+                                >
+
+                                    @csrf
+
+
+                                    <input
+                                        type="hidden"
+                                        name="seller_package_id"
+                                        value="{{ $package->id }}"
+                                    >
+
+
+                                    <button
+                                        type="submit"
+                                        class="
+                                            mp-btn
+                                            {{ $buttonClass }}
+                                            w-full
+                                        "
+                                    >
+
+                                        <i class="fa-solid {{ $renewButtonIcon }}"></i>
+
+                                        {{ $renewButtonText }}
+
+                                    </button>
+
+                                </form>
+
+
                             @else
 
                                 <button
@@ -1243,11 +1423,7 @@
                                     "
                                 >
 
-                                    @if($showRenewUpgrade)
-
-                                        Renew / Upgrade {{ $package->name }}
-
-                                    @elseif($isSelected)
+                                    @if($isSelected)
 
                                         Selected {{ $package->name }}
 
@@ -1288,6 +1464,88 @@
 
             @if($isPaymentPending)
 
+                @php
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Invoice Display Values
+                    |--------------------------------------------------------------------------
+                    |
+                    | IMPORTANT:
+                    |
+                    | Do not use an undefined $packageName variable here.
+                    |
+                    | Renewal / upgrade invoices may have a different package from
+                    | the original seller application, so invoice snapshot fields
+                    | get priority and the original application is only a fallback.
+                    |
+                    */
+
+                    $invoicePurchaseType =
+                        $pendingInvoice->purchase_type
+                        ?:
+                        'initial';
+
+
+                    $invoicePackageName =
+                        $pendingInvoice->package_name
+                        ?:
+                        (
+                            $latestSubscription
+                                ?->package_name
+                            ?:
+                            (
+                                $latestApplication
+                                    ?->package_name
+                                ?:
+                                'Seller Package'
+                            )
+                        );
+
+
+                    $invoiceProductLimit =
+                        (int) (
+                            $pendingInvoice->product_limit
+                            ?:
+                            (
+                                $latestSubscription
+                                    ?->product_limit
+                                ?:
+                                (
+                                    $latestApplication
+                                        ?->product_limit
+                                    ?:
+                                    0
+                                )
+                            )
+                        );
+
+
+                    $invoiceBusinessName =
+                        $approvedApplication
+                            ?->business_name
+                        ?:
+                        (
+                            $latestApplication
+                                ?->business_name
+                            ?:
+                            'Seller Business'
+                        );
+
+
+                    $isRecurringInvoice =
+                        in_array(
+                            $invoicePurchaseType,
+                            [
+                                'renewal',
+                                'upgrade',
+                                'downgrade',
+                            ],
+                            true
+                        );
+
+                @endphp
+
                 <div
                     id="seller-invoice"
                     class="
@@ -1315,7 +1573,23 @@
 
                             <span class="mp-badge mp-badge-green">
 
-                                Application approved
+                                @if($invoicePurchaseType === 'renewal')
+
+                                    Renewal ready
+
+                                @elseif($invoicePurchaseType === 'upgrade')
+
+                                    Upgrade ready
+
+                                @elseif($invoicePurchaseType === 'downgrade')
+
+                                    Plan change ready
+
+                                @else
+
+                                    Application approved
+
+                                @endif
 
                             </span>
 
@@ -1329,15 +1603,41 @@
                                 "
                             >
 
-                                Seller Package Invoice
+                                @if($invoicePurchaseType === 'renewal')
+
+                                    Seller Package Renewal Invoice
+
+                                @elseif($invoicePurchaseType === 'upgrade')
+
+                                    Seller Package Upgrade Invoice
+
+                                @elseif($invoicePurchaseType === 'downgrade')
+
+                                    Seller Package Change Invoice
+
+                                @else
+
+                                    Seller Package Invoice
+
+                                @endif
 
                             </h2>
 
 
                             <p class="mp-small mp-muted mt-1">
 
-                                Complete payment to activate
-                                your verified seller account.
+                                @if($isRecurringInvoice)
+
+                                    Complete payment and your seller package
+                                    will reactivate automatically.
+                                    No new application or admin approval is required.
+
+                                @else
+
+                                    Complete payment to activate
+                                    your verified seller account.
+
+                                @endif
 
                             </p>
 
@@ -1390,7 +1690,7 @@
 
 
                             <strong>
-                                {{ $latestApplication->business_name }}
+                                {{ $invoiceBusinessName }}
                             </strong>
 
                         </div>
@@ -1412,7 +1712,7 @@
 
 
                             <strong>
-                                {{ $latestApplication->package_name }}
+                                {{ $invoicePackageName }}
                             </strong>
 
                         </div>
@@ -1437,7 +1737,7 @@
 
                                 {{
                                     number_format(
-                                        $latestApplication->product_limit
+                                        $invoiceProductLimit
                                     )
                                 }}
 
@@ -2036,19 +2336,13 @@
                         Manage Products
 
                     </a>
-                    @if(
-                        $latestApplication
-                        &&
-                        $latestApplication->invoice
-                        &&
-                        $latestApplication->invoice->status === 'paid'
-                    )
+                    @if($downloadInvoice)
 
                         <a
                             href="{{
                                 route(
                                     'seller-invoices.download',
-                                    $latestApplication->invoice
+                                    $downloadInvoice
                                 )
                             }}"
                             class="

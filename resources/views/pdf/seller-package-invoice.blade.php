@@ -314,7 +314,20 @@
     </style>
 
 </head>
+@php
 
+    $packageName =
+        $invoice->effective_package_name;
+
+
+    $billingPeriod =
+        $invoice->effective_billing_period;
+
+
+    $productLimit =
+        $invoice->effective_product_limit;
+
+@endphp
 
 <body>
 
@@ -374,7 +387,23 @@
 
 <div class="invoice-title">
 
+    @if($invoice->purchase_type === \App\Models\SellerInvoice::TYPE_RENEWAL)
+
+    Seller Package Renewal Invoice
+
+@elseif($invoice->purchase_type === \App\Models\SellerInvoice::TYPE_UPGRADE)
+
+    Seller Package Upgrade Invoice
+
+@elseif($invoice->purchase_type === \App\Models\SellerInvoice::TYPE_DOWNGRADE)
+
+    Seller Package Change Invoice
+
+@else
+
     Seller Package Payment Invoice
+
+@endif
 
 </div>
 
@@ -552,7 +581,7 @@
 
         <td class="summary-value">
 
-            {{ $application->package_name }}
+            {{ $packageName }}
 
         </td>
 
@@ -570,12 +599,7 @@
 
         <td class="summary-value">
 
-            {{
-                ucfirst(
-                    $application->billing_period
-                )
-            }}
-
+           {{ ucfirst($billingPeriod) }}
         </td>
 
     </tr>
@@ -604,7 +628,22 @@
 
     </tr>
 
+<tr>
 
+    <td class="summary-label">
+
+        Purchase type
+
+    </td>
+
+
+    <td class="summary-value">
+
+        {{ $invoice->purchase_type_label }}
+
+    </td>
+
+</tr>
     <tr>
 
         <td class="summary-label">

@@ -3,12 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-
+use App\Models\SellerInvoice;
 use App\Models\SellerPackage;
 use App\Models\SellerSubscription;
-
 use App\Services\SellerSubscriptionService;
-
 use Illuminate\Http\Request;
 
 class SellerSubscriptionController extends Controller
@@ -17,9 +15,10 @@ class SellerSubscriptionController extends Controller
         Request $request,
         SellerSubscriptionService $subscriptions
     ) {
+
         /*
         |--------------------------------------------------------------------------
-        | Synchronize Expired Plans
+        | Synchronize Expiry
         |--------------------------------------------------------------------------
         */
 
@@ -40,6 +39,8 @@ class SellerSubscriptionController extends Controller
                     'user',
                     'package',
                     'application',
+                    'invoice',
+                    'renewedFrom',
                 ]);
 
 
@@ -50,9 +51,10 @@ class SellerSubscriptionController extends Controller
         */
 
         if (
-            $request->filled(
-                'search'
-            )
+            $request
+                ->filled(
+                    'search'
+                )
         ) {
 
             $search =
@@ -62,7 +64,11 @@ class SellerSubscriptionController extends Controller
 
 
             $query->where(
-                function ($query) use ($search) {
+                function (
+                    $query
+                ) use (
+                    $search
+                ) {
 
                     $query
 
@@ -87,11 +93,34 @@ class SellerSubscriptionController extends Controller
                         )
 
                         ->orWhereHas(
+                            'invoice',
+                            function (
+                                $query
+                            ) use (
+                                $search
+                            ) {
+
+                                $query->where(
+                                    'invoice_number',
+                                    'like',
+                                    '%'
+                                    .
+                                    $search
+                                    .
+                                    '%'
+                                );
+                            }
+                        )
+
+                        ->orWhereHas(
                             'user',
-                            function ($query) use ($search) {
+                            function (
+                                $query
+                            ) use (
+                                $search
+                            ) {
 
                                 $query
-
                                     ->where(
                                         'name',
                                         'like',
@@ -116,7 +145,11 @@ class SellerSubscriptionController extends Controller
 
                         ->orWhereHas(
                             'application',
-                            function ($query) use ($search) {
+                            function (
+                                $query
+                            ) use (
+                                $search
+                            ) {
 
                                 $query->where(
                                     'business_name',
@@ -162,32 +195,64 @@ class SellerSubscriptionController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Package
+        | Purchase Type
         |--------------------------------------------------------------------------
         */
 
         if (
-            $request->filled(
-                'package_id'
+            in_array(
+                $request
+                    ->purchase_type,
+                [
+                    SellerInvoice::TYPE_INITIAL,
+                    SellerInvoice::TYPE_RENEWAL,
+                    SellerInvoice::TYPE_UPGRADE,
+                    SellerInvoice::TYPE_DOWNGRADE,
+                ],
+                true
             )
         ) {
 
             $query->where(
-                'seller_package_id',
-                $request->package_id
+                'purchase_type',
+                $request
+                    ->purchase_type
             );
         }
 
 
         /*
         |--------------------------------------------------------------------------
-        | Expiring Soon
+        | Package
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            $request
+                ->filled(
+                    'package_id'
+                )
+        ) {
+
+            $query->where(
+                'seller_package_id',
+                $request
+                    ->package_id
+            );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Expiring
         |--------------------------------------------------------------------------
         */
 
         if (
             in_array(
-                (int) $request->expiring,
+                (int)
+                $request
+                    ->expiring,
                 [
                     7,
                     30,
@@ -198,7 +263,8 @@ class SellerSubscriptionController extends Controller
 
             $days =
                 (int)
-                $request->expiring;
+                $request
+                    ->expiring;
 
 
             $query
@@ -233,16 +299,12 @@ class SellerSubscriptionController extends Controller
                     'id'
                 )
 
-                ->paginate(25)
+                ->paginate(
+                    25
+                )
 
                 ->withQueryString();
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Packages
-        |--------------------------------------------------------------------------
-        */
 
         $packages =
             SellerPackage::query()
@@ -260,14 +322,14 @@ class SellerSubscriptionController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Statistics
+        | Stats
         |--------------------------------------------------------------------------
         */
 
         $stats = [
-
             'total' =>
-                SellerSubscription::count(),
+                SellerSubscription::query()
+                    ->count(),
 
             'active' =>
                 SellerSubscription::query()
@@ -277,6 +339,29 @@ class SellerSubscriptionController extends Controller
             'expired' =>
                 SellerSubscription::query()
                     ->expired()
+                    ->count(),
+
+            'renewals' =>
+                SellerSubscription::query()
+
+                    ->where(
+                        'purchase_type',
+                        SellerInvoice::TYPE_RENEWAL
+                    )
+
+                    ->count(),
+
+            'plan_changes' =>
+                SellerSubscription::query()
+
+                    ->whereIn(
+                        'purchase_type',
+                        [
+                            SellerInvoice::TYPE_UPGRADE,
+                            SellerInvoice::TYPE_DOWNGRADE,
+                        ]
+                    )
+
                     ->count(),
 
             'expiring_7' =>
@@ -292,11 +377,12 @@ class SellerSubscriptionController extends Controller
                         'expires_at',
                         '<=',
                         now()
-                            ->addDays(7)
+                            ->addDays(
+                                7
+                            )
                     )
 
                     ->count(),
-
         ];
 
 

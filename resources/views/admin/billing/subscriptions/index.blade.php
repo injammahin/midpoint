@@ -9,21 +9,27 @@
 
 <div class="plan-admin-page">
 
+
     <div class="plan-admin-heading">
 
         <h2>
             Purchased Seller Packages
         </h2>
 
+
         <p>
-            Track active and expired seller plans and their remaining time.
+            Complete seller package purchase history,
+            including renewals, upgrades and plan changes.
         </p>
 
     </div>
 
 
 
-    {{-- STATS --}}
+    {{-- =========================================================
+        STATS
+    ========================================================== --}}
+
     <div class="plan-admin-stats">
 
         <div class="admin-card plan-admin-stat">
@@ -68,6 +74,32 @@
         <div class="admin-card plan-admin-stat">
 
             <span>
+                Renewals
+            </span>
+
+            <strong class="purple">
+                {{ number_format($stats['renewals']) }}
+            </strong>
+
+        </div>
+
+
+        <div class="admin-card plan-admin-stat">
+
+            <span>
+                Upgrades / changes
+            </span>
+
+            <strong class="blue">
+                {{ number_format($stats['plan_changes']) }}
+            </strong>
+
+        </div>
+
+
+        <div class="admin-card plan-admin-stat">
+
+            <span>
                 Expiring within 7 days
             </span>
 
@@ -81,7 +113,10 @@
 
 
 
-    {{-- FILTER --}}
+    {{-- =========================================================
+        FILTER
+    ========================================================== --}}
+
     <div class="admin-card plan-filter-card">
 
         <form
@@ -94,7 +129,7 @@
                 type="text"
                 name="search"
                 value="{{ request('search') }}"
-                placeholder="User, email, business, payment ref..."
+                placeholder="User, email, business, invoice, payment ref..."
             >
 
 
@@ -104,12 +139,14 @@
                     All statuses
                 </option>
 
+
                 <option
                     value="active"
                     {{ request('status') === 'active' ? 'selected' : '' }}
                 >
                     Active
                 </option>
+
 
                 <option
                     value="expired"
@@ -121,17 +158,67 @@
             </select>
 
 
+            <select name="purchase_type">
+
+                <option value="">
+                    All purchase types
+                </option>
+
+
+                <option
+                    value="initial"
+                    {{ request('purchase_type') === 'initial' ? 'selected' : '' }}
+                >
+                    Initial
+                </option>
+
+
+                <option
+                    value="renewal"
+                    {{ request('purchase_type') === 'renewal' ? 'selected' : '' }}
+                >
+                    Renewal
+                </option>
+
+
+                <option
+                    value="upgrade"
+                    {{ request('purchase_type') === 'upgrade' ? 'selected' : '' }}
+                >
+                    Upgrade
+                </option>
+
+
+                <option
+                    value="downgrade"
+                    {{ request('purchase_type') === 'downgrade' ? 'selected' : '' }}
+                >
+                    Plan change
+                </option>
+
+            </select>
+
+
             <select name="package_id">
 
                 <option value="">
                     All packages
                 </option>
 
+
                 @foreach($packages as $package)
 
                     <option
                         value="{{ $package->id }}"
-                        {{ (string) request('package_id') === (string) $package->id ? 'selected' : '' }}
+                        {{
+                            (string)
+                            request('package_id')
+                            ===
+                            (string)
+                            $package->id
+                                ? 'selected'
+                                : ''
+                        }}
                     >
 
                         {{ $package->name }}
@@ -149,12 +236,14 @@
                     Any expiry
                 </option>
 
+
                 <option
                     value="7"
                     {{ request('expiring') === '7' ? 'selected' : '' }}
                 >
                     Expiring in 7 days
                 </option>
+
 
                 <option
                     value="30"
@@ -193,7 +282,10 @@
 
 
 
-    {{-- TABLE --}}
+    {{-- =========================================================
+        TABLE
+    ========================================================== --}}
+
     <div class="admin-card plan-table-card">
 
         <div class="plan-table-scroll">
@@ -210,6 +302,10 @@
 
                         <th>
                             Business
+                        </th>
+
+                        <th>
+                            Purchase
                         </th>
 
                         <th>
@@ -247,206 +343,257 @@
 
                 <tbody>
 
-                    @if($sellerSubscriptions->count() > 0)
+                    @forelse($sellerSubscriptions as $subscription)
 
-                        @foreach($sellerSubscriptions as $subscription)
+                        <tr>
 
-                            <tr>
+                            <td>
 
-                                <td>
+                                <strong>
+                                    {{ $subscription->user?->name ?? 'Unknown' }}
+                                </strong>
 
-                                    <strong>
-                                        {{ $subscription->user?->name ?? 'Unknown' }}
-                                    </strong>
+                                <small>
+                                    {{ $subscription->user?->email ?? '' }}
+                                </small>
+
+                            </td>
+
+
+                            <td>
+
+                                <strong>
+                                    {{ $subscription->application?->business_name ?? 'N/A' }}
+                                </strong>
+
+                            </td>
+
+
+                            <td>
+
+                                <span
+                                    class="
+                                        purchase-type
+                                        {{ $subscription->purchase_type ?: 'initial' }}
+                                    "
+                                >
+
+                                    {{ $subscription->purchase_type_label }}
+
+                                </span>
+
+
+                                <small>
+
+                                    Purchase
+                                    #{{ number_format($subscription->renewal_sequence ?: 1) }}
+
+                                </small>
+
+
+                                @if($subscription->invoice)
 
                                     <small>
-                                        {{ $subscription->user?->email ?? '' }}
+                                        {{ $subscription->invoice->invoice_number }}
                                     </small>
 
-                                </td>
+                                @endif
+
+                            </td>
 
 
-                                <td>
+                            <td>
 
-                                    <strong>
-                                        {{ $subscription->application?->business_name ?? 'N/A' }}
-                                    </strong>
-
-                                </td>
+                                <strong>
+                                    {{ $subscription->package_name }}
+                                </strong>
 
 
-                                <td>
+                                <small>
 
-                                    <strong>
-                                        {{ $subscription->package_name }}
-                                    </strong>
+                                    ₦{{
+                                        number_format(
+                                            (float)
+                                            $subscription->price,
+                                            0
+                                        )
+                                    }}
+
+                                    /{{ $subscription->billing_period }}
+
+                                </small>
+
+
+                                @if($subscription->renewedFrom)
 
                                     <small>
 
-                                        ₦{{ number_format((float) $subscription->price, 0) }}
-
-                                        /{{ $subscription->billing_period }}
+                                        Previous:
+                                        {{ $subscription->renewedFrom->package_name }}
 
                                     </small>
 
-                                </td>
+                                @endif
+
+                            </td>
 
 
-                                <td>
+                            <td>
 
-                                    {{ number_format($subscription->product_limit) }}
+                                {{ number_format($subscription->product_limit) }}
 
-                                </td>
+                            </td>
 
 
-                                <td>
+                            <td>
 
-                                    @if($subscription->started_at)
+                                @if($subscription->started_at)
+
+                                    {{
+                                        $subscription
+                                            ->started_at
+                                            ->format('d M Y')
+                                    }}
+
+                                    <small>
 
                                         {{
                                             $subscription
                                                 ->started_at
-                                                ->format('d M Y')
+                                                ->format('h:i A')
                                         }}
 
-                                        <small>
+                                    </small>
 
-                                            {{
-                                                $subscription
-                                                    ->started_at
-                                                    ->format('h:i A')
-                                            }}
+                                @else
 
-                                        </small>
+                                    N/A
 
-                                    @else
+                                @endif
 
-                                        N/A
-
-                                    @endif
-
-                                </td>
+                            </td>
 
 
-                                <td>
+                            <td>
 
-                                    @if($subscription->expires_at)
+                                @if($subscription->expires_at)
+
+                                    {{
+                                        $subscription
+                                            ->expires_at
+                                            ->format('d M Y')
+                                    }}
+
+                                    <small>
 
                                         {{
                                             $subscription
                                                 ->expires_at
-                                                ->format('d M Y')
+                                                ->format('h:i A')
                                         }}
 
-                                        <small>
+                                    </small>
 
-                                            {{
-                                                $subscription
-                                                    ->expires_at
-                                                    ->format('h:i A')
-                                            }}
+                                @else
 
-                                        </small>
+                                    No expiry
 
-                                    @else
+                                @endif
 
-                                        No expiry
-
-                                    @endif
-
-                                </td>
+                            </td>
 
 
-                                <td>
+                            <td>
 
-                                    @if($subscription->isCurrentlyActive())
+                                @if($subscription->isCurrentlyActive())
 
-                                        <strong
-                                            class="{{
-                                                $subscription->days_left <= 7
-                                                    ? 'plan-days-warning'
-                                                    : 'plan-days-good'
-                                            }}"
-                                        >
-
-                                            {{ $subscription->days_left }}
-                                            days left
-
-                                        </strong>
-
-
-                                        <small>
-                                            {{ $subscription->remaining_time }}
-                                        </small>
-
-
-                                    @else
-
-                                        <strong class="plan-expired-text">
-
-                                            Expired
-
-                                        </strong>
-
-                                    @endif
-
-                                </td>
-
-
-                                <td>
-
-                                    <span
-                                        class="
-                                            plan-status
-                                            {{
-                                                $subscription->isCurrentlyActive()
-                                                    ? 'active'
-                                                    : 'expired'
-                                            }}
-                                        "
+                                    <strong
+                                        class="{{
+                                            $subscription->days_left <= 7
+                                                ? 'plan-days-warning'
+                                                : 'plan-days-good'
+                                        }}"
                                     >
 
+                                        {{ $subscription->days_left }}
+
+                                        days left
+
+                                    </strong>
+
+
+                                    <small>
+                                        {{ $subscription->remaining_time }}
+                                    </small>
+
+                                @else
+
+                                    <strong class="plan-expired-text">
+                                        Expired
+                                    </strong>
+
+                                @endif
+
+                            </td>
+
+
+                            <td>
+
+                                <span
+                                    class="
+                                        plan-status
                                         {{
                                             $subscription->isCurrentlyActive()
-                                                ? 'ACTIVE'
-                                                : 'EXPIRED'
+                                                ? 'active'
+                                                : 'expired'
                                         }}
+                                    "
+                                >
 
-                                    </span>
+                                    {{
+                                        $subscription->isCurrentlyActive()
+                                            ? 'ACTIVE'
+                                            : 'EXPIRED'
+                                    }}
 
-                                </td>
+                                </span>
 
-
-                                <td>
-
-                                    @if($subscription->application)
-
-                                        <a
-                                            href="{{ route('admin.website-settings.seller-applications.show', $subscription->application) }}"
-                                            class="plan-view-button"
-                                        >
-
-                                            <i class="fa-solid fa-eye"></i>
-
-                                            View
-
-                                        </a>
-
-                                    @endif
-
-                                </td>
-
-                            </tr>
-
-                        @endforeach
+                            </td>
 
 
-                    @else
+                            <td>
+
+                                @if($subscription->application)
+
+                                    <a
+                                        href="{{
+                                            route(
+                                                'admin.website-settings.seller-applications.show',
+                                                $subscription->application
+                                            )
+                                        }}"
+                                        class="plan-view-button"
+                                    >
+
+                                        <i class="fa-solid fa-eye"></i>
+
+                                        View
+
+                                    </a>
+
+                                @endif
+
+                            </td>
+
+                        </tr>
+
+
+                    @empty
 
                         <tr>
 
                             <td
-                                colspan="9"
+                                colspan="10"
                                 class="plan-empty"
                             >
 
@@ -456,7 +603,7 @@
 
                         </tr>
 
-                    @endif
+                    @endforelse
 
                 </tbody>
 
@@ -500,10 +647,17 @@
     font-size:10px;
 }
 
+
+/*
+|--------------------------------------------------------------------------
+| Stats
+|--------------------------------------------------------------------------
+*/
+
 .plan-admin-stats {
     display:grid;
-    grid-template-columns:repeat(4,minmax(0,1fr));
-    gap:14px;
+    grid-template-columns:repeat(6,minmax(0,1fr));
+    gap:12px;
     margin-bottom:16px;
 }
 
@@ -514,7 +668,7 @@
 .plan-admin-stat span {
     display:block;
     color:var(--admin-muted);
-    font-size:11px;
+    font-size:10px;
 }
 
 .plan-admin-stat strong {
@@ -532,6 +686,21 @@
     color:#F79009;
 }
 
+.plan-admin-stat strong.purple {
+    color:#7A5AF8;
+}
+
+.plan-admin-stat strong.blue {
+    color:#2E90FA;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Filter
+|--------------------------------------------------------------------------
+*/
+
 .plan-filter-card {
     padding:14px;
     margin-bottom:16px;
@@ -539,7 +708,16 @@
 
 .plan-filters {
     display:grid;
-    grid-template-columns:1.6fr 1fr 1fr 1fr auto auto;
+
+    grid-template-columns:
+        1.6fr
+        .8fr
+        .9fr
+        .9fr
+        .9fr
+        auto
+        auto;
+
     gap:9px;
 }
 
@@ -548,12 +726,16 @@
     width:100%;
     height:38px;
     padding:0 10px;
+
     border:1px solid var(--admin-border);
     border-radius:8px;
+
     background:var(--admin-surface-soft);
     color:var(--admin-text);
+
     font-family:inherit;
-    font-size:11px;
+    font-size:10px;
+
     outline:none;
 }
 
@@ -563,27 +745,43 @@
     display:inline-flex;
     align-items:center;
     justify-content:center;
+
     gap:6px;
+
     height:38px;
+
     padding:0 13px;
+
     border-radius:8px;
-    font-size:11px;
+
+    font-size:10px;
     font-weight:700;
+
     text-decoration:none;
     white-space:nowrap;
 }
 
 .plan-filter-button {
     border:0;
+
     background:var(--admin-accent);
     color:#fff;
+
     cursor:pointer;
 }
 
 .plan-clear-button {
     border:1px solid var(--admin-border);
+
     color:var(--admin-heading);
 }
+
+
+/*
+|--------------------------------------------------------------------------
+| Table
+|--------------------------------------------------------------------------
+*/
 
 .plan-table-card {
     overflow:hidden;
@@ -595,37 +793,98 @@
 
 .plan-table {
     width:100%;
-    min-width:1150px;
+    min-width:1350px;
+
     border-collapse:collapse;
 }
 
 .plan-table th {
     padding:11px 13px;
+
     border-bottom:1px solid var(--admin-border);
+
     background:var(--admin-surface-soft);
     color:var(--admin-muted);
-    font-size:10px;
+
+    font-size:9px;
+
     text-align:left;
 }
 
 .plan-table td {
     padding:12px 13px;
+
     border-bottom:1px solid var(--admin-border);
+
     color:var(--admin-text);
-    font-size:11px;
+
+    font-size:10px;
 }
 
 .plan-table td strong {
     display:block;
+
     color:var(--admin-heading);
 }
 
 .plan-table td small {
     display:block;
+
     margin-top:3px;
+
     color:var(--admin-muted);
-    font-size:10px;
+
+    font-size:9px;
 }
+
+
+/*
+|--------------------------------------------------------------------------
+| Purchase Type
+|--------------------------------------------------------------------------
+*/
+
+.purchase-type {
+    display:inline-flex;
+
+    align-items:center;
+
+    padding:5px 8px;
+
+    border-radius:999px;
+
+    font-size:8px;
+    font-weight:800;
+
+    text-transform:uppercase;
+}
+
+.purchase-type.initial {
+    background:var(--admin-surface-hover);
+    color:var(--admin-muted);
+}
+
+.purchase-type.renewal {
+    background:rgba(18,183,106,.12);
+    color:#12B76A;
+}
+
+.purchase-type.upgrade {
+    background:rgba(122,90,248,.12);
+    color:#7A5AF8;
+}
+
+.purchase-type.downgrade {
+    background:rgba(46,144,250,.12);
+    color:#2E90FA;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Remaining
+|--------------------------------------------------------------------------
+*/
 
 .plan-days-good {
     color:#12B76A !important;
@@ -639,11 +898,21 @@
     color:var(--admin-muted) !important;
 }
 
+
+/*
+|--------------------------------------------------------------------------
+| Status
+|--------------------------------------------------------------------------
+*/
+
 .plan-status {
     display:inline-flex;
+
     padding:5px 8px;
+
     border-radius:999px;
-    font-size:10px;
+
+    font-size:9px;
     font-weight:700;
 }
 
@@ -657,15 +926,26 @@
     color:var(--admin-muted);
 }
 
+
+/*
+|--------------------------------------------------------------------------
+| View
+|--------------------------------------------------------------------------
+*/
+
 .plan-view-button {
     height:30px;
+
     border:1px solid var(--admin-border);
+
     color:var(--admin-heading);
 }
 
 .plan-empty {
     padding:50px !important;
+
     text-align:center;
+
     color:var(--admin-muted) !important;
 }
 
@@ -673,17 +953,38 @@
     padding:14px;
 }
 
-@media(max-width:1100px) {
+
+/*
+|--------------------------------------------------------------------------
+| Responsive
+|--------------------------------------------------------------------------
+*/
+
+@media(max-width:1350px) {
 
     .plan-admin-stats {
-        grid-template-columns:repeat(2,minmax(0,1fr));
-    }
-
-    .plan-filters {
-        grid-template-columns:repeat(2,minmax(0,1fr));
+        grid-template-columns:
+            repeat(
+                3,
+                minmax(0,1fr)
+            );
     }
 
 }
+
+
+@media(max-width:1100px) {
+
+    .plan-filters {
+        grid-template-columns:
+            repeat(
+                2,
+                minmax(0,1fr)
+            );
+    }
+
+}
+
 
 @media(max-width:650px) {
 

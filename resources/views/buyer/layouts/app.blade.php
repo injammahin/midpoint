@@ -50,26 +50,84 @@
     @vite([
         'resources/css/app.css',
         'resources/js/app.js',
-
-        /*
-        |--------------------------------------------------------------------------
-        | Buyer Dashboard Components
-        |--------------------------------------------------------------------------
-        |
-        | Buyer Dashboard already uses classes from account-dashboard.css.
-        |
-        */
-
         'resources/css/account-dashboard.css',
         'resources/js/account-dashboard.js',
     ])
 
 
     {{-- =========================================================
-        UNIFIED BUYER SIDEBAR STYLE
+        BUYER DASHBOARD SHELL
     ========================================================== --}}
 
     <style>
+
+        /*
+        |--------------------------------------------------------------------------
+        | Root / Viewport
+        |--------------------------------------------------------------------------
+        */
+
+        html {
+            width:
+                100%;
+
+            height:
+                100%;
+
+            overflow:
+                hidden;
+        }
+
+
+        body.buyer-layout-body {
+            width:
+                100%;
+
+            height:
+                100vh;
+
+            height:
+                100dvh;
+
+            min-height:
+                100vh;
+
+            display:
+                flex;
+
+            flex-direction:
+                column;
+
+            margin:
+                0;
+
+            overflow:
+                hidden;
+        }
+
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Website Header Container
+        |--------------------------------------------------------------------------
+        */
+
+        .buyer-site-header {
+            position:
+                relative;
+
+            z-index:
+                500;
+
+            width:
+                100%;
+
+            flex:
+                0 0 auto;
+        }
+
+
 
         /*
         |--------------------------------------------------------------------------
@@ -78,36 +136,54 @@
         */
 
         .buyer-account-shell {
-            width: 100%;
-            max-width: 1200px;
-            min-height: calc(100vh - 66px);
+            width:
+                100%;
 
-            display: flex;
+            max-width:
+                1200px;
 
-            margin: 0 auto;
-        }
+            flex:
+                1 1 auto;
 
+            min-height:
+                0;
 
-        .buyer-account-main {
-            min-width: 0;
-            flex: 1;
+            display:
+                flex;
 
-            padding: 32px;
+            margin:
+                0 auto;
+
+            overflow:
+                hidden;
         }
 
 
 
         /*
         |--------------------------------------------------------------------------
-        | Sidebar
+        | Buyer Sidebar
         |--------------------------------------------------------------------------
         */
 
         .buyer-main-sidebar {
-            position: relative;
+            position:
+                relative;
 
-            width: 220px;
-            flex: 0 0 220px;
+            z-index:
+                30;
+
+            width:
+                220px;
+
+            height:
+                100%;
+
+            min-height:
+                0;
+
+            flex:
+                0 0 220px;
 
             padding:
                 32px
@@ -115,90 +191,274 @@
                 32px
                 0;
 
-            border-right: 1px solid #E4EAE6;
+            border-right:
+                1px solid
+                #E4EAE6;
 
-            overflow: visible;
+            background:
+                #F6F9F7;
+
+            /*
+             * Sidebar can have its own scrollbar if menu becomes
+             * taller than the screen.
+             */
+            overflow-y:
+                auto;
+
+            overflow-x:
+                hidden;
+
+            overscroll-behavior:
+                contain;
+
+            scrollbar-gutter:
+                stable;
         }
 
 
 
         /*
         |--------------------------------------------------------------------------
-        | Section Title
+        | Buyer Sidebar Scrollbar
+        |--------------------------------------------------------------------------
+        */
+
+        .buyer-main-sidebar::-webkit-scrollbar {
+            width:
+                6px;
+        }
+
+
+        .buyer-main-sidebar::-webkit-scrollbar-track {
+            background:
+                transparent;
+        }
+
+
+        .buyer-main-sidebar::-webkit-scrollbar-thumb {
+            border-radius:
+                999px;
+
+            background:
+                rgba(
+                    99,
+                    121,
+                    110,
+                    .24
+                );
+        }
+
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Main Content
+        |--------------------------------------------------------------------------
+        */
+
+        .buyer-account-main {
+            position:
+                relative;
+
+            min-width:
+                0;
+
+            min-height:
+                0;
+
+            height:
+                100%;
+
+            flex:
+                1 1 auto;
+
+            padding:
+                32px;
+
+            /*
+             * Only page content scrolls.
+             */
+            overflow-y:
+                auto;
+
+            overflow-x:
+                hidden;
+
+            overscroll-behavior:
+                contain;
+
+            scrollbar-gutter:
+                stable;
+
+            -webkit-overflow-scrolling:
+                touch;
+        }
+
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Content Scrollbar
+        |--------------------------------------------------------------------------
+        */
+
+        .buyer-account-main::-webkit-scrollbar {
+            width:
+                8px;
+        }
+
+
+        .buyer-account-main::-webkit-scrollbar-track {
+            background:
+                transparent;
+        }
+
+
+        .buyer-account-main::-webkit-scrollbar-thumb {
+            border:
+                2px solid
+                transparent;
+
+            border-radius:
+                999px;
+
+            background:
+                rgba(
+                    95,
+                    119,
+                    108,
+                    .30
+                );
+
+            background-clip:
+                padding-box;
+        }
+
+
+        .buyer-account-main::-webkit-scrollbar-thumb:hover {
+            background:
+                rgba(
+                    55,
+                    88,
+                    73,
+                    .46
+                );
+
+            background-clip:
+                padding-box;
+        }
+
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Sidebar Title
         |--------------------------------------------------------------------------
         */
 
         .buyer-sidebar-section-title {
-            margin-bottom: 12px;
+            margin-bottom:
+                12px;
 
             padding:
                 0
                 12px;
 
-            color: #98A49E;
+            color:
+                #98A49E;
 
-            font-size:12px;
-            font-weight: 700;
+            font-size:
+                12px;
 
-            text-transform: uppercase;
+            font-weight:
+                700;
 
-            letter-spacing: .12em;
+            text-transform:
+                uppercase;
+
+            letter-spacing:
+                .12em;
         }
 
 
         .buyer-sidebar-switch-title {
-            margin-top: 28px;
+            margin-top:
+                28px;
         }
 
 
 
         /*
         |--------------------------------------------------------------------------
-        | Navigation
+        | Sidebar Navigation
         |--------------------------------------------------------------------------
         */
 
         .buyer-sidebar-nav {
-            display: flex;
-            flex-direction: column;
+            display:
+                flex;
 
-            gap: 4px;
+            flex-direction:
+                column;
+
+            gap:
+                4px;
         }
 
 
         .buyer-sidebar-link {
-            position: relative;
+            position:
+                relative;
 
-            width: 100%;
-            min-height: 44px;
+            width:
+                100%;
 
-            display: flex;
-            align-items: center;
+            min-height:
+                44px;
 
-            gap: 12px;
+            display:
+                flex;
+
+            align-items:
+                center;
+
+            gap:
+                12px;
 
             padding:
                 10px
                 12px;
 
-            border: 0;
-            border-radius: 12px;
+            border:
+                0;
 
-            background: transparent;
+            border-radius:
+                12px;
 
-            color: #5A6660;
+            background:
+                transparent;
+
+            color:
+                #5A6660;
 
             font-family:
                 'Inter',
                 sans-serif;
 
-            font-size: 13px;
-            font-weight: 600;
+            font-size:
+                13px;
 
-            text-align: left;
-            text-decoration: none;
+            font-weight:
+                600;
 
-            cursor: pointer;
+            text-align:
+                left;
+
+            text-decoration:
+                none;
+
+            cursor:
+                pointer;
 
             transition:
                 color .16s ease,
@@ -207,44 +467,60 @@
 
 
         .buyer-sidebar-link:hover {
-            background: #E8F7EF;
+            background:
+                #E8F7EF;
 
-            color: #0B3D2E;
+            color:
+                #0B3D2E;
         }
 
 
         .buyer-sidebar-link.active {
-            background: #0B3D2E;
+            background:
+                #0B3D2E;
 
-            color: #FFFFFF;
+            color:
+                #FFFFFF;
         }
 
 
 
         /*
         |--------------------------------------------------------------------------
-        | Icon
+        | Icons
         |--------------------------------------------------------------------------
         */
 
         .buyer-sidebar-icon {
-            width: 18px;
-            height: 18px;
+            width:
+                18px;
 
-            flex: 0 0 18px;
+            height:
+                18px;
 
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
+            flex:
+                0 0 18px;
 
-            font-size: 12px;
+            display:
+                inline-flex;
+
+            align-items:
+                center;
+
+            justify-content:
+                center;
+
+            font-size:
+                12px;
         }
 
 
         .buyer-sidebar-label {
-            min-width: 0;
+            min-width:
+                0;
 
-            flex: 1;
+            flex:
+                1;
         }
 
 
@@ -256,9 +532,11 @@
         */
 
         .buyer-sidebar-logout:hover {
-            background: #FFF1F2;
+            background:
+                #FFF1F2;
 
-            color: #D92D20;
+            color:
+                #D92D20;
         }
 
 
@@ -270,120 +548,251 @@
         */
 
         .buyer-mobile-navigation {
-            display: none;
+            display:
+                none;
+
+            flex:
+                0 0 auto;
 
             padding:
                 12px
                 16px;
 
-            border-bottom: 1px solid #E4EAE6;
+            border-bottom:
+                1px solid
+                #E4EAE6;
 
-            background: #F6F9F7;
+            background:
+                #F6F9F7;
         }
 
 
         .buyer-mobile-menu-button {
-            display: inline-flex;
-            align-items: center;
+            display:
+                inline-flex;
 
-            gap: 8px;
+            align-items:
+                center;
+
+            gap:
+                8px;
 
             padding:
                 9px
                 12px;
 
-            border: 1px solid #DDE5E1;
-            border-radius: 10px;
+            border:
+                1px solid
+                #DDE5E1;
 
-            background: #FFFFFF;
+            border-radius:
+                10px;
 
-            color: #0B3D2E;
+            background:
+                #FFFFFF;
 
-            font-size: 12px;
-            font-weight: 700;
+            color:
+                #0B3D2E;
 
-            cursor: pointer;
-        }
+            font-size:
+                12px;
 
+            font-weight:
+                700;
 
-        .buyer-sidebar-backdrop {
-            display: none;
+            cursor:
+                pointer;
         }
 
 
 
         /*
         |--------------------------------------------------------------------------
-        | Responsive
+        | Backdrop
+        |--------------------------------------------------------------------------
+        */
+
+        .buyer-sidebar-backdrop {
+            display:
+                none;
+        }
+
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Tablet / Mobile
         |--------------------------------------------------------------------------
         */
 
         @media(max-width: 1023px) {
 
             .buyer-mobile-navigation {
-                display: block;
+                display:
+                    block;
             }
 
 
             .buyer-account-shell {
-                display: block;
+                display:
+                    block;
+
+                width:
+                    100%;
+
+                max-width:
+                    none;
+
+                min-height:
+                    0;
+
+                overflow:
+                    hidden;
             }
 
 
+            /*
+            |--------------------------------------------------------------------------
+            | Mobile Content
+            |--------------------------------------------------------------------------
+            */
+
+            .buyer-account-main {
+                width:
+                    100%;
+
+                height:
+                    100%;
+
+                min-height:
+                    0;
+
+                padding:
+                    24px
+                    16px;
+
+                overflow-y:
+                    auto;
+
+                overflow-x:
+                    hidden;
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Mobile Drawer
+            |--------------------------------------------------------------------------
+            */
+
             .buyer-main-sidebar {
-                position: fixed;
+                position:
+                    fixed;
 
-                left: 0;
-                top: 0;
-                bottom: 0;
+                left:
+                    0;
 
-                z-index: 10000;
+                top:
+                    0;
 
-                width: 260px;
+                bottom:
+                    0;
+
+                z-index:
+                    10000;
+
+                width:
+                    280px;
+
+                height:
+                    100vh;
+
+                height:
+                    100dvh;
 
                 padding:
                     90px
                     20px
-                    25px;
+                    28px;
 
-                border-right: 1px solid #E4EAE6;
+                border-right:
+                    1px solid
+                    #E4EAE6;
 
-                background: #F6F9F7;
+                background:
+                    #F6F9F7;
 
                 box-shadow:
                     15px
                     0
                     40px
-                    rgba(11, 61, 46, .12);
+                    rgba(
+                        11,
+                        61,
+                        46,
+                        .12
+                    );
+
+                overflow-y:
+                    auto;
+
+                overflow-x:
+                    hidden;
+
+                overscroll-behavior:
+                    contain;
 
                 transform:
-                    translateX(-105%);
+                    translateX(
+                        -105%
+                    );
 
                 transition:
-                    transform .2s ease;
+                    transform
+                    .2s ease;
             }
 
 
             .buyer-main-sidebar.is-open {
                 transform:
-                    translateX(0);
+                    translateX(
+                        0
+                    );
             }
 
 
+            /*
+            |--------------------------------------------------------------------------
+            | Mobile Backdrop
+            |--------------------------------------------------------------------------
+            */
+
             .buyer-sidebar-backdrop {
-                position: fixed;
+                position:
+                    fixed;
 
-                inset: 0;
+                inset:
+                    0;
 
-                z-index: 9999;
+                z-index:
+                    9999;
 
-                display: block;
+                display:
+                    block;
 
                 background:
-                    rgba(11, 31, 23, .45);
+                    rgba(
+                        11,
+                        31,
+                        23,
+                        .45
+                    );
 
-                opacity: 0;
-                visibility: hidden;
+                opacity:
+                    0;
+
+                visibility:
+                    hidden;
 
                 transition:
                     opacity .2s ease,
@@ -392,17 +801,38 @@
 
 
             .buyer-sidebar-backdrop.is-open {
-                opacity: 1;
-                visibility: visible;
+                opacity:
+                    1;
+
+                visibility:
+                    visible;
+            }
+
+        }
+
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Small Phone
+        |--------------------------------------------------------------------------
+        */
+
+        @media(max-width: 480px) {
+
+            .buyer-main-sidebar {
+                width:
+                    min(
+                        86vw,
+                        290px
+                    );
             }
 
 
             .buyer-account-main {
-                width: 100%;
-
                 padding:
-                    24px
-                    16px;
+                    20px
+                    13px;
             }
 
         }
@@ -419,14 +849,18 @@
 </head>
 
 
-<body class="bg-[#F6F9F7] text-[#17251F]">
+<body class="buyer-layout-body bg-[#F6F9F7] text-[#17251F]">
 
 
     {{-- =========================================================
         WEBSITE HEADER
     ========================================================== --}}
 
-    @include('frontend.partials.header')
+    <div class="buyer-site-header">
+
+        @include('frontend.partials.header')
+
+    </div>
 
 
 
@@ -438,12 +872,10 @@
 
         <button
             type="button"
-
             id="buyerSidebarToggle"
-
             class="buyer-mobile-menu-button"
-
             aria-expanded="false"
+            aria-controls="buyerMainSidebar"
         >
 
             <i class="fa-solid fa-bars"></i>
@@ -463,6 +895,7 @@
     <div
         id="buyerSidebarBackdrop"
         class="buyer-sidebar-backdrop"
+        aria-hidden="true"
     ></div>
 
 
@@ -475,7 +908,7 @@
 
 
         {{-- =====================================================
-            SIDEBAR
+            FIXED BUYER SIDEBAR
         ====================================================== --}}
 
         @include(
@@ -485,10 +918,13 @@
 
 
         {{-- =====================================================
-            CONTENT
+            SCROLLABLE CONTENT
         ====================================================== --}}
 
-        <main class="buyer-account-main">
+        <main
+            id="buyerAccountMain"
+            class="buyer-account-main"
+        >
 
             @yield('content')
 
@@ -550,7 +986,6 @@
 
                 <button
                     type="submit"
-
                     class="
                         rounded-lg
                         bg-white
@@ -582,7 +1017,7 @@
 
 
     {{-- =========================================================
-        MOBILE SIDEBAR SCRIPT
+        BUYER SIDEBAR SCRIPT
     ========================================================== --}}
 
     <script>
@@ -611,7 +1046,7 @@
 
                 /*
                 |--------------------------------------------------------------------------
-                | Open
+                | Open Sidebar
                 |--------------------------------------------------------------------------
                 */
 
@@ -632,6 +1067,12 @@
                         backdrop.classList.add(
                             'is-open'
                         );
+
+
+                        backdrop.setAttribute(
+                            'aria-hidden',
+                            'false'
+                        );
                     }
 
 
@@ -642,17 +1083,13 @@
                             'true'
                         );
                     }
-
-
-                    document.body.style.overflow =
-                        'hidden';
                 }
 
 
 
                 /*
                 |--------------------------------------------------------------------------
-                | Close
+                | Close Sidebar
                 |--------------------------------------------------------------------------
                 */
 
@@ -673,6 +1110,12 @@
                         backdrop.classList.remove(
                             'is-open'
                         );
+
+
+                        backdrop.setAttribute(
+                            'aria-hidden',
+                            'true'
+                        );
                     }
 
 
@@ -683,10 +1126,6 @@
                             'false'
                         );
                     }
-
-
-                    document.body.style.overflow =
-                        '';
                 }
 
 
@@ -736,6 +1175,64 @@
                         closeSidebar
                     );
                 }
+
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Close Mobile Drawer After Link Click
+                |--------------------------------------------------------------------------
+                */
+
+                if (sidebar) {
+
+                    sidebar
+                        .querySelectorAll(
+                            'a'
+                        )
+                        .forEach(
+                            function (link) {
+
+                                link.addEventListener(
+                                    'click',
+                                    function () {
+
+                                        if (
+                                            window.innerWidth
+                                            <
+                                            1024
+                                        ) {
+
+                                            closeSidebar();
+                                        }
+                                    }
+                                );
+                            }
+                        );
+                }
+
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Escape
+                |--------------------------------------------------------------------------
+                */
+
+                document.addEventListener(
+                    'keydown',
+                    function (event) {
+
+                        if (
+                            event.key
+                            ===
+                            'Escape'
+                        ) {
+
+                            closeSidebar();
+                        }
+                    }
+                );
 
 
 

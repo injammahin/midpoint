@@ -4,9 +4,7 @@ namespace App\Mail;
 
 use App\Models\SellerApplication;
 use App\Models\SellerInvoice;
-
 use Barryvdh\DomPDF\Facade\Pdf;
-
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
@@ -35,10 +33,11 @@ class SellerPackagePaymentConfirmedMail extends Mailable
             $invoice;
 
 
-        $this->application
-            ->loadMissing([
-                'user',
-            ]);
+        $this
+            ->application
+            ->loadMissing(
+                'user'
+            );
     }
 
 
@@ -46,7 +45,7 @@ class SellerPackagePaymentConfirmedMail extends Mailable
     {
         /*
         |--------------------------------------------------------------------------
-        | Build PDF Invoice
+        | PDF
         |--------------------------------------------------------------------------
         */
 
@@ -54,63 +53,86 @@ class SellerPackagePaymentConfirmedMail extends Mailable
             Pdf::loadView(
                 'pdf.seller-package-invoice',
                 [
-
                     'user' =>
-                        $this->application
+                        $this
+                            ->application
                             ->user,
 
                     'application' =>
-                        $this->application,
+                        $this
+                            ->application,
 
                     'invoice' =>
-                        $this->invoice,
-
+                        $this
+                            ->invoice,
                 ]
             )
-
-            ->setPaper(
-                'a4',
-                'portrait'
-            );
+                ->setPaper(
+                    'a4',
+                    'portrait'
+                );
 
 
         /*
         |--------------------------------------------------------------------------
-        | Email + PDF Attachment
+        | Subject
         |--------------------------------------------------------------------------
         */
+
+        $subject =
+            match (
+                $this
+                    ->invoice
+                    ->purchase_type
+            ) {
+
+                SellerInvoice::TYPE_RENEWAL =>
+                    'Seller package renewed - ',
+
+                SellerInvoice::TYPE_UPGRADE =>
+                    'Seller package upgraded - ',
+
+                SellerInvoice::TYPE_DOWNGRADE =>
+                    'Seller package changed - ',
+
+                default =>
+                    'Payment confirmed - ',
+            };
+
 
         return $this
 
             ->subject(
-                'Payment confirmed - '
+                $subject
                 .
-                $this->invoice
+                $this
+                    ->invoice
                     ->invoice_number
             )
 
             ->view(
                 'emails.seller.payment-confirmed',
                 [
-
                     'user' =>
-                        $this->application
+                        $this
+                            ->application
                             ->user,
 
                     'application' =>
-                        $this->application,
+                        $this
+                            ->application,
 
                     'invoice' =>
-                        $this->invoice,
-
+                        $this
+                            ->invoice,
                 ]
             )
 
             ->attachData(
-
                 $pdf->output(),
 
-                $this->invoice
+                $this
+                    ->invoice
                     ->invoice_number
                 .
                 '.pdf',
@@ -119,7 +141,6 @@ class SellerPackagePaymentConfirmedMail extends Mailable
                     'mime' =>
                         'application/pdf',
                 ]
-
             );
     }
 }

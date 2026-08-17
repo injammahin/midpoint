@@ -7,11 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class SellerSubscription extends Model
 {
-    /*
-    |--------------------------------------------------------------------------
-    | Status
-    |--------------------------------------------------------------------------
-    */
+    public const STATUS_PENDING =
+        'pending';
 
     public const STATUS_ACTIVE =
         'active';
@@ -19,12 +16,9 @@ class SellerSubscription extends Model
     public const STATUS_EXPIRED =
         'expired';
 
+    public const STATUS_CANCELLED =
+        'cancelled';
 
-    /*
-    |--------------------------------------------------------------------------
-    | Fillable
-    |--------------------------------------------------------------------------
-    */
 
     protected $fillable = [
 
@@ -33,6 +27,14 @@ class SellerSubscription extends Model
         'seller_package_id',
 
         'seller_application_id',
+
+        'seller_invoice_id',
+
+        'purchase_type',
+
+        'renewed_from_subscription_id',
+
+        'renewal_sequence',
 
         'package_name',
 
@@ -48,19 +50,6 @@ class SellerSubscription extends Model
 
         'payment_reference',
 
-        /*
-        |--------------------------------------------------------------------------
-        | Both Names Supported
-        |--------------------------------------------------------------------------
-        |
-        | Original DB:
-        | starts_at
-        |
-        | Newer application:
-        | started_at
-        |
-        */
-
         'starts_at',
 
         'started_at',
@@ -68,15 +57,8 @@ class SellerSubscription extends Model
         'expires_at',
 
         'cancelled_at',
-
     ];
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Casts
-    |--------------------------------------------------------------------------
-    */
 
     protected $casts = [
 
@@ -87,6 +69,9 @@ class SellerSubscription extends Model
             'decimal:2',
 
         'product_limit' =>
+            'integer',
+
+        'renewal_sequence' =>
             'integer',
 
         'starts_at' =>
@@ -100,13 +85,12 @@ class SellerSubscription extends Model
 
         'cancelled_at' =>
             'datetime',
-
     ];
 
 
     /*
     |--------------------------------------------------------------------------
-    | User
+    | Relationships
     |--------------------------------------------------------------------------
     */
 
@@ -118,12 +102,6 @@ class SellerSubscription extends Model
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Package
-    |--------------------------------------------------------------------------
-    */
-
     public function package()
     {
         return $this->belongsTo(
@@ -132,12 +110,6 @@ class SellerSubscription extends Model
         );
     }
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Application
-    |--------------------------------------------------------------------------
-    */
 
     public function application()
     {
@@ -148,9 +120,36 @@ class SellerSubscription extends Model
     }
 
 
+    public function invoice()
+    {
+        return $this->belongsTo(
+            SellerInvoice::class,
+            'seller_invoice_id'
+        );
+    }
+
+
+    public function renewedFrom()
+    {
+        return $this->belongsTo(
+            self::class,
+            'renewed_from_subscription_id'
+        );
+    }
+
+
+    public function renewals()
+    {
+        return $this->hasMany(
+            self::class,
+            'renewed_from_subscription_id'
+        );
+    }
+
+
     /*
     |--------------------------------------------------------------------------
-    | Active Scope
+    | Scopes
     |--------------------------------------------------------------------------
     */
 
@@ -171,7 +170,6 @@ class SellerSubscription extends Model
                 ) {
 
                     $query
-
                         ->whereNull(
                             'expires_at'
                         )
@@ -186,12 +184,6 @@ class SellerSubscription extends Model
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Expired Scope
-    |--------------------------------------------------------------------------
-    */
-
     public function scopeExpired(
         Builder $query
     ): Builder {
@@ -204,7 +196,6 @@ class SellerSubscription extends Model
                 ) {
 
                     $query
-
                         ->where(
                             'status',
                             self::STATUS_EXPIRED
@@ -216,7 +207,6 @@ class SellerSubscription extends Model
                             ) {
 
                                 $query
-
                                     ->whereNotNull(
                                         'expires_at'
                                     )
@@ -235,7 +225,7 @@ class SellerSubscription extends Model
 
     /*
     |--------------------------------------------------------------------------
-    | Is Active?
+    | Current Status
     |--------------------------------------------------------------------------
     */
 
@@ -259,75 +249,112 @@ class SellerSubscription extends Model
         }
 
 
-        return $this
-            ->expires_at
-            ->isFuture();
+        return
+            $this->expires_at
+                ->isFuture();
     }
 
 
     /*
     |--------------------------------------------------------------------------
-    | Days Remaining
+    | Remaining Days
     |--------------------------------------------------------------------------
     */
 
     public function getDaysLeftAttribute(): int
     {
         if (
-            !$this->expires_at
-            ||
             !$this->isCurrentlyActive()
+            ||
+            !$this->expires_at
         ) {
 
             return 0;
         }
 
 
-        $seconds =
-            now()->diffInSeconds(
-                $this->expires_at,
-                false
-            );
-
-
-        if ($seconds <= 0) {
-
-            return 0;
-        }
-
-
-        return (int) ceil(
-            $seconds
-            /
-            86400
+        return max(
+            0,
+            now()
+                ->startOfDay()
+                ->diffInDays(
+                    $this
+                        ->expires_at
+                        ->copy()
+                        ->startOfDay(),
+                    false
+                )
         );
     }
 
 
     /*
     |--------------------------------------------------------------------------
-    | Remaining Text
+    | Remaining Time
     |--------------------------------------------------------------------------
     */
 
     public function getRemainingTimeAttribute(): string
     {
         if (
-            !$this->expires_at
-            ||
-            !$this->isCurrentlyActive()
+            !$this
+                ->isCurrentlyActive()
         ) {
 
-            return 'Expired';
+            return
+                'Expired';
+        }
+
+
+        if (
+            !$this->expires_at
+        ) {
+
+            return
+                'No expiry';
         }
 
 
         return now()
             ->diffForHumans(
                 $this->expires_at,
-                true
+                [
+                    'parts' => 2,
+                    'short' => true,
+                    'syntax' =>
+                        \Carbon\CarbonInterface::DIFF_ABSOLUTE,
+                ]
             )
             .
             ' left';
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Purchase Type
+    |--------------------------------------------------------------------------
+    */
+
+    public function getPurchaseTypeLabelAttribute(): string
+    {
+        return match (
+            $this->purchase_type
+            ?:
+            SellerInvoice::TYPE_INITIAL
+        ) {
+
+            SellerInvoice::TYPE_RENEWAL =>
+                'Renewal',
+
+            SellerInvoice::TYPE_UPGRADE =>
+                'Upgrade',
+
+            SellerInvoice::TYPE_DOWNGRADE =>
+                'Plan change',
+
+            default =>
+                'Initial',
+        };
     }
 }

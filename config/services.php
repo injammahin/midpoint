@@ -73,23 +73,6 @@ return [
     |
     */
     'paystack' => [
-        'fake_bank_verification' =>
-            env(
-                'PAYSTACK_FAKE_BANK_VERIFICATION',
-                false
-            ),
-
-        'fake_withdrawals' =>
-            env(
-                'PAYSTACK_FAKE_WITHDRAWALS',
-                false
-            ),
-
-        'minimum_withdrawal' =>
-            env(
-                'PAYSTACK_MINIMUM_WITHDRAWAL',
-                1000
-            ),
 
         'mode' =>
             env(
@@ -101,7 +84,6 @@ return [
             env(
                 'PAYSTACK_PUBLIC_KEY'
             ),
-            
 
         'secret_key' =>
             env(
@@ -114,6 +96,46 @@ return [
                 'https://api.paystack.co'
             ),
 
+        /*
+        |--------------------------------------------------------------------------
+        | Seller Wallet
+        |--------------------------------------------------------------------------
+        */
+
+        'minimum_withdrawal' =>
+            env(
+                'PAYSTACK_MINIMUM_WITHDRAWAL',
+                1000
+            ),
+
+        /*
+        |--------------------------------------------------------------------------
+        | Automatic Paystack Server Approval
+        |--------------------------------------------------------------------------
+        */
+
+        'transfer_approval_token' =>
+            env(
+                'PAYSTACK_TRANSFER_APPROVAL_TOKEN'
+            ),
+
+        /*
+        |--------------------------------------------------------------------------
+        | Local Testing
+        |--------------------------------------------------------------------------
+        */
+
+        'fake_bank_verification' =>
+            env(
+                'PAYSTACK_FAKE_BANK_VERIFICATION',
+                false
+            ),
+
+        'fake_withdrawals' =>
+            env(
+                'PAYSTACK_FAKE_WITHDRAWALS',
+                false
+            ),
     ],
     'mailgun' => [
         'domain' => env('MAILGUN_DOMAIN'),

@@ -16,7 +16,68 @@
     </title>
 
 </head>
+@php
 
+    $purchaseType =
+        $invoice->purchase_type
+        ?:
+        \App\Models\SellerInvoice::TYPE_INITIAL;
+
+
+    $packageName =
+        $invoice->effective_package_name;
+
+
+    $productLimit =
+        $invoice->effective_product_limit;
+
+
+    $isRenewal =
+        $purchaseType
+        ===
+        \App\Models\SellerInvoice::TYPE_RENEWAL;
+
+
+    $isUpgrade =
+        $purchaseType
+        ===
+        \App\Models\SellerInvoice::TYPE_UPGRADE;
+
+
+    $isDowngrade =
+        $purchaseType
+        ===
+        \App\Models\SellerInvoice::TYPE_DOWNGRADE;
+
+
+    $actionTitle =
+        $isRenewal
+            ? 'Package renewed successfully!'
+            : (
+                $isUpgrade
+                    ? 'Package upgraded successfully!'
+                    : (
+                        $isDowngrade
+                            ? 'Package changed successfully!'
+                            : '{{ $actionTitle }}'
+                    )
+            );
+
+
+    $actionDescription =
+        $isRenewal
+            ? 'Your seller package renewal payment was successfully verified with Paystack.'
+            : (
+                $isUpgrade
+                    ? 'Your seller package upgrade payment was successfully verified with Paystack.'
+                    : (
+                        $isDowngrade
+                            ? 'Your new seller package payment was successfully verified with Paystack.'
+                            : 'We successfully verified your seller package payment with Paystack.'
+                    )
+            );
+
+@endphp
 
 <body
     style="
@@ -172,7 +233,7 @@
                 "
             >
 
-                Payment confirmed!
+                {{ $actionTitle }}
 
             </h1>
 
@@ -202,16 +263,24 @@
                 "
             >
 
-                We successfully verified your seller package
-                payment with Paystack.
+{{ $actionDescription }}
 
-                Your
+Your
 
-                <strong>
-                    {{ $application->package_name }}
-                </strong>
+<strong>
+    {{ $packageName }}
+</strong>
 
-                Verified Seller package is now active.
+Verified Seller package is now active.
+
+@if($invoice->isRecurringPurchase())
+
+    You did not need to submit another seller
+    verification application because your
+    existing approved seller verification
+    remains valid.
+
+@endif
 
                 Your official paid invoice is attached
                 to this email as a PDF.
@@ -257,11 +326,7 @@
 
                     <strong>
 
-                        {{
-                            number_format(
-                                $application->product_limit
-                            )
-                        }}
+                       {{ number_format($productLimit) }}
 
                         products.
 
@@ -362,7 +427,7 @@
                     "
                 >
 
-                    {{ $application->package_name }}
+                    {{ $packageName }}
 
                     seller package
 
@@ -591,7 +656,7 @@
                             "
                         >
 
-                            {{ $application->package_name }}
+                            {{ $packageName }}
 
                         </td>
 

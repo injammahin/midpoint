@@ -50,27 +50,71 @@
     @vite([
         'resources/css/app.css',
         'resources/js/app.js',
-
-        /*
-        |--------------------------------------------------------------------------
-        | Keep Dashboard Styling
-        |--------------------------------------------------------------------------
-        |
-        | Seller Dashboard previously used account.layouts.app.
-        | Therefore its cards, tables, charts etc. depend on this stylesheet.
-        |
-        */
-
         'resources/css/account-dashboard.css',
         'resources/js/account-dashboard.js',
     ])
 
 
     {{-- =========================================================
-        UNIFIED SELLER SIDEBAR CSS
+        SELLER DASHBOARD SHELL
     ========================================================== --}}
 
     <style>
+
+        /*
+        |--------------------------------------------------------------------------
+        | Root / Viewport
+        |--------------------------------------------------------------------------
+        |
+        | The dashboard owns the browser viewport.
+        |
+        | Header remains visible.
+        | Sidebar remains visible.
+        | Only seller-account-main scrolls.
+        |
+        */
+
+        html {
+            width: 100%;
+            height: 100%;
+
+            overflow: hidden;
+        }
+
+
+        body.seller-layout-body {
+            width: 100%;
+            height: 100vh;
+            height: 100dvh;
+            min-height: 100vh;
+
+            display: flex;
+            flex-direction: column;
+
+            margin: 0;
+
+            overflow: hidden;
+        }
+
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Website Header Container
+        |--------------------------------------------------------------------------
+        */
+
+        .seller-site-header {
+            position: relative;
+
+            z-index: 500;
+
+            width: 100%;
+
+            flex: 0 0 auto;
+        }
+
+
 
         /*
         |--------------------------------------------------------------------------
@@ -81,60 +125,186 @@
         .seller-account-shell {
             width: 100%;
             max-width: 1200px;
-            min-height: calc(100vh - 66px);
+
+            /*
+             * Important:
+             *
+             * Occupy all remaining height below website header.
+             */
+            flex: 1 1 auto;
+
+            min-height: 0;
 
             display: flex;
 
             margin: 0 auto;
+
+            overflow: hidden;
         }
 
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Seller Main Content
+        |--------------------------------------------------------------------------
+        */
 
         .seller-account-main {
+            position: relative;
+
             min-width: 0;
-            flex: 1;
+            min-height: 0;
+
+            height: 100%;
+
+            flex: 1 1 auto;
 
             padding: 32px;
+
+            /*
+             * MAIN FIX:
+             *
+             * Large wallet pages, transaction pages, product pages,
+             * etc. scroll here instead of moving the sidebar.
+             */
+            overflow-y: auto;
+            overflow-x: hidden;
+
+            overscroll-behavior: contain;
+
+            scrollbar-gutter: stable;
+
+            -webkit-overflow-scrolling: touch;
         }
+
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Main Content Scrollbar
+        |--------------------------------------------------------------------------
+        */
+
+        .seller-account-main::-webkit-scrollbar {
+            width: 8px;
+        }
+
+
+        .seller-account-main::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+
+        .seller-account-main::-webkit-scrollbar-thumb {
+            border: 2px solid transparent;
+            border-radius: 999px;
+
+            background:
+                rgba(
+                    95,
+                    119,
+                    108,
+                    .30
+                );
+
+            background-clip:
+                padding-box;
+        }
+
+
+        .seller-account-main::-webkit-scrollbar-thumb:hover {
+            background:
+                rgba(
+                    55,
+                    88,
+                    73,
+                    .46
+                );
+
+            background-clip:
+                padding-box;
+        }
+
 
 
         /*
         |--------------------------------------------------------------------------
         | Seller Sidebar
         |--------------------------------------------------------------------------
+        |
+        | Because the shell itself never scrolls, this remains fixed.
+        |
         */
 
         .seller-main-sidebar {
-            width: 220px;
-            flex: 0 0 220px;
-
             position: relative;
 
-            padding: 32px 20px 32px 0;
+            z-index: 30;
 
-            border-right: 1px solid #E4EAE6;
+            width: 220px;
+            height: 100%;
 
+            min-height: 0;
+
+            flex: 0 0 220px;
+
+            padding:
+                32px
+                20px
+                32px
+                0;
+
+            border-right:
+                1px solid
+                #E4EAE6;
+
+            background:
+                #F6F9F7;
+
+            /*
+             * Keep visible so desktop subscription tooltip
+             * can continue appearing to the right.
+             */
             overflow: visible;
         }
 
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | Sidebar Section Title
+        |--------------------------------------------------------------------------
+        */
+
         .seller-sidebar-section-title {
             margin-bottom: 12px;
-            padding: 0 12px;
 
-            color: #98A49E;
+            padding:
+                0
+                12px;
 
-            font-size:12px;
-            font-weight: 700;
+            color:
+                #98A49E;
 
-            text-transform: uppercase;
+            font-size:
+                12px;
 
-            letter-spacing: .12em;
+            font-weight:
+                700;
+
+            text-transform:
+                uppercase;
+
+            letter-spacing:
+                .12em;
         }
 
 
         .seller-sidebar-switch-title {
             margin-top: 28px;
         }
+
 
 
         /*
@@ -162,23 +332,37 @@
 
             gap: 12px;
 
-            padding: 10px 12px;
+            padding:
+                10px
+                12px;
 
             border: 0;
             border-radius: 12px;
 
-            background: transparent;
+            background:
+                transparent;
 
-            color: #5A6660;
+            color:
+                #5A6660;
 
-            font-family: 'Inter', sans-serif;
-            font-size: 13px;
-            font-weight: 600;
+            font-family:
+                'Inter',
+                sans-serif;
 
-            text-align: left;
-            text-decoration: none;
+            font-size:
+                13px;
 
-            cursor: pointer;
+            font-weight:
+                600;
+
+            text-align:
+                left;
+
+            text-decoration:
+                none;
+
+            cursor:
+                pointer;
 
             transition:
                 color .16s ease,
@@ -188,37 +372,57 @@
 
 
         .seller-sidebar-link:hover {
-            background: #E8F7EF;
+            background:
+                #E8F7EF;
 
-            color: #0B3D2E;
+            color:
+                #0B3D2E;
         }
 
 
         .seller-sidebar-link.active {
-            background: #0B3D2E;
+            background:
+                #0B3D2E;
 
-            color: #FFFFFF;
+            color:
+                #FFFFFF;
         }
 
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Sidebar Icons
+        |--------------------------------------------------------------------------
+        */
 
         .seller-sidebar-icon {
             width: 18px;
             height: 18px;
 
-            flex: 0 0 18px;
+            flex:
+                0 0 18px;
 
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
+            display:
+                inline-flex;
 
-            font-size: 12px;
+            align-items:
+                center;
+
+            justify-content:
+                center;
+
+            font-size:
+                12px;
         }
 
 
         .seller-sidebar-label {
             min-width: 0;
+
             flex: 1;
         }
+
 
 
         /*
@@ -228,25 +432,31 @@
         */
 
         .seller-sidebar-link.is-locked {
-            color: #9CA7A1;
+            color:
+                #9CA7A1;
 
-            background: transparent;
+            background:
+                transparent;
 
-            cursor: pointer;
+            cursor:
+                pointer;
         }
 
 
         .seller-sidebar-link.is-locked:hover,
         .seller-sidebar-link.is-locked:focus {
-            background: #F0F4F2;
+            background:
+                #F0F4F2;
 
-            color: #68746E;
+            color:
+                #68746E;
         }
 
 
         .seller-sidebar-link.is-locked
         .seller-sidebar-icon {
-            color: #95A19B;
+            color:
+                #95A19B;
         }
 
 
@@ -254,70 +464,111 @@
             width: 22px;
             height: 22px;
 
-            flex: 0 0 22px;
+            flex:
+                0 0 22px;
 
-            display: grid;
-            place-items: center;
+            display:
+                grid;
 
-            border-radius: 7px;
+            place-items:
+                center;
 
-            background: #EEF2F0;
+            border-radius:
+                7px;
 
-            color: #7E8A84;
+            background:
+                #EEF2F0;
 
-            font-size: 8px;
+            color:
+                #7E8A84;
+
+            font-size:
+                8px;
         }
+
 
 
         /*
         |--------------------------------------------------------------------------
-        | Tooltip Wrapper
+        | Locked Menu Tooltip Wrapper
         |--------------------------------------------------------------------------
         */
 
         .seller-locked-menu-wrapper {
-            position: relative;
+            position:
+                relative;
 
-            overflow: visible;
+            overflow:
+                visible;
         }
+
 
 
         /*
         |--------------------------------------------------------------------------
-        | Tooltip
+        | Subscription Tooltip
         |--------------------------------------------------------------------------
         */
 
         .seller-plan-tooltip {
-            position: absolute;
+            position:
+                absolute;
 
-            left: calc(100% + 12px);
-            top: 50%;
+            left:
+                calc(
+                    100% + 12px
+                );
 
-            z-index: 9999;
+            top:
+                50%;
 
-            width: 280px;
+            z-index:
+                9999;
 
-            display: flex;
-            align-items: flex-start;
+            width:
+                280px;
 
-            gap: 11px;
+            display:
+                flex;
 
-            padding: 14px;
+            align-items:
+                flex-start;
 
-            border: 1px solid #DCE5E0;
-            border-radius: 13px;
+            gap:
+                11px;
 
-            background: #FFFFFF;
+            padding:
+                14px;
+
+            border:
+                1px solid
+                #DCE5E0;
+
+            border-radius:
+                13px;
+
+            background:
+                #FFFFFF;
 
             box-shadow:
-                0 16px 45px
-                rgba(11, 61, 46, .16);
+                0
+                16px
+                45px
+                rgba(
+                    11,
+                    61,
+                    46,
+                    .16
+                );
 
-            opacity: 0;
-            visibility: hidden;
+            opacity:
+                0;
 
-            pointer-events: none;
+            visibility:
+                hidden;
+
+            pointer-events:
+                none;
 
             transform:
                 translate(
@@ -333,41 +584,55 @@
 
 
         .seller-plan-tooltip::before {
-            content: "";
+            content:
+                "";
 
-            position: absolute;
+            position:
+                absolute;
 
-            left: -6px;
-            top: 50%;
+            left:
+                -6px;
 
-            width: 11px;
-            height: 11px;
+            top:
+                50%;
 
-            border-left: 1px solid #DCE5E0;
-            border-bottom: 1px solid #DCE5E0;
+            width:
+                11px;
 
-            background: #FFFFFF;
+            height:
+                11px;
+
+            border-left:
+                1px solid
+                #DCE5E0;
+
+            border-bottom:
+                1px solid
+                #DCE5E0;
+
+            background:
+                #FFFFFF;
 
             transform:
-                translateY(-50%)
-                rotate(45deg);
+                translateY(
+                    -50%
+                )
+                rotate(
+                    45deg
+                );
         }
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Show Tooltip
-        |--------------------------------------------------------------------------
-        */
 
         .seller-locked-menu-wrapper:hover
         .seller-plan-tooltip,
 
         .seller-locked-menu-wrapper:focus-within
         .seller-plan-tooltip {
+            opacity:
+                1;
 
-            opacity: 1;
-            visibility: visible;
+            visibility:
+                visible;
 
             transform:
                 translate(
@@ -377,6 +642,7 @@
         }
 
 
+
         /*
         |--------------------------------------------------------------------------
         | Tooltip Icon
@@ -384,22 +650,34 @@
         */
 
         .seller-plan-tooltip-icon {
-            width: 34px;
-            height: 34px;
+            width:
+                34px;
 
-            flex: 0 0 34px;
+            height:
+                34px;
 
-            display: grid;
-            place-items: center;
+            flex:
+                0 0 34px;
 
-            border-radius: 10px;
+            display:
+                grid;
 
-            background: #FFF7E8;
+            place-items:
+                center;
 
-            color: #B54708;
+            border-radius:
+                10px;
 
-            font-size: 11px;
+            background:
+                #FFF7E8;
+
+            color:
+                #B54708;
+
+            font-size:
+                11px;
         }
+
 
 
         /*
@@ -410,43 +688,64 @@
 
         .seller-plan-tooltip-content {
             min-width: 0;
+
             flex: 1;
         }
 
 
         .seller-plan-tooltip strong {
-            display: block;
+            display:
+                block;
 
-            margin-bottom: 4px;
+            margin-bottom:
+                4px;
 
-            color: #17251F;
+            color:
+                #17251F;
 
-            font-size: 11px;
-            font-weight: 700;
-            line-height: 1.4;
+            font-size:
+                11px;
+
+            font-weight:
+                700;
+
+            line-height:
+                1.4;
         }
 
 
         .seller-plan-tooltip span {
-            display: block;
+            display:
+                block;
 
-            color: #69766F;
+            color:
+                #69766F;
 
-            font-size:12px;
-            line-height: 1.55;
+            font-size:
+                12px;
+
+            line-height:
+                1.55;
         }
 
 
         .seller-plan-tooltip small {
-            display: block;
+            display:
+                block;
 
-            margin-top: 6px;
+            margin-top:
+                6px;
 
-            color: #12B76A;
+            color:
+                #12B76A;
 
-            font-size:11px;
-            font-weight: 700;
+            font-size:
+                11px;
+
+            font-weight:
+                700;
         }
+
 
 
         /*
@@ -456,125 +755,346 @@
         */
 
         .seller-sidebar-logout:hover {
-            background: #FFF1F2;
+            background:
+                #FFF1F2;
 
-            color: #D92D20;
+            color:
+                #D92D20;
         }
+
 
 
         /*
         |--------------------------------------------------------------------------
-        | Mobile Seller Menu Button
+        | Mobile Seller Navigation
         |--------------------------------------------------------------------------
         */
 
         .seller-mobile-navigation {
-            display: none;
+            display:
+                none;
 
-            padding: 12px 16px;
+            flex:
+                0 0 auto;
 
-            border-bottom: 1px solid #E4EAE6;
+            padding:
+                12px
+                16px;
 
-            background: #F6F9F7;
+            border-bottom:
+                1px solid
+                #E4EAE6;
+
+            background:
+                #F6F9F7;
         }
 
 
         .seller-mobile-menu-button {
-            display: inline-flex;
-            align-items: center;
+            display:
+                inline-flex;
 
-            gap: 8px;
+            align-items:
+                center;
 
-            padding: 9px 12px;
+            gap:
+                8px;
 
-            border: 1px solid #DDE5E1;
-            border-radius: 10px;
+            padding:
+                9px
+                12px;
 
-            background: #FFFFFF;
+            border:
+                1px solid
+                #DDE5E1;
 
-            color: #0B3D2E;
+            border-radius:
+                10px;
 
-            font-size: 12px;
-            font-weight: 700;
+            background:
+                #FFFFFF;
 
-            cursor: pointer;
+            color:
+                #0B3D2E;
+
+            font-size:
+                12px;
+
+            font-weight:
+                700;
+
+            cursor:
+                pointer;
         }
 
-
-        .seller-sidebar-backdrop {
-            display: none;
-        }
 
 
         /*
         |--------------------------------------------------------------------------
-        | Responsive
+        | Sidebar Backdrop
+        |--------------------------------------------------------------------------
+        */
+
+        .seller-sidebar-backdrop {
+            display:
+                none;
+        }
+
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Short Desktop Screens
+        |--------------------------------------------------------------------------
+        |
+        | If laptop screen height becomes very small we also allow the
+        | sidebar itself to scroll.
+        |
+        */
+
+        @media(
+            min-width: 1024px
+        )
+        and
+        (
+            max-height: 700px
+        ) {
+
+            .seller-main-sidebar {
+                overflow-y:
+                    auto;
+
+                overflow-x:
+                    hidden;
+
+                overscroll-behavior:
+                    contain;
+            }
+
+
+            /*
+             * Tooltip stays inside the sidebar when sidebar
+             * itself needs scrolling.
+             */
+            .seller-plan-tooltip {
+                left:
+                    12px;
+
+                top:
+                    calc(
+                        100% + 7px
+                    );
+
+                width:
+                    calc(
+                        100% - 24px
+                    );
+
+                transform:
+                    translateY(
+                        -5px
+                    );
+            }
+
+
+            .seller-plan-tooltip::before {
+                display:
+                    none;
+            }
+
+
+            .seller-locked-menu-wrapper:hover
+            .seller-plan-tooltip,
+
+            .seller-locked-menu-wrapper:focus-within
+            .seller-plan-tooltip {
+                transform:
+                    translateY(
+                        0
+                    );
+            }
+
+        }
+
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Tablet / Mobile
         |--------------------------------------------------------------------------
         */
 
         @media(max-width: 1023px) {
 
             .seller-mobile-navigation {
-                display: block;
+                display:
+                    block;
             }
 
 
             .seller-account-shell {
-                display: block;
+                display:
+                    block;
+
+                width:
+                    100%;
+
+                max-width:
+                    none;
+
+                min-height:
+                    0;
+
+                overflow:
+                    hidden;
             }
 
 
-            .seller-main-sidebar {
-                position: fixed;
+            /*
+            |--------------------------------------------------------------------------
+            | Mobile Main Content Still Scrolls Independently
+            |--------------------------------------------------------------------------
+            */
 
-                left: 0;
-                top: 0;
-                bottom: 0;
+            .seller-account-main {
+                width:
+                    100%;
 
-                z-index: 10000;
+                height:
+                    100%;
 
-                width: 260px;
+                min-height:
+                    0;
 
                 padding:
-                    90px 20px
-                    25px;
+                    24px
+                    16px;
 
-                border-right: 1px solid #E4EAE6;
+                overflow-y:
+                    auto;
 
-                background: #F6F9F7;
+                overflow-x:
+                    hidden;
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Drawer Sidebar
+            |--------------------------------------------------------------------------
+            */
+
+            .seller-main-sidebar {
+                position:
+                    fixed;
+
+                left:
+                    0;
+
+                top:
+                    0;
+
+                bottom:
+                    0;
+
+                z-index:
+                    10000;
+
+                width:
+                    280px;
+
+                height:
+                    100vh;
+
+                height:
+                    100dvh;
+
+                padding:
+                    90px
+                    20px
+                    28px;
+
+                border-right:
+                    1px solid
+                    #E4EAE6;
+
+                background:
+                    #F6F9F7;
 
                 box-shadow:
-                    15px 0 40px
-                    rgba(11, 61, 46, .12);
+                    15px
+                    0
+                    40px
+                    rgba(
+                        11,
+                        61,
+                        46,
+                        .12
+                    );
+
+                /*
+                 * Mobile sidebar itself may scroll if menu is large.
+                 */
+                overflow-y:
+                    auto;
+
+                overflow-x:
+                    hidden;
+
+                overscroll-behavior:
+                    contain;
 
                 transform:
-                    translateX(-105%);
+                    translateX(
+                        -105%
+                    );
 
                 transition:
-                    transform .2s ease;
+                    transform
+                    .2s ease;
             }
 
 
             .seller-main-sidebar.is-open {
                 transform:
-                    translateX(0);
+                    translateX(
+                        0
+                    );
             }
 
 
+            /*
+            |--------------------------------------------------------------------------
+            | Mobile Backdrop
+            |--------------------------------------------------------------------------
+            */
+
             .seller-sidebar-backdrop {
-                position: fixed;
+                position:
+                    fixed;
 
-                inset: 0;
+                inset:
+                    0;
 
-                z-index: 9999;
+                z-index:
+                    9999;
 
-                display: block;
+                display:
+                    block;
 
                 background:
-                    rgba(11, 31, 23, .45);
+                    rgba(
+                        11,
+                        31,
+                        23,
+                        .45
+                    );
 
-                opacity: 0;
-                visibility: hidden;
+                opacity:
+                    0;
+
+                visibility:
+                    hidden;
 
                 transition:
                     opacity .2s ease,
@@ -583,15 +1103,11 @@
 
 
             .seller-sidebar-backdrop.is-open {
-                opacity: 1;
-                visibility: visible;
-            }
+                opacity:
+                    1;
 
-
-            .seller-account-main {
-                width: 100%;
-
-                padding: 24px 16px;
+                visibility:
+                    visible;
             }
 
 
@@ -602,8 +1118,13 @@
             */
 
             .seller-plan-tooltip {
-                left: 12px;
-                top: calc(100% + 7px);
+                left:
+                    12px;
+
+                top:
+                    calc(
+                        100% + 7px
+                    );
 
                 width:
                     calc(
@@ -611,12 +1132,15 @@
                     );
 
                 transform:
-                    translateY(-5px);
+                    translateY(
+                        -5px
+                    );
             }
 
 
             .seller-plan-tooltip::before {
-                display: none;
+                display:
+                    none;
             }
 
 
@@ -625,9 +1149,37 @@
 
             .seller-locked-menu-wrapper:focus-within
             .seller-plan-tooltip {
-
                 transform:
-                    translateY(0);
+                    translateY(
+                        0
+                    );
+            }
+
+        }
+
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Very Small Mobile
+        |--------------------------------------------------------------------------
+        */
+
+        @media(max-width: 480px) {
+
+            .seller-main-sidebar {
+                width:
+                    min(
+                        86vw,
+                        290px
+                    );
+            }
+
+
+            .seller-account-main {
+                padding:
+                    20px
+                    13px;
             }
 
         }
@@ -644,14 +1196,18 @@
 </head>
 
 
-<body class="bg-[#F6F9F7] text-[#17251F]">
+<body class="seller-layout-body bg-[#F6F9F7] text-[#17251F]">
 
 
     {{-- =========================================================
         WEBSITE HEADER
     ========================================================== --}}
 
-    @include('frontend.partials.header')
+    <div class="seller-site-header">
+
+        @include('frontend.partials.header')
+
+    </div>
 
 
 
@@ -666,6 +1222,7 @@
             id="sellerSidebarToggle"
             class="seller-mobile-menu-button"
             aria-expanded="false"
+            aria-controls="sellerMainSidebar"
         >
 
             <i class="fa-solid fa-bars"></i>
@@ -685,6 +1242,7 @@
     <div
         id="sellerSidebarBackdrop"
         class="seller-sidebar-backdrop"
+        aria-hidden="true"
     ></div>
 
 
@@ -696,12 +1254,22 @@
     <div class="seller-account-shell">
 
 
-        {{-- Sidebar --}}
+        {{-- =====================================================
+            FIXED SIDEBAR
+        ====================================================== --}}
+
         @include('seller.partials.sidebar')
 
 
-        {{-- Main --}}
-        <main class="seller-account-main">
+
+        {{-- =====================================================
+            SCROLLABLE CONTENT
+        ====================================================== --}}
+
+        <main
+            id="sellerAccountMain"
+            class="seller-account-main"
+        >
 
             @yield('content')
 
@@ -715,7 +1283,11 @@
         ADMIN IMPERSONATION
     ========================================================== --}}
 
-    @if(session()->has('impersonator_admin_id'))
+    @if(
+        session()->has(
+            'impersonator_admin_id'
+        )
+    )
 
         <div
             class="
@@ -817,6 +1389,12 @@
                     );
 
 
+                /*
+                |--------------------------------------------------------------------------
+                | Open Sidebar
+                |--------------------------------------------------------------------------
+                */
+
                 function openSidebar() {
 
                     if (!sidebar) {
@@ -834,6 +1412,12 @@
                         backdrop.classList.add(
                             'is-open'
                         );
+
+
+                        backdrop.setAttribute(
+                            'aria-hidden',
+                            'false'
+                        );
                     }
 
 
@@ -844,12 +1428,15 @@
                             'true'
                         );
                     }
-
-
-                    document.body.style.overflow =
-                        'hidden';
                 }
 
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Close Sidebar
+                |--------------------------------------------------------------------------
+                */
 
                 function closeSidebar() {
 
@@ -868,6 +1455,12 @@
                         backdrop.classList.remove(
                             'is-open'
                         );
+
+
+                        backdrop.setAttribute(
+                            'aria-hidden',
+                            'true'
+                        );
                     }
 
 
@@ -878,12 +1471,15 @@
                             'false'
                         );
                     }
-
-
-                    document.body.style.overflow =
-                        '';
                 }
 
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Toggle
+                |--------------------------------------------------------------------------
+                */
 
                 if (toggle) {
 
@@ -910,6 +1506,13 @@
                 }
 
 
+
+                /*
+                |--------------------------------------------------------------------------
+                | Backdrop
+                |--------------------------------------------------------------------------
+                */
+
                 if (backdrop) {
 
                     backdrop.addEventListener(
@@ -918,6 +1521,71 @@
                     );
                 }
 
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Close Mobile Drawer After Clicking Link
+                |--------------------------------------------------------------------------
+                */
+
+                if (sidebar) {
+
+                    sidebar
+                        .querySelectorAll(
+                            'a'
+                        )
+                        .forEach(
+                            function (link) {
+
+                                link.addEventListener(
+                                    'click',
+                                    function () {
+
+                                        if (
+                                            window.innerWidth
+                                            <
+                                            1024
+                                        ) {
+
+                                            closeSidebar();
+                                        }
+                                    }
+                                );
+                            }
+                        );
+                }
+
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Escape Key
+                |--------------------------------------------------------------------------
+                */
+
+                document.addEventListener(
+                    'keydown',
+                    function (event) {
+
+                        if (
+                            event.key
+                            ===
+                            'Escape'
+                        ) {
+
+                            closeSidebar();
+                        }
+                    }
+                );
+
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Desktop Reset
+                |--------------------------------------------------------------------------
+                */
 
                 window.addEventListener(
                     'resize',

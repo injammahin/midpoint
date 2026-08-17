@@ -1,8 +1,6 @@
 @extends('admin.layouts.app')
 
-
 @section('title', 'Dashboard')
-
 
 @section('page-title', 'Dashboard')
 
@@ -13,76 +11,85 @@
 
     /*
     |--------------------------------------------------------------------------
-    | Local Formatting Helpers
+    | Formatting
     |--------------------------------------------------------------------------
     */
 
-    $moneyFull =
-        function ($amount, $decimals = 0) {
+    $moneyFull = function ($amount, $decimals = 0) {
 
-            return '₦'
+        return
+            '₦'
+            .
+            number_format(
+                (float) $amount,
+                $decimals
+            );
+    };
+
+
+    $moneyCompact = function ($amount) {
+
+        $amount =
+            (float) $amount;
+
+
+        if (abs($amount) >= 1000000000) {
+
+            return
+                '₦'
                 .
                 number_format(
-                    (float) $amount,
-                    $decimals
-                );
-        };
+                    $amount / 1000000000,
+                    1
+                )
+                .
+                'B';
+        }
 
 
-    $moneyCompact =
-        function ($amount) {
+        if (abs($amount) >= 1000000) {
 
-            $amount =
-                (float) $amount;
-
-
-            if (abs($amount) >= 1000000000) {
-
-                return '₦'
-                    .
-                    number_format(
-                        $amount / 1000000000,
-                        1
-                    )
-                    .
-                    'B';
-            }
-
-
-            if (abs($amount) >= 1000000) {
-
-                return '₦'
-                    .
-                    number_format(
-                        $amount / 1000000,
-                        1
-                    )
-                    .
-                    'M';
-            }
-
-
-            if (abs($amount) >= 1000) {
-
-                return '₦'
-                    .
-                    number_format(
-                        $amount / 1000,
-                        1
-                    )
-                    .
-                    'K';
-            }
-
-
-            return '₦'
+            return
+                '₦'
                 .
                 number_format(
-                    $amount,
-                    0
-                );
-        };
+                    $amount / 1000000,
+                    1
+                )
+                .
+                'M';
+        }
 
+
+        if (abs($amount) >= 1000) {
+
+            return
+                '₦'
+                .
+                number_format(
+                    $amount / 1000,
+                    1
+                )
+                .
+                'K';
+        }
+
+
+        return
+            '₦'
+            .
+            number_format(
+                $amount,
+                0
+            );
+    };
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Growth
+    |--------------------------------------------------------------------------
+    */
 
     $buyerGrowthPositive =
         ($money['buyer_paid_growth'] ?? 0) >= 0;
@@ -92,34 +99,62 @@
         ($money['profit_growth'] ?? 0) >= 0;
 
 
+    /*
+    |--------------------------------------------------------------------------
+    | Routes
+    |--------------------------------------------------------------------------
+    */
+
+    $hasWithdrawalRoute =
+        \Illuminate\Support\Facades\Route::has(
+            'admin.withdrawals.index'
+        );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Chart Data
+    |--------------------------------------------------------------------------
+    */
+
     $dashboardChartData = [
-        'chart' => $chart,
-        'transactionStatus' => $transactionStatusChart,
-        'profitComposition' => $profitCompositionChart,
-        'packageChart' => $packageChart,
-        'profitMargin' => $money['gross_profit_margin'],
-        'grossProfit' => $money['gross_platform_profit'],
+
+        'chart' =>
+            $chart,
+
+        'transactionStatus' =>
+            $transactionStatusChart,
+
+        'withdrawalStatus' =>
+            $withdrawalStatusChart,
+
+        'profitComposition' =>
+            $profitCompositionChart,
+
+        'profitMargin' =>
+            $money['gross_profit_margin'],
     ];
 
 @endphp
 
 
-<div class="mp-admin-dashboard">
+
+<div class="mp-dashboard">
 
 
-    {{-- =========================================================
-        HERO / PAGE INTRO
-    ========================================================== --}}
+    {{-- ============================================================
+        HERO
+    ============================================================= --}}
 
     <section class="admin-card mp-dashboard-hero">
 
-        <div class="mp-dashboard-hero-copy">
+        <div>
 
             <div class="mp-dashboard-kicker">
 
                 <span class="mp-live-dot"></span>
 
-                Live business overview
+                Live financial overview
 
             </div>
 
@@ -130,12 +165,13 @@
 
 
             <p>
-                Monitor payments, seller payouts, platform revenue,
-                subscriptions, disputes and marketplace activity from one place.
+                Track buyer payments, protected funds,
+                seller wallet releases, bank withdrawals,
+                platform revenue and marketplace activity.
             </p>
 
 
-            <div class="mp-dashboard-hero-meta">
+            <div class="mp-dashboard-meta">
 
                 <span>
 
@@ -198,73 +234,32 @@
     </section>
 
 
-    {{-- =========================================================
-        PRIMARY FINANCIAL KPIs
-    ========================================================== --}}
+
+    {{-- ============================================================
+        PRIMARY FINANCIAL FLOW
+    ============================================================= --}}
 
     <section class="mp-kpi-grid">
 
 
-        {{-- Gross Platform Profit --}}
-        <article
-            class="admin-card mp-kpi-card is-profit"
-            title="Gross platform revenue = realized transaction service fees + paid seller package revenue. VAT and operating expenses are excluded."
-        >
-
-            <div class="mp-kpi-top">
-
-                <span class="mp-kpi-icon">
-                    <i class="fa-solid fa-chart-line"></i>
-                </span>
-
-
-                <span
-                    class="mp-kpi-trend {{ $profitGrowthPositive ? 'up' : 'down' }}"
-                >
-
-                    <i
-                        class="fa-solid {{ $profitGrowthPositive ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down' }}"
-                    ></i>
-
-                    {{ $profitGrowthPositive ? '+' : '' }}{{ number_format($money['profit_growth'], 1) }}%
-
-                </span>
-
-            </div>
-
-
-            <span class="mp-kpi-label">
-                Gross platform profit
-            </span>
-
-
-            <strong class="mp-kpi-value">
-                {{ $moneyCompact($money['gross_platform_profit']) }}
-            </strong>
-
-
-            <small>
-                Service fees + seller package revenue
-            </small>
-
-        </article>
-
-
         {{-- Buyer Payments --}}
+
         <article
             class="admin-card mp-kpi-card"
-            title="Total value of all successfully verified buyer payments across paid secure transactions."
+            title="Total successfully verified buyer payments."
         >
 
-            <div class="mp-kpi-top">
+            <div class="mp-kpi-head">
 
-                <span class="mp-kpi-icon is-blue">
+                <span class="mp-kpi-icon blue">
+
                     <i class="fa-solid fa-money-bill-transfer"></i>
+
                 </span>
 
 
                 <span
-                    class="mp-kpi-trend {{ $buyerGrowthPositive ? 'up' : 'down' }}"
+                    class="mp-trend {{ $buyerGrowthPositive ? 'positive' : 'negative' }}"
                 >
 
                     <i
@@ -289,54 +284,27 @@
 
 
             <small>
-                {{ number_format($stats['paid_transactions']) }} verified paid transactions
+                {{ number_format($stats['paid_transactions']) }}
+                verified paid transactions
             </small>
 
         </article>
 
 
-        {{-- Seller Released --}}
+
+        {{-- Protected Escrow --}}
+
         <article
             class="admin-card mp-kpi-card"
-            title="Net seller funds for transactions whose payout completed successfully. Platform service fee and VAT are excluded from this amount."
+            title="Buyer-paid funds that have not yet been released into a seller wallet."
         >
 
-            <div class="mp-kpi-top">
+            <div class="mp-kpi-head">
 
-                <span class="mp-kpi-icon is-purple">
-                    <i class="fa-solid fa-building-columns"></i>
-                </span>
+                <span class="mp-kpi-icon amber">
 
-            </div>
-
-
-            <span class="mp-kpi-label">
-                Released to sellers
-            </span>
-
-
-            <strong class="mp-kpi-value">
-                {{ $moneyCompact($money['seller_released']) }}
-            </strong>
-
-
-            <small>
-                Successfully completed seller payouts
-            </small>
-
-        </article>
-
-
-        {{-- Escrow --}}
-        <article
-            class="admin-card mp-kpi-card"
-            title="Buyer-paid value still associated with transactions whose seller payout has not completed successfully."
-        >
-
-            <div class="mp-kpi-top">
-
-                <span class="mp-kpi-icon is-amber">
                     <i class="fa-solid fa-shield-halved"></i>
+
                 </span>
 
             </div>
@@ -353,71 +321,184 @@
 
 
             <small>
-                Buyer funds awaiting final settlement
+
+                {{ number_format($stats['protected_transaction_count']) }}
+
+                transactions awaiting wallet release
+
             </small>
 
         </article>
 
 
-        {{-- Service Fee --}}
+
+        {{-- Released To Seller Wallet --}}
+
         <article
             class="admin-card mp-kpi-card"
-            title="Realized Midpoint service fees from transactions where seller payout completed. VAT is shown separately and is not included as platform profit."
+            title="Seller funds that completed escrow and were credited into seller Midpoint wallets."
         >
 
-            <div class="mp-kpi-top">
+            <div class="mp-kpi-head">
 
-                <span class="mp-kpi-icon is-green">
-                    <i class="fa-solid fa-percent"></i>
+                <span class="mp-kpi-icon purple">
+
+                    <i class="fa-solid fa-wallet"></i>
+
                 </span>
 
             </div>
 
 
             <span class="mp-kpi-label">
-                Service fee revenue
+                Released to seller wallets
             </span>
 
 
             <strong class="mp-kpi-value">
-                {{ $moneyCompact($money['service_fee_revenue']) }}
+                {{ $moneyCompact($money['seller_wallet_released']) }}
             </strong>
 
 
             <small>
-                VAT collected: {{ $moneyFull($money['vat_collected']) }}
+
+                {{ number_format($stats['wallet_release_count']) }}
+
+                successful wallet releases
+
             </small>
 
         </article>
 
 
-        {{-- Package Revenue --}}
+
+        {{-- Withdrawn To Bank --}}
+
         <article
             class="admin-card mp-kpi-card"
-            title="Revenue from seller package invoices whose status is paid."
+            title="Seller withdrawals that completed successfully and were marked as paid to the seller bank."
         >
 
-            <div class="mp-kpi-top">
+            <div class="mp-kpi-head">
 
-                <span class="mp-kpi-icon is-violet">
-                    <i class="fa-solid fa-crown"></i>
+                <span class="mp-kpi-icon green">
+
+                    <i class="fa-solid fa-building-columns"></i>
+
                 </span>
 
             </div>
 
 
             <span class="mp-kpi-label">
-                Seller package revenue
+                Withdrawn to seller banks
             </span>
 
 
             <strong class="mp-kpi-value">
-                {{ $moneyCompact($money['package_revenue']) }}
+                {{ $moneyCompact($money['seller_withdrawn']) }}
             </strong>
 
 
             <small>
-                {{ number_format($stats['package_purchases']) }} purchases · {{ number_format($stats['package_customers']) }} customers
+
+                {{ number_format($stats['successful_withdrawal_count']) }}
+
+                successful withdrawals
+
+            </small>
+
+        </article>
+
+
+
+        {{-- Seller Liability --}}
+
+        <article
+            class="admin-card mp-kpi-card liability"
+            title="Total money still owed to sellers: available seller wallet balances plus withdrawals currently being processed."
+        >
+
+            <div class="mp-kpi-head">
+
+                <span class="mp-kpi-icon teal">
+
+                    <i class="fa-solid fa-scale-balanced"></i>
+
+                </span>
+
+            </div>
+
+
+            <span class="mp-kpi-label">
+                Seller wallet liability
+            </span>
+
+
+            <strong class="mp-kpi-value">
+                {{ $moneyCompact($money['seller_wallet_liability']) }}
+            </strong>
+
+
+            <small>
+
+                Available:
+                {{ $moneyFull($money['seller_available_balance']) }}
+
+                ·
+
+                Pending:
+                {{ $moneyFull($money['seller_pending_wallet_balance']) }}
+
+            </small>
+
+        </article>
+
+
+
+        {{-- Pending Withdrawals --}}
+
+        <article
+            class="admin-card mp-kpi-card"
+            title="Withdrawal requests currently reserved from seller wallets and still awaiting final payout status."
+        >
+
+            <div class="mp-kpi-head">
+
+                <span class="mp-kpi-icon orange">
+
+                    <i class="fa-solid fa-hourglass-half"></i>
+
+                </span>
+
+
+                @if($stats['pending_withdrawal_count'] > 0)
+
+                    <span class="mp-alert-dot">
+                        {{ $stats['pending_withdrawal_count'] }}
+                    </span>
+
+                @endif
+
+            </div>
+
+
+            <span class="mp-kpi-label">
+                Pending withdrawals
+            </span>
+
+
+            <strong class="mp-kpi-value">
+                {{ $moneyCompact($money['pending_withdrawals']) }}
+            </strong>
+
+
+            <small>
+
+                {{ number_format($stats['pending_withdrawal_count']) }}
+
+                payout requests processing
+
             </small>
 
         </article>
@@ -425,145 +506,302 @@
     </section>
 
 
-    {{-- =========================================================
-        PEOPLE / MARKETPLACE SNAPSHOT
-    ========================================================== --}}
 
-    <section class="mp-mini-stats-grid">
+    {{-- ============================================================
+        PLATFORM REVENUE
+    ============================================================= --}}
+
+    <section class="mp-revenue-grid">
+
+
+        {{-- Gross Profit --}}
+
+        <article class="admin-card mp-revenue-card profit">
+
+            <span class="mp-revenue-icon">
+
+                <i class="fa-solid fa-chart-line"></i>
+
+            </span>
+
+
+            <div>
+
+                <span>
+                    Gross platform profit
+                </span>
+
+
+                <strong>
+                    {{ $moneyCompact($money['gross_platform_profit']) }}
+                </strong>
+
+
+                <small>
+                    Service fees + seller package revenue
+                </small>
+
+            </div>
+
+
+            <span
+                class="mp-revenue-trend {{ $profitGrowthPositive ? 'positive' : 'negative' }}"
+            >
+
+                {{ $profitGrowthPositive ? '+' : '' }}{{ number_format($money['profit_growth'], 1) }}%
+
+            </span>
+
+        </article>
+
+
+
+        {{-- Service Fees --}}
+
+        <article class="admin-card mp-revenue-card">
+
+            <span class="mp-revenue-icon green">
+
+                <i class="fa-solid fa-percent"></i>
+
+            </span>
+
+
+            <div>
+
+                <span>
+                    Service fee revenue
+                </span>
+
+
+                <strong>
+                    {{ $moneyCompact($money['service_fee_revenue']) }}
+                </strong>
+
+
+                <small>
+                    VAT collected:
+                    {{ $moneyFull($money['vat_collected']) }}
+                </small>
+
+            </div>
+
+        </article>
+
+
+
+        {{-- Packages --}}
+
+        <article class="admin-card mp-revenue-card">
+
+            <span class="mp-revenue-icon purple">
+
+                <i class="fa-solid fa-crown"></i>
+
+            </span>
+
+
+            <div>
+
+                <span>
+                    Seller package revenue
+                </span>
+
+
+                <strong>
+                    {{ $moneyCompact($money['package_revenue']) }}
+                </strong>
+
+
+                <small>
+
+                    {{ number_format($stats['package_purchases']) }}
+
+                    purchases
+
+                    ·
+
+                    {{ number_format($stats['package_customers']) }}
+
+                    customers
+
+                </small>
+
+            </div>
+
+        </article>
+
+    </section>
+
+
+
+    {{-- ============================================================
+        MARKETPLACE SNAPSHOT
+    ============================================================= --}}
+
+    <section class="mp-mini-grid">
+
 
         <a
             href="{{ route('admin.users.index') }}"
-            class="admin-card mp-mini-stat"
+            class="admin-card mp-mini-card"
         >
 
-            <span class="mp-mini-stat-icon">
+            <span class="mp-mini-icon">
+
                 <i class="fa-solid fa-users"></i>
+
             </span>
 
 
-            <span>
-                Total users
-            </span>
+            <div>
+
+                <span>
+                    Total users
+                </span>
+
+
+                <small>
+                    {{ number_format($stats['active_users']) }} active
+                </small>
+
+            </div>
 
 
             <strong>
                 {{ number_format($stats['users']) }}
             </strong>
 
-
-            <small>
-                {{ number_format($stats['active_users']) }} active
-            </small>
-
         </a>
+
 
 
         <a
             href="{{ route('admin.billing.subscriptions.index') }}"
-            class="admin-card mp-mini-stat"
+            class="admin-card mp-mini-card"
         >
 
-            <span class="mp-mini-stat-icon is-green">
+            <span class="mp-mini-icon green">
+
                 <i class="fa-solid fa-store"></i>
+
             </span>
 
 
-            <span>
-                Active sellers
-            </span>
+            <div>
+
+                <span>
+                    Active sellers
+                </span>
+
+
+                <small>
+                    Paid active subscriptions
+                </small>
+
+            </div>
 
 
             <strong>
                 {{ number_format($stats['active_sellers']) }}
             </strong>
 
-
-            <small>
-                Paid active subscriptions
-            </small>
-
         </a>
 
 
-        <div class="admin-card mp-mini-stat">
 
-            <span class="mp-mini-stat-icon is-purple">
+        <div class="admin-card mp-mini-card">
+
+            <span class="mp-mini-icon purple">
+
                 <i class="fa-solid fa-cart-shopping"></i>
+
             </span>
 
 
-            <span>
-                Paying buyers
-            </span>
+            <div>
+
+                <span>
+                    Paying buyers
+                </span>
+
+
+                <small>
+                    Unique buyers with paid orders
+                </small>
+
+            </div>
 
 
             <strong>
                 {{ number_format($stats['paid_buyers']) }}
             </strong>
 
-
-            <small>
-                Unique buyers with paid orders
-            </small>
-
         </div>
+
 
 
         <a
             href="{{ route('admin.website-settings.seller-applications.index') }}"
-            class="admin-card mp-mini-stat"
+            class="admin-card mp-mini-card"
         >
 
-            <span class="mp-mini-stat-icon is-amber">
+            <span class="mp-mini-icon amber">
+
                 <i class="fa-solid fa-user-check"></i>
+
             </span>
 
 
-            <span>
-                Seller applications
-            </span>
+            <div>
+
+                <span>
+                    Seller applications
+                </span>
+
+
+                <small>
+                    Waiting for admin review
+                </small>
+
+            </div>
 
 
             <strong>
                 {{ number_format($stats['pending_seller_applications']) }}
             </strong>
 
-
-            <small>
-                Waiting for admin review
-            </small>
-
         </a>
 
     </section>
 
 
-    {{-- =========================================================
-        MAIN MONEY FLOW CHART + PROFIT MARGIN
-    ========================================================== --}}
 
-    <section class="mp-dashboard-main-grid">
+    {{-- ============================================================
+        MONEY FLOW
+    ============================================================= --}}
+
+    <section class="mp-main-grid">
 
 
-        {{-- Money Flow --}}
-        <article class="admin-card mp-chart-card mp-money-flow-card">
+        <article class="admin-card mp-chart-card">
 
             <div class="mp-card-heading">
 
                 <div>
 
-                    <span class="mp-card-eyebrow">
+                    <span class="mp-eyebrow">
                         Financial flow
                     </span>
 
 
                     <h3>
-                        Payments, payouts & platform profit
+                        Payments, wallet releases & withdrawals
                     </h3>
 
 
                     <p>
-                        Hover over any point to see the exact monthly value.
+                        The chart separates escrow release from actual bank withdrawal.
                     </p>
 
                 </div>
@@ -571,15 +809,19 @@
 
                 <div class="mp-chart-legend">
 
-                    <span class="is-paid">
+                    <span class="buyer">
                         Buyer paid
                     </span>
 
-                    <span class="is-released">
-                        Seller released
+                    <span class="released">
+                        Wallet released
                     </span>
 
-                    <span class="is-profit">
+                    <span class="withdrawn">
+                        Bank withdrawn
+                    </span>
+
+                    <span class="profit">
                         Platform profit
                     </span>
 
@@ -590,20 +832,24 @@
 
             <div
                 id="moneyFlowChart"
-                class="mp-apex-chart"
+                class="mp-money-chart"
             ></div>
 
         </article>
 
 
-        {{-- Profit Margin --}}
-        <article class="admin-card mp-chart-card mp-margin-card">
 
-            <div class="mp-card-heading compact">
+        {{-- ========================================================
+            PROFIT MARGIN
+        ========================================================= --}}
+
+        <article class="admin-card mp-chart-card margin-card">
+
+            <div class="mp-card-heading">
 
                 <div>
 
-                    <span class="mp-card-eyebrow">
+                    <span class="mp-eyebrow">
                         Gross margin
                     </span>
 
@@ -623,13 +869,14 @@
             ></div>
 
 
-            <div class="mp-margin-breakdown">
+            <div class="mp-margin-values">
 
                 <div>
 
                     <span>
                         Gross business volume
                     </span>
+
 
                     <strong>
                         {{ $moneyFull($money['gross_business_volume']) }}
@@ -644,6 +891,7 @@
                         Gross platform profit
                     </span>
 
+
                     <strong>
                         {{ $moneyFull($money['gross_platform_profit']) }}
                     </strong>
@@ -653,9 +901,11 @@
             </div>
 
 
-            <p class="mp-accounting-note">
-                Gross platform profit excludes VAT and operating expenses.
-                It is not accounting net profit.
+            <p class="mp-note">
+
+                Gross platform profit excludes VAT
+                and operating expenses.
+
             </p>
 
         </article>
@@ -663,27 +913,29 @@
     </section>
 
 
-    {{-- =========================================================
-        DONUTS / BUSINESS COMPOSITION
-    ========================================================== --}}
 
-    <section class="mp-dashboard-three-grid">
+    {{-- ============================================================
+        STATUS CHARTS
+    ============================================================= --}}
+
+    <section class="mp-three-grid">
 
 
         {{-- Transaction Status --}}
+
         <article class="admin-card mp-chart-card">
 
             <div class="mp-card-heading compact">
 
                 <div>
 
-                    <span class="mp-card-eyebrow">
+                    <span class="mp-eyebrow">
                         Transaction health
                     </span>
 
 
                     <h3>
-                        Paid transaction status
+                        Paid transactions
                     </h3>
 
                 </div>
@@ -704,20 +956,62 @@
         </article>
 
 
-        {{-- Profit Composition --}}
+
+        {{-- Withdrawal Status --}}
+
         <article class="admin-card mp-chart-card">
 
             <div class="mp-card-heading compact">
 
                 <div>
 
-                    <span class="mp-card-eyebrow">
+                    <span class="mp-eyebrow">
+                        Seller payouts
+                    </span>
+
+
+                    <h3>
+                        Withdrawal status
+                    </h3>
+
+                </div>
+
+
+                @if($hasWithdrawalRoute)
+
+                    <a href="{{ route('admin.withdrawals.index') }}">
+                        View all
+                    </a>
+
+                @endif
+
+            </div>
+
+
+            <div
+                id="withdrawalStatusChart"
+                class="mp-donut-chart"
+            ></div>
+
+        </article>
+
+
+
+        {{-- Profit Mix --}}
+
+        <article class="admin-card mp-chart-card">
+
+            <div class="mp-card-heading compact">
+
+                <div>
+
+                    <span class="mp-eyebrow">
                         Revenue mix
                     </span>
 
 
                     <h3>
-                        Where platform profit comes from
+                        Platform profit sources
                     </h3>
 
                 </div>
@@ -731,7 +1025,7 @@
             ></div>
 
 
-            <div class="mp-inline-values">
+            <div class="mp-profit-values">
 
                 <div>
 
@@ -748,9 +1042,9 @@
 
                 <div>
 
-                    <span class="dot package"></span>
+                    <span class="dot packages"></span>
 
-                    Packages
+                    Seller packages
 
                     <strong>
                         {{ $moneyFull($money['package_revenue']) }}
@@ -762,460 +1056,32 @@
 
         </article>
 
-
-        {{-- Package Mix --}}
-        <article class="admin-card mp-chart-card">
-
-            <div class="mp-card-heading compact">
-
-                <div>
-
-                    <span class="mp-card-eyebrow">
-                        Seller subscriptions
-                    </span>
-
-
-                    <h3>
-                        Package purchase mix
-                    </h3>
-
-                </div>
-
-
-                <a href="{{ route('admin.billing.invoices.index') }}">
-                    Invoices
-                </a>
-
-            </div>
-
-
-            <div
-                id="packageMixChart"
-                class="mp-donut-chart"
-            ></div>
-
-        </article>
-
     </section>
 
 
-    {{-- =========================================================
-        TRANSACTION OPERATIONS
-    ========================================================== --}}
 
-    <section class="admin-card mp-operations-card">
+    {{-- ============================================================
+        RECENT DATA
+    ============================================================= --}}
 
-        <div class="mp-card-heading">
-
-            <div>
-
-                <span class="mp-card-eyebrow">
-                    Marketplace operations
-                </span>
-
-
-                <h3>
-                    Transaction lifecycle snapshot
-                </h3>
-
-
-                <p>
-                    Current workload across Midpoint's secure transaction pipeline.
-                </p>
-
-            </div>
-
-        </div>
-
-
-        <div class="mp-operations-grid">
-
-            <a
-                href="{{ route('admin.transactions.index') }}"
-                class="mp-operation-item is-running"
-                title="Buyer-paid transactions that are still progressing through the transaction lifecycle."
-            >
-
-                <span class="mp-operation-icon">
-                    <i class="fa-solid fa-arrows-rotate"></i>
-                </span>
-
-
-                <div>
-
-                    <strong>
-                        {{ number_format($stats['running_transactions']) }}
-                    </strong>
-
-                    <span>
-                        Running
-                    </span>
-
-                </div>
-
-            </a>
-
-
-            <a
-                href="{{ route('admin.transactions.index', ['status' => 'completed']) }}"
-                class="mp-operation-item is-completed"
-            >
-
-                <span class="mp-operation-icon">
-                    <i class="fa-solid fa-circle-check"></i>
-                </span>
-
-
-                <div>
-
-                    <strong>
-                        {{ number_format($stats['completed_transactions']) }}
-                    </strong>
-
-                    <span>
-                        Completed
-                    </span>
-
-                </div>
-
-            </a>
-
-
-            <a
-                href="{{ route('admin.disputes.index') }}"
-                class="mp-operation-item is-disputed"
-            >
-
-                <span class="mp-operation-icon">
-                    <i class="fa-solid fa-triangle-exclamation"></i>
-                </span>
-
-
-                <div>
-
-                    <strong>
-                        {{ number_format($stats['disputed_transactions']) }}
-                    </strong>
-
-                    <span>
-                        Disputed
-                    </span>
-
-                </div>
-
-            </a>
-
-
-            <a
-                href="{{ route('admin.transactions.index', ['payout_status' => 'pending']) }}"
-                class="mp-operation-item is-payout"
-            >
-
-                <span class="mp-operation-icon">
-                    <i class="fa-solid fa-building-columns"></i>
-                </span>
-
-
-                <div>
-
-                    <strong>
-                        {{ number_format($stats['awaiting_payout_transactions']) }}
-                    </strong>
-
-                    <span>
-                        Payout attention
-                    </span>
-
-                </div>
-
-            </a>
-
-
-            <div
-                class="mp-operation-item is-unpaid"
-                title="Seller-generated secure transaction links that have not yet received a verified buyer payment."
-            >
-
-                <span class="mp-operation-icon">
-                    <i class="fa-solid fa-link"></i>
-                </span>
-
-
-                <div>
-
-                    <strong>
-                        {{ number_format($stats['unpaid_generated_links']) }}
-                    </strong>
-
-                    <span>
-                        Unpaid links
-                    </span>
-
-                </div>
-
-            </div>
-
-        </div>
-
-    </section>
-
-
-    {{-- =========================================================
-        ATTENTION QUEUE + DISPUTES
-    ========================================================== --}}
-
-    <section class="mp-dashboard-two-grid">
-
-
-        {{-- Attention Queue --}}
-        <article class="admin-card mp-list-card">
-
-            <div class="mp-card-heading compact">
-
-                <div>
-
-                    <span class="mp-card-eyebrow">
-                        Needs attention
-                    </span>
-
-
-                    <h3>
-                        Admin action queue
-                    </h3>
-
-                </div>
-
-            </div>
-
-
-            <div class="mp-action-queue">
-
-                <a
-                    href="{{ route('admin.disputes.index', ['status' => 'open']) }}"
-                    class="mp-queue-row danger"
-                >
-
-                    <span class="mp-queue-icon">
-                        <i class="fa-solid fa-scale-balanced"></i>
-                    </span>
-
-
-                    <div>
-
-                        <strong>
-                            New disputes
-                        </strong>
-
-                        <small>
-                            Waiting for initial admin review
-                        </small>
-
-                    </div>
-
-
-                    <b>
-                        {{ number_format($stats['open_disputes']) }}
-                    </b>
-
-                </a>
-
-
-                <a
-                    href="{{ route('admin.website-settings.seller-applications.index') }}"
-                    class="mp-queue-row warning"
-                >
-
-                    <span class="mp-queue-icon">
-                        <i class="fa-solid fa-user-check"></i>
-                    </span>
-
-
-                    <div>
-
-                        <strong>
-                            Seller applications
-                        </strong>
-
-                        <small>
-                            Submitted and waiting for review
-                        </small>
-
-                    </div>
-
-
-                    <b>
-                        {{ number_format($stats['pending_seller_applications']) }}
-                    </b>
-
-                </a>
-
-
-                <a
-                    href="{{ route('admin.support-inquiries.contacts') }}"
-                    class="mp-queue-row info"
-                >
-
-                    <span class="mp-queue-icon">
-                        <i class="fa-solid fa-headset"></i>
-                    </span>
-
-
-                    <div>
-
-                        <strong>
-                            Unread inquiries
-                        </strong>
-
-                        <small>
-                            Contact messages not yet opened
-                        </small>
-
-                    </div>
-
-
-                    <b>
-                        {{ number_format($stats['unread_inquiries']) }}
-                    </b>
-
-                </a>
-
-
-                <a
-                    href="{{ route('admin.transactions.index', ['payout_status' => 'pending']) }}"
-                    class="mp-queue-row purple"
-                >
-
-                    <span class="mp-queue-icon">
-                        <i class="fa-solid fa-money-check-dollar"></i>
-                    </span>
-
-
-                    <div>
-
-                        <strong>
-                            Payout attention
-                        </strong>
-
-                        <small>
-                            Pending, initializing or failed payouts
-                        </small>
-
-                    </div>
-
-
-                    <b>
-                        {{ number_format($stats['awaiting_payout_transactions']) }}
-                    </b>
-
-                </a>
-
-            </div>
-
-        </article>
-
-
-        {{-- Dispute Workflow --}}
-        <article class="admin-card mp-list-card">
-
-            <div class="mp-card-heading compact">
-
-                <div>
-
-                    <span class="mp-card-eyebrow">
-                        Risk monitoring
-                    </span>
-
-
-                    <h3>
-                        Dispute workflow
-                    </h3>
-
-                </div>
-
-
-                <a href="{{ route('admin.disputes.index') }}">
-                    Manage
-                </a>
-
-            </div>
-
-
-            <div class="mp-dispute-flow">
-
-                @foreach([
-                    [
-                        'label' => 'Open',
-                        'value' => $stats['open_disputes'],
-                        'class' => 'open',
-                    ],
-                    [
-                        'label' => 'Under review',
-                        'value' => $stats['under_review_disputes'],
-                        'class' => 'review',
-                    ],
-                    [
-                        'label' => 'Awaiting buyer',
-                        'value' => $stats['awaiting_buyer_disputes'],
-                        'class' => 'buyer',
-                    ],
-                    [
-                        'label' => 'Awaiting seller',
-                        'value' => $stats['awaiting_seller_disputes'],
-                        'class' => 'seller',
-                    ],
-                    [
-                        'label' => 'Resolved',
-                        'value' => $stats['resolved_disputes'],
-                        'class' => 'resolved',
-                    ],
-                ] as $disputeState)
-
-                    <div class="mp-dispute-state">
-
-                        <span class="mp-dispute-dot {{ $disputeState['class'] }}"></span>
-
-
-                        <span>
-                            {{ $disputeState['label'] }}
-                        </span>
-
-
-                        <strong>
-                            {{ number_format($disputeState['value']) }}
-                        </strong>
-
-                    </div>
-
-                @endforeach
-
-            </div>
-
-        </article>
-
-    </section>
-
-
-    {{-- =========================================================
-        RECENT TRANSACTIONS + TOP SELLERS
-    ========================================================== --}}
-
-    <section class="mp-dashboard-bottom-grid">
+    <section class="mp-two-grid">
 
 
         {{-- Recent Transactions --}}
+
         <article class="admin-card mp-table-card">
 
             <div class="mp-card-heading compact">
 
                 <div>
 
-                    <span class="mp-card-eyebrow">
-                        Live payments
+                    <span class="mp-eyebrow">
+                        Recent activity
                     </span>
 
 
                     <h3>
-                        Recent paid transactions
+                        Buyer transactions
                     </h3>
 
                 </div>
@@ -1228,11 +1094,11 @@
             </div>
 
 
-            @if($recentTransactions->isNotEmpty())
+            @if($recentTransactions->count())
 
                 <div class="mp-table-scroll">
 
-                    <table class="mp-dashboard-table">
+                    <table class="mp-table">
 
                         <thead>
 
@@ -1243,19 +1109,15 @@
                                 </th>
 
                                 <th>
-                                    Buyer / Seller
+                                    Seller
                                 </th>
 
                                 <th>
-                                    Paid
+                                    Buyer paid
                                 </th>
 
                                 <th>
-                                    Status
-                                </th>
-
-                                <th>
-                                    Time
+                                    Funds state
                                 </th>
 
                             </tr>
@@ -1269,26 +1131,12 @@
 
                                 @php
 
-                                    $transactionBadge =
-                                        match($transaction->status) {
-
-                                            'completed' =>
-                                                'green',
-
-                                            'disputed' =>
-                                                'red',
-
-                                            'release_approved',
-                                            'payout_pending' =>
-                                                'purple',
-
-                                            'delivered',
-                                            'inspection' =>
-                                                'blue',
-
-                                            default =>
-                                                'amber',
-                                        };
+                                    $walletReleased =
+                                        $transaction->walletRelease
+                                        &&
+                                        $transaction->walletRelease->status
+                                        ===
+                                        \App\Models\SellerWalletTransaction::STATUS_POSTED;
 
                                 @endphp
 
@@ -1297,12 +1145,9 @@
 
                                     <td>
 
-                                        <a
-                                            href="{{ route('admin.transactions.show', $transaction) }}"
-                                            class="mp-table-main-link"
-                                        >
+                                        <strong>
                                             {{ $transaction->reference }}
-                                        </a>
+                                        </strong>
 
 
                                         <small>
@@ -1315,39 +1160,13 @@
                                     <td>
 
                                         <strong>
-                                            {{ $transaction->buyer?->name ?? 'Buyer' }}
+                                            {{ $transaction->seller?->name ?? 'Seller' }}
                                         </strong>
 
 
                                         <small>
-                                            → {{ $transaction->seller?->name ?? 'Seller' }}
+                                            {{ $transaction->seller?->email }}
                                         </small>
-
-                                    </td>
-
-
-                                    <td>
-
-                                        <strong class="mp-money-cell">
-
-                                            {{
-                                                $moneyFull(
-                                                    $transaction->paid_amount
-                                                    ?:
-                                                    $transaction->total_amount
-                                                )
-                                            }}
-
-                                        </strong>
-
-                                    </td>
-
-
-                                    <td>
-
-                                        <span class="mp-status-pill {{ $transactionBadge }}">
-                                            {{ $transaction->status_label }}
-                                        </span>
 
                                     </td>
 
@@ -1355,13 +1174,47 @@
                                     <td>
 
                                         <strong>
-                                            {{ $transaction->paid_at?->format('d M') ?? '-' }}
+
+                                            {{ $moneyFull(
+                                                $transaction->paid_amount
+                                                ?: $transaction->total_amount,
+                                                2
+                                            ) }}
+
                                         </strong>
 
+                                    </td>
 
-                                        <small>
-                                            {{ $transaction->paid_at?->format('h:i A') ?? '' }}
-                                        </small>
+
+                                    <td>
+
+                                        @if($walletReleased)
+
+                                            <span class="mp-badge success">
+
+                                                <i class="fa-solid fa-wallet"></i>
+
+                                                Wallet released
+
+                                            </span>
+
+                                        @elseif($transaction->status === \App\Models\SecureTransaction::STATUS_DISPUTED)
+
+                                            <span class="mp-badge danger">
+
+                                                Disputed
+
+                                            </span>
+
+                                        @else
+
+                                            <span class="mp-badge warning">
+
+                                                Protected
+
+                                            </span>
+
+                                        @endif
 
                                     </td>
 
@@ -1375,20 +1228,11 @@
 
                 </div>
 
-
             @else
 
-                <div class="mp-empty-state">
+                <div class="mp-empty">
 
-                    <i class="fa-solid fa-money-bill-transfer"></i>
-
-                    <strong>
-                        No paid transactions yet
-                    </strong>
-
-                    <span>
-                        Verified buyer payments will appear here.
-                    </span>
+                    No paid transactions yet.
 
                 </div>
 
@@ -1397,98 +1241,167 @@
         </article>
 
 
-        {{-- Top Sellers --}}
-        <article class="admin-card mp-list-card">
+
+        {{-- Recent Withdrawals --}}
+
+        <article class="admin-card mp-table-card">
 
             <div class="mp-card-heading compact">
 
                 <div>
 
-                    <span class="mp-card-eyebrow">
-                        Seller performance
+                    <span class="mp-eyebrow">
+                        Seller banking
                     </span>
 
 
                     <h3>
-                        Top sellers
+                        Recent withdrawals
                     </h3>
 
                 </div>
 
+
+                @if($hasWithdrawalRoute)
+
+                    <a href="{{ route('admin.withdrawals.index') }}">
+                        View all
+                    </a>
+
+                @endif
+
             </div>
 
 
-            @if($topSellers->isNotEmpty())
+            @if($recentWithdrawals->count())
 
-                <div class="mp-top-seller-list">
+                <div class="mp-table-scroll">
 
-                    @foreach($topSellers as $index => $seller)
+                    <table class="mp-table">
 
-                        <div class="mp-top-seller-row">
+                        <thead>
 
-                            <span class="mp-rank">
-                                {{ $index + 1 }}
-                            </span>
+                            <tr>
 
+                                <th>
+                                    Seller
+                                </th>
 
-                            <div class="mp-seller-avatar">
+                                <th>
+                                    Bank
+                                </th>
 
-                                {{
-                                    strtoupper(
-                                        substr(
-                                            $seller['name'],
-                                            0,
-                                            1
-                                        )
-                                    )
-                                }}
+                                <th>
+                                    Amount
+                                </th>
 
-                            </div>
+                                <th>
+                                    Status
+                                </th>
 
+                            </tr>
 
-                            <div class="mp-top-seller-info">
-
-                                <strong>
-                                    {{ $seller['name'] }}
-                                </strong>
+                        </thead>
 
 
-                                <small>
-                                    {{ number_format($seller['transactions']) }} completed payouts
-                                </small>
+                        <tbody>
 
-                            </div>
+                            @foreach($recentWithdrawals as $withdrawal)
+
+                                <tr>
+
+                                    <td>
+
+                                        <strong>
+                                            {{ $withdrawal->seller?->name ?? 'Seller' }}
+                                        </strong>
 
 
-                            <div class="mp-top-seller-money">
+                                        <small>
+                                            {{ $withdrawal->reference }}
+                                        </small>
 
-                                <strong>
-                                    {{ $moneyCompact($seller['gross_volume']) }}
-                                </strong>
+                                    </td>
 
 
-                                <small>
-                                    gross volume
-                                </small>
+                                    <td>
 
-                            </div>
+                                        <strong>
+                                            {{ $withdrawal->bank_name }}
+                                        </strong>
 
-                        </div>
 
-                    @endforeach
+                                        <small>
+
+                                            {{ $withdrawal->account_name }}
+
+                                            ·
+
+                                            ••••{{ $withdrawal->account_number_last4 }}
+
+                                        </small>
+
+                                    </td>
+
+
+                                    <td>
+
+                                        <strong>
+                                            {{ $moneyFull($withdrawal->amount, 2) }}
+                                        </strong>
+
+                                    </td>
+
+
+                                    <td>
+
+                                        @if($withdrawal->status === \App\Models\SellerWithdrawal::STATUS_SUCCESSFUL)
+
+                                            <span class="mp-badge success">
+                                                Successful
+                                            </span>
+
+                                        @elseif(in_array($withdrawal->status, [
+                                            \App\Models\SellerWithdrawal::STATUS_PENDING,
+                                            \App\Models\SellerWithdrawal::STATUS_PROCESSING,
+                                            \App\Models\SellerWithdrawal::STATUS_OTP,
+                                        ], true))
+
+                                            <span class="mp-badge processing">
+                                                Processing
+                                            </span>
+
+                                        @elseif($withdrawal->status === \App\Models\SellerWithdrawal::STATUS_REVERSED)
+
+                                            <span class="mp-badge danger">
+                                                Reversed
+                                            </span>
+
+                                        @else
+
+                                            <span class="mp-badge danger">
+                                                Failed
+                                            </span>
+
+                                        @endif
+
+                                    </td>
+
+                                </tr>
+
+                            @endforeach
+
+                        </tbody>
+
+                    </table>
 
                 </div>
 
-
             @else
 
-                <div class="mp-empty-state compact">
+                <div class="mp-empty">
 
-                    <i class="fa-solid fa-store"></i>
-
-                    <strong>
-                        No seller payout data yet
-                    </strong>
+                    No seller withdrawals yet.
 
                 </div>
 
@@ -1499,96 +1412,153 @@
     </section>
 
 
-    {{-- =========================================================
-        RECENT PACKAGE PAYMENTS
-    ========================================================== --}}
 
-    <section class="admin-card mp-package-payment-card">
+    {{-- ============================================================
+        TOP SELLERS
+    ============================================================= --}}
+
+    <section class="admin-card mp-table-card">
 
         <div class="mp-card-heading compact">
 
             <div>
 
-                <span class="mp-card-eyebrow">
-                    Subscription income
+                <span class="mp-eyebrow">
+                    Seller performance
                 </span>
 
 
                 <h3>
-                    Recent seller package payments
+                    Top sellers by wallet releases
                 </h3>
 
+
+                <p>
+                    Shows how much completed transaction value has been credited
+                    to each seller wallet and how much has already been withdrawn.
+                </p>
+
             </div>
-
-
-            <a href="{{ route('admin.billing.invoices.index') }}">
-                View invoices
-            </a>
 
         </div>
 
 
-        @if($recentPackagePurchases->isNotEmpty())
+        @if($topSellers->count())
 
-            <div class="mp-package-payment-grid">
+            <div class="mp-table-scroll">
 
-                @foreach($recentPackagePurchases as $invoice)
+                <table class="mp-table">
 
-                    <article class="mp-package-payment-item">
+                    <thead>
 
-                        <div class="mp-package-payment-icon">
-                            <i class="fa-solid fa-crown"></i>
-                        </div>
+                        <tr>
 
+                            <th>
+                                Seller
+                            </th>
 
-                        <div>
+                            <th>
+                                Released transactions
+                            </th>
 
-                            <strong>
-                                {{ $invoice->application?->package_name ?? 'Seller Package' }}
-                            </strong>
+                            <th>
+                                Wallet released
+                            </th>
 
+                            <th>
+                                Bank withdrawn
+                            </th>
 
-                            <span>
-                                {{ $invoice->user?->name ?? 'Seller' }}
-                            </span>
+                            <th>
+                                Remaining released value
+                            </th>
 
+                        </tr>
 
-                            <small>
-                                {{ $invoice->invoice_number }}
-                            </small>
-
-                        </div>
-
-
-                        <div class="mp-package-payment-value">
-
-                            <strong>
-                                {{ $moneyFull($invoice->amount) }}
-                            </strong>
+                    </thead>
 
 
-                            <small>
-                                {{ $invoice->paid_at?->format('d M Y') ?? '-' }}
-                            </small>
+                    <tbody>
 
-                        </div>
+                        @foreach($topSellers as $seller)
 
-                    </article>
+                            <tr>
 
-                @endforeach
+                                <td>
+
+                                    <strong>
+                                        {{ $seller['name'] }}
+                                    </strong>
+
+
+                                    <small>
+                                        {{ $seller['email'] }}
+                                    </small>
+
+                                </td>
+
+
+                                <td>
+
+                                    <strong>
+                                        {{ number_format($seller['transactions']) }}
+                                    </strong>
+
+                                </td>
+
+
+                                <td>
+
+                                    <strong>
+                                        {{ $moneyFull($seller['wallet_released'], 2) }}
+                                    </strong>
+
+                                </td>
+
+
+                                <td>
+
+                                    <strong>
+                                        {{ $moneyFull($seller['withdrawn'], 2) }}
+                                    </strong>
+
+                                </td>
+
+
+                                <td>
+
+                                    <strong>
+
+                                        {{ $moneyFull(
+                                            max(
+                                                0,
+                                                $seller['wallet_released']
+                                                -
+                                                $seller['withdrawn']
+                                            ),
+                                            2
+                                        ) }}
+
+                                    </strong>
+
+                                </td>
+
+                            </tr>
+
+                        @endforeach
+
+                    </tbody>
+
+                </table>
 
             </div>
 
-
         @else
 
-            <div class="mp-empty-state compact">
+            <div class="mp-empty">
 
-                <i class="fa-solid fa-crown"></i>
-
-                <strong>
-                    No paid seller package invoices yet
-                </strong>
+                Seller wallet releases will appear here after transactions
+                are successfully released from escrow.
 
             </div>
 
@@ -1596,34 +1566,168 @@
 
     </section>
 
+
+
+    {{-- ============================================================
+        ACCOUNTING EXPLANATION
+    ============================================================= --}}
+
+    <section class="admin-card mp-flow-explanation">
+
+        <div class="mp-flow-title">
+
+            <i class="fa-solid fa-circle-info"></i>
+
+            How Midpoint money is represented
+
+        </div>
+
+
+        <div class="mp-flow-steps">
+
+
+            <div>
+
+                <span class="number">
+                    1
+                </span>
+
+                <strong>
+                    Buyer pays
+                </strong>
+
+                <small>
+                    Recorded as buyer payment received.
+                </small>
+
+            </div>
+
+
+
+            <span class="arrow">
+                →
+            </span>
+
+
+
+            <div>
+
+                <span class="number">
+                    2
+                </span>
+
+                <strong>
+                    Protected
+                </strong>
+
+                <small>
+                    Midpoint holds the transaction during fulfilment.
+                </small>
+
+            </div>
+
+
+
+            <span class="arrow">
+                →
+            </span>
+
+
+
+            <div>
+
+                <span class="number">
+                    3
+                </span>
+
+                <strong>
+                    Seller wallet
+                </strong>
+
+                <small>
+                    Completed transaction funds are credited to seller wallet.
+                </small>
+
+            </div>
+
+
+
+            <span class="arrow">
+                →
+            </span>
+
+
+
+            <div>
+
+                <span class="number">
+                    4
+                </span>
+
+                <strong>
+                    Withdrawal
+                </strong>
+
+                <small>
+                    Seller requests money from available wallet balance.
+                </small>
+
+            </div>
+
+
+
+            <span class="arrow">
+                →
+            </span>
+
+
+
+            <div>
+
+                <span class="number">
+                    5
+                </span>
+
+                <strong>
+                    Seller bank
+                </strong>
+
+                <small>
+                    Successful withdrawal becomes withdrawn-to-bank value.
+                </small>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
 </div>
 
 @endsection
 
 
-{{-- =========================================================
-    DASHBOARD STYLES
-========================================================== --}}
+
+{{-- ========================================================================
+    STYLES
+========================================================================= --}}
 
 @push('styles')
 
 <style>
 
-    /*
-    |--------------------------------------------------------------------------
-    | Dashboard Base
-    |--------------------------------------------------------------------------
-    */
-
-    .mp-admin-dashboard {
+    .mp-dashboard {
         display: flex;
         flex-direction: column;
-        gap: 18px;
+        gap: 14px;
     }
 
 
-    .mp-admin-dashboard a {
-        color: inherit;
+    .mp-dashboard *,
+    .mp-dashboard *::before,
+    .mp-dashboard *::after {
+        box-sizing: border-box;
     }
 
 
@@ -1634,36 +1738,12 @@
     */
 
     .mp-dashboard-hero {
-        position: relative;
-        overflow: hidden;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 25px;
-        padding: 26px 28px;
-    }
+        gap: 20px;
 
-
-    .mp-dashboard-hero::after {
-        content: '';
-        position: absolute;
-        width: 260px;
-        height: 260px;
-        top: -150px;
-        right: -70px;
-        border-radius: 50%;
-        background: rgba(25, 168, 149, .08);
-        pointer-events: none;
-    }
-
-
-    .mp-dashboard-kicker,
-    .mp-card-eyebrow {
-        color: var(--admin-accent-strong);
-        font-size: 11px;
-        font-weight: 700;
-        letter-spacing: .12em;
-        text-transform: uppercase;
+        padding: 20px 22px;
     }
 
 
@@ -1671,47 +1751,65 @@
         display: flex;
         align-items: center;
         gap: 7px;
+
+        margin-bottom: 5px;
+
+        color: #078967;
+
+        font-size: 11px;
+        font-weight: 800;
+
+        text-transform: uppercase;
+        letter-spacing: .12em;
     }
 
 
     .mp-live-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: #12B76A;
-        box-shadow: 0 0 0 5px rgba(18, 183, 106, .10);
+        width: 7px;
+        height: 7px;
+
+        border-radius: 999px;
+
+        background: #15b78d;
+
+        box-shadow: 0 0 0 4px rgba(21, 183, 141, .10);
     }
 
 
     .mp-dashboard-hero h2 {
-        margin: 8px 0 6px;
-        color: var(--admin-heading);
-        font-family: 'Bricolage Grotesque', sans-serif;
-        font-size: 27px;
-        line-height: 1.15;
-    }
-
-
-    .mp-dashboard-hero-copy > p {
-        max-width: 730px;
         margin: 0;
-        color: var(--admin-muted);
-        font-size: 13px;
-        line-height: 1.7;
+
+        color: #08253d;
+
+        font-size: 21px;
+        font-weight: 800;
     }
 
 
-    .mp-dashboard-hero-meta {
+    .mp-dashboard-hero p {
+        max-width: 730px;
+
+        margin: 6px 0 10px;
+
+        color: #647c93;
+
+        font-size: 13px;
+        line-height: 1.65;
+    }
+
+
+    .mp-dashboard-meta {
         display: flex;
-        flex-wrap: wrap;
-        gap: 16px;
-        margin-top: 14px;
-        color: var(--admin-muted);
+        align-items: center;
+        gap: 15px;
+
+        color: #667b91;
+
         font-size: 11px;
     }
 
 
-    .mp-dashboard-hero-meta span {
+    .mp-dashboard-meta span {
         display: inline-flex;
         align-items: center;
         gap: 6px;
@@ -1719,182 +1817,304 @@
 
 
     .mp-period-control {
-        position: relative;
-        z-index: 2;
-        min-width: 170px;
+        flex: 0 0 auto;
+
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
     }
 
 
     .mp-period-control label {
-        display: block;
-        margin-bottom: 6px;
-        color: var(--admin-muted);
-        font-size: 11px;
-        font-weight: 600;
+        color: #708398;
+
+        font-size: 10px;
+        font-weight: 700;
     }
 
 
     .mp-period-control select {
-        width: 100%;
-        min-height: 40px;
-        padding: 0 11px;
-        border: 1px solid var(--admin-border);
-        border-radius: 10px;
-        outline: 0;
-        background: var(--admin-surface);
-        color: var(--admin-text);
-        font: inherit;
+        padding: 9px 32px 9px 11px;
+
+        border: 1px solid #dbe5eb;
+        border-radius: 9px;
+
+        outline: none;
+
+        background: var(--admin-card-bg, #fff);
+
+        color: #263e55;
+
         font-size: 12px;
-        cursor: pointer;
+        font-weight: 600;
     }
 
 
     /*
     |--------------------------------------------------------------------------
-    | KPI Cards
+    | KPI
     |--------------------------------------------------------------------------
     */
 
     .mp-kpi-grid {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 14px;
+
+        grid-template-columns:
+            repeat(
+                3,
+                minmax(0, 1fr)
+            );
+
+        gap: 11px;
     }
 
 
     .mp-kpi-card {
-        position: relative;
-        min-width: 0;
-        padding: 20px;
-        transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+        min-height: 137px;
+
+        padding: 16px;
     }
 
 
-    .mp-kpi-card:hover {
-        transform: translateY(-2px);
-        border-color: rgba(25, 168, 149, .35);
-        box-shadow: var(--admin-shadow);
-    }
-
-
-    .mp-kpi-card.is-profit {
+    .mp-kpi-card.liability {
         background:
             linear-gradient(
                 135deg,
-                color-mix(in srgb, var(--admin-surface) 88%, #12B76A 12%),
-                var(--admin-surface)
-            );
+                rgba(11, 150, 121, .06),
+                rgba(255, 255, 255, 0)
+            ),
+            var(--admin-card-bg, #fff);
     }
 
 
-    .mp-kpi-top {
+    .mp-kpi-head {
+        min-height: 31px;
+
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         justify-content: space-between;
-        gap: 12px;
-        margin-bottom: 15px;
+
+        margin-bottom: 10px;
     }
 
 
     .mp-kpi-icon,
-    .mp-mini-stat-icon {
-        display: grid;
-        place-items: center;
-        border-radius: 11px;
-        background: rgba(18, 183, 106, .10);
-        color: #079455;
-    }
-
-
-    .mp-kpi-icon {
-        width: 39px;
-        height: 39px;
-        font-size: 15px;
-    }
-
-
-    .mp-kpi-icon.is-blue,
-    .mp-mini-stat-icon.is-blue {
-        background: #EEF4FF;
-        color: #3538CD;
-    }
-
-
-    .mp-kpi-icon.is-purple,
-    .mp-mini-stat-icon.is-purple {
-        background: #F2F0FF;
-        color: #6941C6;
-    }
-
-
-    .mp-kpi-icon.is-amber,
-    .mp-mini-stat-icon.is-amber {
-        background: #FFF7E8;
-        color: #B54708;
-    }
-
-
-    .mp-kpi-icon.is-green,
-    .mp-mini-stat-icon.is-green {
-        background: #ECFDF3;
-        color: #067647;
-    }
-
-
-    .mp-kpi-icon.is-violet {
-        background: #F4F3FF;
-        color: #7A5AF8;
-    }
-
-
-    .mp-kpi-trend {
+    .mp-revenue-icon,
+    .mp-mini-icon {
         display: inline-flex;
         align-items: center;
-        gap: 5px;
-        padding: 5px 8px;
-        border-radius: 999px;
-        font-size: 11px;
-        font-weight: 700;
+        justify-content: center;
+
+        width: 32px;
+        height: 32px;
+
+        border-radius: 10px;
+
+        background: #e8f7f2;
+
+        color: #078967;
     }
 
 
-    .mp-kpi-trend.up {
-        background: #ECFDF3;
-        color: #067647;
+    .mp-kpi-icon.blue,
+    .mp-mini-icon.blue {
+        background: #edf3ff;
+        color: #376ad5;
     }
 
 
-    .mp-kpi-trend.down {
-        background: #FFF1F2;
-        color: #B42318;
+    .mp-kpi-icon.purple,
+    .mp-mini-icon.purple,
+    .mp-revenue-icon.purple {
+        background: #f3efff;
+        color: #7755df;
+    }
+
+
+    .mp-kpi-icon.amber,
+    .mp-mini-icon.amber {
+        background: #fff5e5;
+        color: #c97510;
+    }
+
+
+    .mp-kpi-icon.green,
+    .mp-revenue-icon.green,
+    .mp-mini-icon.green {
+        background: #e9faef;
+        color: #078a49;
+    }
+
+
+    .mp-kpi-icon.orange {
+        background: #fff1e9;
+        color: #d46221;
+    }
+
+
+    .mp-kpi-icon.teal {
+        background: #e5f8f6;
+        color: #078a7b;
     }
 
 
     .mp-kpi-label {
         display: block;
-        color: var(--admin-muted);
-        font-size: 12px;
-        font-weight: 600;
+
+        margin-bottom: 6px;
+
+        color: #617997;
+
+        font-size: 11px;
+        font-weight: 700;
     }
 
 
     .mp-kpi-value {
         display: block;
-        margin-top: 6px;
-        color: var(--admin-heading);
-        font-family: 'Bricolage Grotesque', sans-serif;
-        font-size: clamp(23px, 2.2vw, 31px);
-        line-height: 1.15;
-        white-space: nowrap;
+
+        margin-bottom: 7px;
+
+        color: #09233c;
+
+        font-size: 23px;
+        font-weight: 800;
+        line-height: 1;
     }
 
 
-    .mp-kpi-card > small {
-        display: block;
-        margin-top: 8px;
-        color: var(--admin-muted);
-        font-size: 11px;
+    .mp-kpi-card small {
+        color: #70859c;
+
+        font-size: 8.5px;
         line-height: 1.5;
+    }
+
+
+    .mp-trend,
+    .mp-revenue-trend {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+
+        padding: 4px 7px;
+
+        border-radius: 999px;
+
+        font-size: 10px;
+        font-weight: 800;
+    }
+
+
+    .mp-trend.positive,
+    .mp-revenue-trend.positive {
+        background: #eafaf0;
+        color: #07854a;
+    }
+
+
+    .mp-trend.negative,
+    .mp-revenue-trend.negative {
+        background: #fff0f0;
+        color: #c24545;
+    }
+
+
+    .mp-alert-dot {
+        min-width: 22px;
+        height: 22px;
+
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+
+        padding: 0 6px;
+
+        border-radius: 999px;
+
+        background: #fff1e7;
+
+        color: #cb5f22;
+
+        font-size: 10px;
+        font-weight: 800;
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Revenue
+    |--------------------------------------------------------------------------
+    */
+
+    .mp-revenue-grid {
+        display: grid;
+
+        grid-template-columns:
+            repeat(
+                3,
+                minmax(0, 1fr)
+            );
+
+        gap: 11px;
+    }
+
+
+    .mp-revenue-card {
+        position: relative;
+
+        display: grid;
+
+        grid-template-columns:
+            auto 1fr auto;
+
+        align-items: center;
+
+        gap: 12px;
+
+        padding: 15px;
+    }
+
+
+    .mp-revenue-card.profit {
+        background:
+            linear-gradient(
+                135deg,
+                rgba(19, 160, 126, .08),
+                transparent 65%
+            ),
+            var(--admin-card-bg, #fff);
+    }
+
+
+    .mp-revenue-card > div > span {
+        display: block;
+
+        margin-bottom: 4px;
+
+        color: #6a8097;
+
+        font-size: 11px;
+        font-weight: 700;
+    }
+
+
+    .mp-revenue-card strong {
+        display: block;
+
+        margin-bottom: 4px;
+
+        color: #0b2943;
+
+        font-size: 17px;
+        font-weight: 800;
+    }
+
+
+    .mp-revenue-card small {
+        color: #7d8fa0;
+
+        font-size: 10px;
     }
 
 
@@ -1904,92 +2124,122 @@
     |--------------------------------------------------------------------------
     */
 
-    .mp-mini-stats-grid {
+    .mp-mini-grid {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 12px;
+
+        grid-template-columns:
+            repeat(
+                4,
+                minmax(0, 1fr)
+            );
+
+        gap: 11px;
     }
 
 
-    .mp-mini-stat {
+    .mp-mini-card {
         display: grid;
-        grid-template-columns: 38px minmax(0, 1fr) auto;
-        grid-template-areas:
-            "icon label value"
-            "icon small value";
+
+        grid-template-columns:
+            auto 1fr auto;
+
+        gap: 10px;
+
         align-items: center;
-        column-gap: 11px;
-        padding: 15px;
+
+        padding: 12px 14px;
+
+        color: inherit;
+
         text-decoration: none;
-        transition: transform .15s ease, border-color .15s ease;
     }
 
 
-    .mp-mini-stat:hover {
-        transform: translateY(-1px);
-        border-color: rgba(25, 168, 149, .35);
-    }
+    .mp-mini-icon {
+        width: 29px;
+        height: 29px;
 
+        border-radius: 9px;
 
-    .mp-mini-stat-icon {
-        grid-area: icon;
-        width: 36px;
-        height: 36px;
         font-size: 13px;
     }
 
 
-    .mp-mini-stat > span:not(.mp-mini-stat-icon) {
-        grid-area: label;
-        color: var(--admin-muted);
+    .mp-mini-card div span {
+        display: block;
+
+        margin-bottom: 3px;
+
+        color: #516d8b;
+
         font-size: 11px;
-        font-weight: 600;
+        font-weight: 700;
     }
 
 
-    .mp-mini-stat > strong {
-        grid-area: value;
-        color: var(--admin-heading);
-        font-family: 'Bricolage Grotesque', sans-serif;
-        font-size: 21px;
+    .mp-mini-card div small {
+        display: block;
+
+        color: #8495a5;
+
+        font-size: 7.5px;
     }
 
 
-    .mp-mini-stat > small {
-        grid-area: small;
-        color: var(--admin-muted-2);
-        font-size: 10px;
+    .mp-mini-card > strong {
+        color: #092740;
+
+        font-size: 17px;
+        font-weight: 800;
     }
 
 
     /*
     |--------------------------------------------------------------------------
-    | Shared Chart Cards
+    | Charts
     |--------------------------------------------------------------------------
     */
 
-    .mp-dashboard-main-grid {
+    .mp-main-grid {
         display: grid;
-        grid-template-columns: minmax(0, 1.75fr) minmax(300px, .65fr);
-        gap: 14px;
-        align-items: stretch;
+
+        grid-template-columns:
+            minmax(0, 2.7fr)
+            minmax(280px, .85fr);
+
+        gap: 11px;
     }
 
 
-    .mp-dashboard-three-grid {
+    .mp-three-grid {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 14px;
+
+        grid-template-columns:
+            repeat(
+                3,
+                minmax(0, 1fr)
+            );
+
+        gap: 11px;
+    }
+
+
+    .mp-two-grid {
+        display: grid;
+
+        grid-template-columns:
+            repeat(
+                2,
+                minmax(0, 1fr)
+            );
+
+        gap: 11px;
     }
 
 
     .mp-chart-card,
-    .mp-list-card,
-    .mp-table-card,
-    .mp-operations-card,
-    .mp-package-payment-card {
-        padding: 20px;
-        min-width: 0;
+    .mp-table-card {
+        padding: 17px;
     }
 
 
@@ -1997,38 +2247,62 @@
         display: flex;
         align-items: flex-start;
         justify-content: space-between;
+
         gap: 16px;
-        margin-bottom: 14px;
+
+        margin-bottom: 12px;
     }
 
 
     .mp-card-heading.compact {
-        margin-bottom: 10px;
+        align-items: center;
+    }
+
+
+    .mp-eyebrow {
+        display: block;
+
+        margin-bottom: 4px;
+
+        color: #078967;
+
+        font-size: 7.5px;
+        font-weight: 800;
+
+        text-transform: uppercase;
+        letter-spacing: .12em;
     }
 
 
     .mp-card-heading h3 {
-        margin: 4px 0 0;
-        color: var(--admin-heading);
-        font-size: 14px;
-        font-weight: 700;
+        margin: 0;
+
+        color: #0b2841;
+
+        font-size: 13px;
+        font-weight: 800;
     }
 
 
     .mp-card-heading p {
         margin: 5px 0 0;
-        color: var(--admin-muted);
-        font-size: 11px;
-        line-height: 1.6;
+
+        color: #8293a3;
+
+        font-size: 10px;
+        line-height: 1.45;
     }
 
 
-    .mp-card-heading > a {
-        color: var(--admin-accent-strong);
-        font-size: 11px;
-        font-weight: 700;
+    .mp-card-heading a {
+        flex: 0 0 auto;
+
+        color: #0b8b6d;
+
+        font-size: 10px;
+        font-weight: 800;
+
         text-decoration: none;
-        white-space: nowrap;
     }
 
 
@@ -2036,773 +2310,435 @@
         display: flex;
         flex-wrap: wrap;
         justify-content: flex-end;
-        gap: 10px;
-        color: var(--admin-muted);
+        gap: 12px;
+
+        color: #667e94;
+
         font-size: 10px;
     }
 
 
     .mp-chart-legend span {
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
+        position: relative;
+
+        padding-left: 11px;
     }
 
 
     .mp-chart-legend span::before {
         content: '';
-        width: 7px;
-        height: 7px;
-        border-radius: 50%;
+
+        position: absolute;
+
+        left: 0;
+        top: 50%;
+
+        width: 6px;
+        height: 6px;
+
+        transform: translateY(-50%);
+
+        border-radius: 999px;
     }
 
 
-    .mp-chart-legend .is-paid::before {
-        background: #18A897;
+    .mp-chart-legend .buyer::before {
+        background: #10a98b;
     }
 
 
-    .mp-chart-legend .is-released::before {
-        background: #7A5AF8;
+    .mp-chart-legend .released::before {
+        background: #7358dc;
     }
 
 
-    .mp-chart-legend .is-profit::before {
-        background: #F79009;
+    .mp-chart-legend .withdrawn::before {
+        background: #3776d7;
     }
 
 
-    .mp-apex-chart {
-        min-height: 345px;
+    .mp-chart-legend .profit::before {
+        background: #e78623;
+    }
+
+
+    .mp-money-chart {
+        min-height: 350px;
+    }
+
+
+    .mp-margin-chart {
+        min-height: 230px;
     }
 
 
     .mp-donut-chart {
-        min-height: 275px;
+        min-height: 255px;
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Margin Card
-    |--------------------------------------------------------------------------
-    */
-
-    .mp-margin-chart {
-        min-height: 245px;
-    }
-
-
-    .mp-margin-breakdown {
+    .mp-margin-values {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+
+        grid-template-columns:
+            1fr 1fr;
+
         gap: 8px;
+
+        margin-top: 4px;
     }
 
 
-    .mp-margin-breakdown > div {
-        padding: 11px;
-        border: 1px solid var(--admin-border-soft);
-        border-radius: 10px;
-        background: var(--admin-surface-soft);
-    }
+    .mp-margin-values > div {
+        padding: 10px;
 
-
-    .mp-margin-breakdown span,
-    .mp-margin-breakdown strong {
-        display: block;
-    }
-
-
-    .mp-margin-breakdown span {
-        color: var(--admin-muted);
-        font-size: 10px;
-    }
-
-
-    .mp-margin-breakdown strong {
-        margin-top: 5px;
-        color: var(--admin-heading);
-        font-size: 13px;
-    }
-
-
-    .mp-accounting-note {
-        margin: 10px 0 0;
-        color: var(--admin-muted-2);
-        font-size: 10px;
-        line-height: 1.5;
-        text-align: center;
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Profit Composition Labels
-    |--------------------------------------------------------------------------
-    */
-
-    .mp-inline-values {
-        display: grid;
-        gap: 7px;
-    }
-
-
-    .mp-inline-values > div {
-        display: grid;
-        grid-template-columns: 8px minmax(0, 1fr) auto;
-        align-items: center;
-        gap: 7px;
-        color: var(--admin-muted);
-        font-size: 11px;
-    }
-
-
-    .mp-inline-values strong {
-        color: var(--admin-heading);
-        font-size: 11px;
-    }
-
-
-    .mp-inline-values .dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-    }
-
-
-    .mp-inline-values .dot.service {
-        background: #18A897;
-    }
-
-
-    .mp-inline-values .dot.package {
-        background: #7A5AF8;
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Operations
-    |--------------------------------------------------------------------------
-    */
-
-    .mp-operations-grid {
-        display: grid;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
-        gap: 10px;
-    }
-
-
-    .mp-operation-item {
-        display: flex;
-        align-items: center;
-        gap: 11px;
-        min-width: 0;
-        padding: 13px;
-        border: 1px solid var(--admin-border-soft);
-        border-radius: 11px;
-        background: var(--admin-surface-soft);
-        text-decoration: none;
-        transition: transform .15s ease, border-color .15s ease;
-    }
-
-
-    .mp-operation-item:hover {
-        transform: translateY(-1px);
-        border-color: rgba(25, 168, 149, .35);
-    }
-
-
-    .mp-operation-icon {
-        display: grid;
-        width: 35px;
-        height: 35px;
-        flex: 0 0 35px;
-        place-items: center;
-        border-radius: 10px;
-        background: var(--admin-surface);
-        font-size: 14px;
-    }
-
-
-    .mp-operation-item strong,
-    .mp-operation-item span {
-        display: block;
-    }
-
-
-    .mp-operation-item strong {
-        color: var(--admin-heading);
-        font-family: 'Bricolage Grotesque', sans-serif;
-        font-size: 18px;
-    }
-
-
-    .mp-operation-item div > span {
-        margin-top: 2px;
-        color: var(--admin-muted);
-        font-size: 10px;
-    }
-
-
-    .mp-operation-item.is-running .mp-operation-icon {
-        color: #3538CD;
-    }
-
-
-    .mp-operation-item.is-completed .mp-operation-icon {
-        color: #067647;
-    }
-
-
-    .mp-operation-item.is-disputed .mp-operation-icon {
-        color: #B42318;
-    }
-
-
-    .mp-operation-item.is-payout .mp-operation-icon {
-        color: #6941C6;
-    }
-
-
-    .mp-operation-item.is-unpaid .mp-operation-icon {
-        color: #B54708;
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Two Column Lists
-    |--------------------------------------------------------------------------
-    */
-
-    .mp-dashboard-two-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 14px;
-    }
-
-
-    .mp-action-queue,
-    .mp-dispute-flow {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-    }
-
-
-    .mp-queue-row {
-        display: grid;
-        grid-template-columns: 38px minmax(0, 1fr) auto;
-        align-items: center;
-        gap: 10px;
-        padding: 11px;
-        border: 1px solid var(--admin-border-soft);
-        border-radius: 10px;
-        background: var(--admin-surface-soft);
-        text-decoration: none;
-    }
-
-
-    .mp-queue-icon {
-        display: grid;
-        width: 34px;
-        height: 34px;
-        place-items: center;
         border-radius: 9px;
-        background: var(--admin-surface);
+
+        background: #f3f7f8;
     }
 
 
-    .mp-queue-row strong,
-    .mp-queue-row small {
+    .mp-margin-values span {
         display: block;
+
+        margin-bottom: 4px;
+
+        color: #71869a;
+
+        font-size: 7.5px;
     }
 
 
-    .mp-queue-row strong {
-        color: var(--admin-heading);
-        font-size: 11px;
-    }
+    .mp-margin-values strong {
+        color: #16334a;
 
-
-    .mp-queue-row small {
-        margin-top: 3px;
-        color: var(--admin-muted);
-        font-size: 10px;
-    }
-
-
-    .mp-queue-row b {
-        min-width: 28px;
-        padding: 5px 7px;
-        border-radius: 999px;
-        text-align: center;
-        font-size: 11px;
-    }
-
-
-    .mp-queue-row.danger .mp-queue-icon,
-    .mp-queue-row.danger b {
-        background: #FFF1F2;
-        color: #B42318;
-    }
-
-
-    .mp-queue-row.warning .mp-queue-icon,
-    .mp-queue-row.warning b {
-        background: #FFF7E8;
-        color: #B54708;
-    }
-
-
-    .mp-queue-row.info .mp-queue-icon,
-    .mp-queue-row.info b {
-        background: #EEF4FF;
-        color: #3538CD;
-    }
-
-
-    .mp-queue-row.purple .mp-queue-icon,
-    .mp-queue-row.purple b {
-        background: #F2F0FF;
-        color: #6941C6;
-    }
-
-
-    .mp-dispute-state {
-        display: grid;
-        grid-template-columns: 9px minmax(0, 1fr) auto;
-        align-items: center;
-        gap: 9px;
-        padding: 10px 11px;
-        border: 1px solid var(--admin-border-soft);
-        border-radius: 10px;
-        background: var(--admin-surface-soft);
-        color: var(--admin-muted);
-        font-size: 11px;
-    }
-
-
-    .mp-dispute-state strong {
-        color: var(--admin-heading);
         font-size: 12px;
     }
 
 
-    .mp-dispute-dot {
-        width: 8px;
-        height: 8px;
+    .mp-note {
+        margin: 9px 0 0;
+
+        color: #8a9aa8;
+
+        font-size: 7.5px;
+        line-height: 1.45;
+    }
+
+
+    .mp-profit-values {
+        display: flex;
+        flex-direction: column;
+
+        gap: 7px;
+
+        margin-top: 5px;
+    }
+
+
+    .mp-profit-values > div {
+        display: flex;
+        align-items: center;
+
+        gap: 6px;
+
+        color: #667d91;
+
+        font-size: 10px;
+    }
+
+
+    .mp-profit-values strong {
+        margin-left: auto;
+
+        color: #19364c;
+    }
+
+
+    .mp-profit-values .dot {
+        width: 6px;
+        height: 6px;
+
         border-radius: 50%;
-        background: var(--admin-muted-2);
     }
 
 
-    .mp-dispute-dot.open {
-        background: #F04438;
+    .mp-profit-values .dot.service {
+        background: #13aa88;
     }
 
 
-    .mp-dispute-dot.review {
-        background: #6172F3;
-    }
-
-
-    .mp-dispute-dot.buyer {
-        background: #F79009;
-    }
-
-
-    .mp-dispute-dot.seller {
-        background: #7A5AF8;
-    }
-
-
-    .mp-dispute-dot.resolved {
-        background: #12B76A;
+    .mp-profit-values .dot.packages {
+        background: #745bd9;
     }
 
 
     /*
     |--------------------------------------------------------------------------
-    | Bottom Grid / Table
+    | Tables
     |--------------------------------------------------------------------------
     */
-
-    .mp-dashboard-bottom-grid {
-        display: grid;
-        grid-template-columns: minmax(0, 1.7fr) minmax(300px, .7fr);
-        gap: 14px;
-        align-items: start;
-    }
-
 
     .mp-table-scroll {
         overflow-x: auto;
     }
 
 
-    .mp-dashboard-table {
+    .mp-table {
         width: 100%;
-        min-width: 780px;
+
         border-collapse: collapse;
     }
 
 
-    .mp-dashboard-table th {
-        padding: 10px 11px;
-        border-bottom: 1px solid var(--admin-border);
-        color: var(--admin-muted);
-        font-size: 10px;
-        font-weight: 700;
-        letter-spacing: .06em;
+    .mp-table th {
+        padding: 9px 8px;
+
+        border-bottom: 1px solid #e8eef1;
+
+        color: #8998a7;
+
+        font-size: 9px;
+        font-weight: 800;
+
         text-align: left;
+
         text-transform: uppercase;
+        letter-spacing: .08em;
     }
 
 
-    .mp-dashboard-table td {
-        padding: 12px 11px;
-        border-bottom: 1px solid var(--admin-border-soft);
-        color: var(--admin-text);
-        font-size: 11px;
+    .mp-table td {
+        padding: 10px 8px;
+
+        border-bottom: 1px solid #eef2f4;
+
+        color: #61758a;
+
+        font-size: 10px;
+
         vertical-align: middle;
     }
 
 
-    .mp-dashboard-table tbody tr:last-child td {
+    .mp-table tbody tr:last-child td {
         border-bottom: 0;
     }
 
 
-    .mp-dashboard-table tbody tr:hover {
-        background: rgba(25, 168, 149, .025);
-    }
-
-
-    .mp-dashboard-table td strong,
-    .mp-dashboard-table td small {
+    .mp-table td strong {
         display: block;
+
+        color: #1b344b;
+
+        font-size: 8.5px;
+        font-weight: 700;
     }
 
 
-    .mp-dashboard-table td small {
+    .mp-table td small {
+        display: block;
+
+        max-width: 220px;
+
         margin-top: 3px;
-        color: var(--admin-muted);
-        font-size: 10px;
-    }
 
+        color: #8b9aa8;
 
-    .mp-table-main-link {
-        color: var(--admin-heading) !important;
-        font-weight: 700;
-        text-decoration: none;
-    }
+        font-size: 9px;
 
+        overflow: hidden;
 
-    .mp-money-cell {
-        color: var(--admin-heading);
-    }
+        text-overflow: ellipsis;
 
-
-    .mp-status-pill {
-        display: inline-flex;
-        align-items: center;
-        padding: 5px 7px;
-        border-radius: 999px;
-        font-size: 10px;
-        font-weight: 700;
         white-space: nowrap;
     }
 
 
-    .mp-status-pill.green {
-        background: #ECFDF3;
-        color: #067647;
+    .mp-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+
+        padding: 5px 7px;
+
+        border-radius: 999px;
+
+        font-size: 9px;
+        font-weight: 800;
+
+        white-space: nowrap;
     }
 
 
-    .mp-status-pill.red {
-        background: #FFF1F2;
-        color: #B42318;
+    .mp-badge.success {
+        background: #e8f9ef;
+
+        color: #087749;
     }
 
 
-    .mp-status-pill.blue {
-        background: #EEF4FF;
-        color: #3538CD;
+    .mp-badge.warning {
+        background: #fff5df;
+
+        color: #9b620d;
     }
 
 
-    .mp-status-pill.purple {
-        background: #F2F0FF;
-        color: #6941C6;
+    .mp-badge.processing {
+        background: #eaf3ff;
+
+        color: #3268b6;
     }
 
 
-    .mp-status-pill.amber {
-        background: #FFF7E8;
-        color: #B54708;
+    .mp-badge.danger {
+        background: #fff0f0;
+
+        color: #bf3e3e;
+    }
+
+
+    .mp-empty {
+        padding: 30px 15px;
+
+        color: #8395a4;
+
+        font-size: 11px;
+
+        text-align: center;
     }
 
 
     /*
     |--------------------------------------------------------------------------
-    | Top Sellers
+    | Flow Explanation
     |--------------------------------------------------------------------------
     */
 
-    .mp-top-seller-list {
+    .mp-flow-explanation {
+        padding: 17px;
+    }
+
+
+    .mp-flow-title {
         display: flex;
-        flex-direction: column;
-    }
-
-
-    .mp-top-seller-row {
-        display: grid;
-        grid-template-columns: 22px 34px minmax(0, 1fr) auto;
         align-items: center;
-        gap: 9px;
-        padding: 10px 0;
-        border-bottom: 1px solid var(--admin-border-soft);
-    }
+        gap: 7px;
 
+        margin-bottom: 15px;
 
-    .mp-top-seller-row:last-child {
-        border-bottom: 0;
-    }
+        color: #16344c;
 
-
-    .mp-rank {
-        color: var(--admin-muted-2);
-        font-size: 10px;
-        font-weight: 700;
-    }
-
-
-    .mp-seller-avatar {
-        display: grid;
-        width: 34px;
-        height: 34px;
-        place-items: center;
-        border-radius: 9px;
-        background: var(--admin-accent-soft);
-        color: var(--admin-accent-strong);
         font-size: 12px;
         font-weight: 800;
     }
 
 
-    .mp-top-seller-info strong,
-    .mp-top-seller-info small,
-    .mp-top-seller-money strong,
-    .mp-top-seller-money small {
-        display: block;
+    .mp-flow-title i {
+        color: #0b9876;
     }
 
 
-    .mp-top-seller-info strong {
-        color: var(--admin-heading);
-        font-size: 11px;
+    .mp-flow-steps {
+        display: flex;
+        align-items: stretch;
+
+        gap: 8px;
     }
 
 
-    .mp-top-seller-info small,
-    .mp-top-seller-money small {
-        margin-top: 3px;
-        color: var(--admin-muted);
-        font-size: 7px;
-    }
+    .mp-flow-steps > div {
+        flex: 1;
 
+        min-width: 0;
 
-    .mp-top-seller-money {
-        text-align: right;
-    }
-
-
-    .mp-top-seller-money strong {
-        color: var(--admin-heading);
-        font-size: 12px;
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Package Payments
-    |--------------------------------------------------------------------------
-    */
-
-    .mp-package-payment-grid {
-        display: grid;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
-        gap: 10px;
-    }
-
-
-    .mp-package-payment-item {
-        display: grid;
-        grid-template-columns: 36px minmax(0, 1fr);
-        gap: 10px;
         padding: 12px;
-        border: 1px solid var(--admin-border-soft);
-        border-radius: 11px;
-        background: var(--admin-surface-soft);
+
+        border-radius: 10px;
+
+        background: #f5f8f9;
     }
 
 
-    .mp-package-payment-icon {
-        display: grid;
-        width: 34px;
-        height: 34px;
-        place-items: center;
-        border-radius: 9px;
-        background: #F4F3FF;
-        color: #7A5AF8;
+    .mp-flow-steps .number {
+        width: 22px;
+        height: 22px;
+
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+
+        margin-bottom: 8px;
+
+        border-radius: 7px;
+
+        background: #e4f7f1;
+
+        color: #078a68;
+
+        font-size: 10px;
+        font-weight: 800;
+    }
+
+
+    .mp-flow-steps strong {
+        display: block;
+
+        margin-bottom: 4px;
+
+        color: #19374d;
+
+        font-size: 8.5px;
+    }
+
+
+    .mp-flow-steps small {
+        display: block;
+
+        color: #8393a0;
+
+        font-size: 9px;
+        line-height: 1.45;
+    }
+
+
+    .mp-flow-steps .arrow {
+        display: flex;
+        align-items: center;
+
+        color: #9aa9b5;
+
         font-size: 14px;
     }
 
 
-    .mp-package-payment-item > div:nth-child(2) strong,
-    .mp-package-payment-item > div:nth-child(2) span,
-    .mp-package-payment-item > div:nth-child(2) small,
-    .mp-package-payment-value strong,
-    .mp-package-payment-value small {
-        display: block;
-    }
-
-
-    .mp-package-payment-item > div:nth-child(2) strong {
-        color: var(--admin-heading);
-        font-size: 11px;
-    }
-
-
-    .mp-package-payment-item > div:nth-child(2) span {
-        margin-top: 3px;
-        color: var(--admin-text);
-        font-size: 10px;
-    }
-
-
-    .mp-package-payment-item > div:nth-child(2) small {
-        margin-top: 3px;
-        color: var(--admin-muted);
-        font-size: 7px;
-    }
-
-
-    .mp-package-payment-value {
-        grid-column: 1 / -1;
-        display: flex;
-        align-items: end;
-        justify-content: space-between;
-        gap: 8px;
-        padding-top: 9px;
-        border-top: 1px solid var(--admin-border-soft);
-    }
-
-
-    .mp-package-payment-value strong {
-        color: #067647;
-        font-size: 13px;
-    }
-
-
-    .mp-package-payment-value small {
-        color: var(--admin-muted);
-        font-size: 7px;
-    }
-
-
     /*
     |--------------------------------------------------------------------------
-    | Empty State
+    | Dark Theme
     |--------------------------------------------------------------------------
     */
 
-    .mp-empty-state {
-        display: flex;
-        min-height: 190px;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 7px;
-        color: var(--admin-muted);
-        text-align: center;
+    html[data-admin-theme="dark"] .mp-kpi-card,
+    html[data-admin-theme="dark"] .mp-revenue-card {
+        color: inherit;
     }
 
 
-    .mp-empty-state.compact {
-        min-height: 120px;
+    html[data-admin-theme="dark"] .mp-kpi-value,
+    html[data-admin-theme="dark"] .mp-dashboard-hero h2,
+    html[data-admin-theme="dark"] .mp-card-heading h3,
+    html[data-admin-theme="dark"] .mp-mini-card > strong,
+    html[data-admin-theme="dark"] .mp-table td strong,
+    html[data-admin-theme="dark"] .mp-flow-title,
+    html[data-admin-theme="dark"] .mp-flow-steps strong {
+        color: var(--admin-text, #edf4f7);
     }
 
 
-    .mp-empty-state i {
-        color: var(--admin-accent);
-        font-size: 22px;
-    }
-
-
-    .mp-empty-state strong {
-        color: var(--admin-heading);
-        font-size: 12px;
-    }
-
-
-    .mp-empty-state span {
-        font-size: 10px;
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Dark Mode Fixes For Hard-Coded Soft Colors
-    |--------------------------------------------------------------------------
-    */
-
-    html[data-admin-theme="dark"] .mp-kpi-icon.is-blue,
-    html[data-admin-theme="dark"] .mp-mini-stat-icon.is-blue,
-    html[data-admin-theme="dark"] .mp-status-pill.blue,
-    html[data-admin-theme="dark"] .mp-queue-row.info .mp-queue-icon,
-    html[data-admin-theme="dark"] .mp-queue-row.info b {
-        background: rgba(97, 114, 243, .16);
-    }
-
-
-    html[data-admin-theme="dark"] .mp-kpi-icon.is-purple,
-    html[data-admin-theme="dark"] .mp-mini-stat-icon.is-purple,
-    html[data-admin-theme="dark"] .mp-status-pill.purple,
-    html[data-admin-theme="dark"] .mp-queue-row.purple .mp-queue-icon,
-    html[data-admin-theme="dark"] .mp-queue-row.purple b,
-    html[data-admin-theme="dark"] .mp-kpi-icon.is-violet,
-    html[data-admin-theme="dark"] .mp-package-payment-icon {
-        background: rgba(122, 90, 248, .17);
-    }
-
-
-    html[data-admin-theme="dark"] .mp-kpi-icon.is-amber,
-    html[data-admin-theme="dark"] .mp-mini-stat-icon.is-amber,
-    html[data-admin-theme="dark"] .mp-status-pill.amber,
-    html[data-admin-theme="dark"] .mp-queue-row.warning .mp-queue-icon,
-    html[data-admin-theme="dark"] .mp-queue-row.warning b {
-        background: rgba(247, 144, 9, .15);
-    }
-
-
-    html[data-admin-theme="dark"] .mp-kpi-icon.is-green,
-    html[data-admin-theme="dark"] .mp-mini-stat-icon.is-green,
-    html[data-admin-theme="dark"] .mp-status-pill.green,
-    html[data-admin-theme="dark"] .mp-kpi-trend.up {
-        background: rgba(18, 183, 106, .15);
-    }
-
-
-    html[data-admin-theme="dark"] .mp-status-pill.red,
-    html[data-admin-theme="dark"] .mp-queue-row.danger .mp-queue-icon,
-    html[data-admin-theme="dark"] .mp-queue-row.danger b,
-    html[data-admin-theme="dark"] .mp-kpi-trend.down {
-        background: rgba(240, 68, 56, .15);
+    html[data-admin-theme="dark"] .mp-margin-values > div,
+    html[data-admin-theme="dark"] .mp-flow-steps > div {
+        background: rgba(255, 255, 255, .045);
     }
 
 
@@ -2812,42 +2748,50 @@
     |--------------------------------------------------------------------------
     */
 
-    @media(max-width: 1280px) {
-
-        .mp-package-payment-grid {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-        }
-
-
-        .mp-operations-grid {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-        }
-
-    }
-
-
-    @media(max-width: 1100px) {
+    @media(max-width: 1180px) {
 
         .mp-kpi-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-columns:
+                repeat(
+                    2,
+                    minmax(0, 1fr)
+                );
         }
 
 
-        .mp-mini-stats-grid,
-        .mp-dashboard-three-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+        .mp-mini-grid {
+            grid-template-columns:
+                repeat(
+                    2,
+                    minmax(0, 1fr)
+                );
         }
 
 
-        .mp-dashboard-main-grid,
-        .mp-dashboard-bottom-grid {
+        .mp-main-grid {
             grid-template-columns: 1fr;
         }
 
+
+        .mp-three-grid {
+            grid-template-columns:
+                repeat(
+                    2,
+                    minmax(0, 1fr)
+                );
+        }
+
     }
 
 
-    @media(max-width: 780px) {
+    @media(max-width: 850px) {
+
+        .mp-revenue-grid,
+        .mp-two-grid,
+        .mp-three-grid {
+            grid-template-columns: 1fr;
+        }
+
 
         .mp-dashboard-hero {
             align-items: flex-start;
@@ -2855,36 +2799,8 @@
         }
 
 
-        .mp-period-control {
-            width: 100%;
-        }
-
-
-        .mp-mini-stats-grid,
-        .mp-dashboard-three-grid,
-        .mp-dashboard-two-grid,
-        .mp-operations-grid,
-        .mp-package-payment-grid {
-            grid-template-columns: 1fr;
-        }
-
-    }
-
-
-    @media(max-width: 560px) {
-
-        .mp-kpi-grid {
-            grid-template-columns: 1fr;
-        }
-
-
-        .mp-dashboard-hero,
-        .mp-chart-card,
-        .mp-list-card,
-        .mp-table-card,
-        .mp-operations-card,
-        .mp-package-payment-card {
-            padding: 16px;
+        .mp-chart-legend {
+            justify-content: flex-start;
         }
 
 
@@ -2893,8 +2809,43 @@
         }
 
 
-        .mp-chart-legend {
-            justify-content: flex-start;
+        .mp-flow-steps {
+            flex-direction: column;
+        }
+
+
+        .mp-flow-steps .arrow {
+            display: none;
+        }
+
+    }
+
+
+    @media(max-width: 590px) {
+
+        .mp-kpi-grid,
+        .mp-mini-grid,
+        .mp-margin-values {
+            grid-template-columns: 1fr;
+        }
+
+
+        .mp-dashboard-meta {
+            align-items: flex-start;
+            flex-direction: column;
+
+            gap: 6px;
+        }
+
+
+        .mp-revenue-card {
+            grid-template-columns:
+                auto 1fr;
+        }
+
+
+        .mp-revenue-trend {
+            grid-column: 2;
         }
 
     }
@@ -2904,823 +2855,836 @@
 @endpush
 
 
-{{-- =========================================================
-    APEX CHARTS
-========================================================== --}}
+
+{{-- ========================================================================
+    CHARTS
+========================================================================= --}}
 
 @push('scripts')
 
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 
+
 <script>
 
-    document.addEventListener(
-        'DOMContentLoaded',
-        function () {
+document.addEventListener(
+    'DOMContentLoaded',
+    function () {
 
-            /*
-            |------------------------------------------------------------------
-            | Data From Laravel
-            |------------------------------------------------------------------
-            */
+        /*
+        |--------------------------------------------------------------------------
+        | Data
+        |--------------------------------------------------------------------------
+        */
 
-            const dashboardData = @json($dashboardChartData);
-
-
-            /*
-            |------------------------------------------------------------------
-            | Theme
-            |------------------------------------------------------------------
-            */
-
-            const isDark =
-                document.documentElement
-                    .getAttribute('data-admin-theme')
-                ===
-                'dark';
+        const dashboardData =
+            @json($dashboardChartData);
 
 
-            const textColor =
-                isDark
-                    ? '#8FA3C1'
-                    : '#6E82A0';
+        const safeNumber =
+            function (value) {
+
+                const number =
+                    Number(value);
+
+                return Number.isFinite(number)
+                    ? number
+                    : 0;
+            };
 
 
-            const headingColor =
-                isDark
-                    ? '#FFFFFF'
-                    : '#10284B';
+        /*
+        |--------------------------------------------------------------------------
+        | Money Formatter
+        |--------------------------------------------------------------------------
+        */
+
+        const moneyFormatter =
+            function (value) {
+
+                value =
+                    safeNumber(value);
 
 
-            const gridColor =
-                isDark
-                    ? '#26334B'
-                    : '#E6EDF3';
+                if (
+                    Math.abs(value)
+                    >=
+                    1000000000
+                ) {
+
+                    return '₦'
+                        +
+                        (
+                            value
+                            /
+                            1000000000
+                        )
+                        .toFixed(1)
+                        +
+                        'B';
+                }
 
 
-            /*
-            |------------------------------------------------------------------
-            | Formatters
-            |------------------------------------------------------------------
-            */
+                if (
+                    Math.abs(value)
+                    >=
+                    1000000
+                ) {
 
-            const currency =
-                new Intl.NumberFormat(
-                    'en-NG',
+                    return '₦'
+                        +
+                        (
+                            value
+                            /
+                            1000000
+                        )
+                        .toFixed(1)
+                        +
+                        'M';
+                }
+
+
+                if (
+                    Math.abs(value)
+                    >=
+                    1000
+                ) {
+
+                    return '₦'
+                        +
+                        (
+                            value
+                            /
+                            1000
+                        )
+                        .toFixed(1)
+                        +
+                        'K';
+                }
+
+
+                return '₦'
+                    +
+                    Math.round(
+                        value
+                    )
+                    .toLocaleString();
+            };
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Theme
+        |--------------------------------------------------------------------------
+        */
+
+        const isDark =
+            document
+                .documentElement
+                .getAttribute(
+                    'data-admin-theme'
+                )
+            ===
+            'dark';
+
+
+        const textColor =
+            isDark
+                ? '#aebdcc'
+                : '#6f8295';
+
+
+        const gridColor =
+            isDark
+                ? 'rgba(255,255,255,.08)'
+                : '#edf1f4';
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Money Flow
+        |--------------------------------------------------------------------------
+        */
+
+        const moneyFlowElement =
+            document.getElementById(
+                'moneyFlowChart'
+            );
+
+
+        if (
+            moneyFlowElement
+            &&
+            window.ApexCharts
+        ) {
+
+            const moneyFlowChart =
+                new ApexCharts(
+                    moneyFlowElement,
                     {
-                        style: 'currency',
-                        currency: 'NGN',
-                        maximumFractionDigits: 0,
-                    }
-                );
+
+                        chart: {
+                            type: 'area',
+                            height: 350,
+                            toolbar: {
+                                show: false
+                            },
+                            zoom: {
+                                enabled: false
+                            },
+                            fontFamily: 'Inter, sans-serif'
+                        },
 
 
-            const compactCurrency =
-                new Intl.NumberFormat(
-                    'en-NG',
-                    {
-                        style: 'currency',
-                        currency: 'NGN',
-                        notation: 'compact',
-                        maximumFractionDigits: 1,
-                    }
-                );
+                        series: [
 
+                            {
+                                name: 'Buyer paid',
 
-            const safeNumber =
-                function (value) {
-
-                    const number =
-                        Number(value || 0);
-
-                    return Number.isFinite(number)
-                        ? number
-                        : 0;
-                };
-
-
-            /*
-            |------------------------------------------------------------------
-            | Money Flow Area Chart
-            |------------------------------------------------------------------
-            */
-
-            const moneyFlowElement =
-                document.querySelector(
-                    '#moneyFlowChart'
-                );
-
-
-            if (
-                moneyFlowElement
-                &&
-                window.ApexCharts
-            ) {
-
-                const moneyFlowChart =
-                    new ApexCharts(
-                        moneyFlowElement,
-                        {
-                            chart: {
-                                type: 'area',
-                                height: 350,
-                                toolbar: {
-                                    show: false,
-                                },
-                                zoom: {
-                                    enabled: false,
-                                },
-                                fontFamily: 'Inter, sans-serif',
+                                data:
+                                    dashboardData
+                                        .chart
+                                        .buyer_paid
+                                        .map(
+                                            safeNumber
+                                        )
                             },
 
-                            series: [
-                                {
-                                    name: 'Buyer payments',
-                                    data: dashboardData.chart.buyer_paid,
-                                },
-                                {
-                                    name: 'Seller payouts',
-                                    data: dashboardData.chart.seller_released,
-                                },
-                                {
-                                    name: 'Platform profit',
-                                    data: dashboardData.chart.platform_profit,
-                                },
+                            {
+                                name: 'Released to seller wallet',
+
+                                data:
+                                    dashboardData
+                                        .chart
+                                        .seller_wallet_released
+                                        .map(
+                                            safeNumber
+                                        )
+                            },
+
+                            {
+                                name: 'Withdrawn to seller bank',
+
+                                data:
+                                    dashboardData
+                                        .chart
+                                        .seller_withdrawn
+                                        .map(
+                                            safeNumber
+                                        )
+                            },
+
+                            {
+                                name: 'Platform profit',
+
+                                data:
+                                    dashboardData
+                                        .chart
+                                        .platform_profit
+                                        .map(
+                                            safeNumber
+                                        )
+                            }
+                        ],
+
+
+                        colors: [
+                            '#12a98b',
+                            '#765ada',
+                            '#3776d7',
+                            '#e88927'
+                        ],
+
+
+                        stroke: {
+                            width: [
+                                2.5,
+                                2,
+                                2,
+                                2
                             ],
 
-                            colors: [
-                                '#18A897',
-                                '#7A5AF8',
-                                '#F79009',
-                            ],
+                            curve: 'smooth'
+                        },
 
-                            dataLabels: {
-                                enabled: false,
+
+                        fill: {
+                            type: 'gradient',
+
+                            gradient: {
+                                shadeIntensity: 1,
+                                opacityFrom: .18,
+                                opacityTo: .015,
+                                stops: [
+                                    0,
+                                    90,
+                                    100
+                                ]
+                            }
+                        },
+
+
+                        dataLabels: {
+                            enabled: false
+                        },
+
+
+                        markers: {
+                            size: 0,
+
+                            hover: {
+                                size: 5
+                            }
+                        },
+
+
+                        xaxis: {
+
+                            categories:
+                                dashboardData
+                                    .chart
+                                    .labels,
+
+                            labels: {
+                                style: {
+                                    colors:
+                                        textColor,
+
+                                    fontSize:
+                                        '8px'
+                                }
                             },
 
-                            stroke: {
-                                curve: 'smooth',
-                                width: [3, 3, 3],
+                            axisBorder: {
+                                show: false
                             },
 
-                            fill: {
-                                type: 'gradient',
-                                gradient: {
-                                    shadeIntensity: 1,
-                                    opacityFrom: .22,
-                                    opacityTo: .02,
-                                    stops: [0, 90, 100],
-                                },
-                            },
+                            axisTicks: {
+                                show: false
+                            }
+                        },
 
-                            markers: {
-                                size: 0,
-                                hover: {
-                                    size: 6,
-                                },
-                            },
 
-                            xaxis: {
-                                categories: dashboardData.chart.labels,
-                                labels: {
-                                    style: {
-                                        colors: textColor,
-                                        fontSize: '9px',
-                                    },
-                                },
-                                axisBorder: {
-                                    show: false,
-                                },
-                                axisTicks: {
-                                    show: false,
-                                },
-                            },
+                        yaxis: {
 
-                            yaxis: {
-                                labels: {
-                                    formatter: function (value) {
-                                        return compactCurrency.format(
-                                            safeNumber(value)
-                                        );
-                                    },
-                                    style: {
-                                        colors: [textColor],
-                                        fontSize: '9px',
-                                    },
-                                },
-                            },
+                            labels: {
 
-                            grid: {
-                                borderColor: gridColor,
-                                strokeDashArray: 4,
-                                padding: {
-                                    left: 8,
-                                    right: 8,
-                                },
-                            },
+                                formatter:
+                                    moneyFormatter,
 
-                            legend: {
-                                show: false,
-                            },
+                                style: {
+                                    colors:
+                                        textColor,
 
-                            tooltip: {
-                                shared: true,
-                                intersect: false,
-                                theme: isDark ? 'dark' : 'light',
-                                y: {
-                                    formatter: function (value) {
-                                        return currency.format(
-                                            safeNumber(value)
-                                        );
-                                    },
-                                },
-                                x: {
-                                    formatter: function (
-                                        value,
-                                        context
-                                    ) {
+                                    fontSize:
+                                        '8px'
+                                }
+                            }
+                        },
 
-                                        const index =
-                                            context.dataPointIndex;
 
-                                        const transactionCount =
-                                            dashboardData
-                                                .chart
-                                                .transaction_count[index]
-                                            ||
-                                            0;
+                        grid: {
 
-                                        return dashboardData
-                                            .chart
-                                            .labels[index]
+                            borderColor:
+                                gridColor,
+
+                            strokeDashArray:
+                                3
+                        },
+
+
+                        tooltip: {
+
+                            shared: true,
+
+                            intersect: false,
+
+                            y: {
+
+                                formatter:
+                                    function (value) {
+
+                                        return '₦'
                                             +
-                                            ' · '
-                                            +
-                                            transactionCount
-                                            +
-                                            ' paid transactions';
-                                    },
-                                },
-                            },
+                                            safeNumber(
+                                                value
+                                            )
+                                            .toLocaleString(
+                                                undefined,
+                                                {
+                                                    minimumFractionDigits: 2,
+                                                    maximumFractionDigits: 2
+                                                }
+                                            );
+                                    }
+                            }
+                        },
+
+
+                        legend: {
+                            show: false
                         }
-                    );
-
-
-                moneyFlowChart.render();
-            }
-
-
-            /*
-            |------------------------------------------------------------------
-            | Gross Profit Margin Radial Chart
-            |------------------------------------------------------------------
-            */
-
-            const marginElement =
-                document.querySelector(
-                    '#profitMarginChart'
+                    }
                 );
 
 
-            if (
-                marginElement
-                &&
-                window.ApexCharts
-            ) {
+            moneyFlowChart
+                .render();
+        }
 
-                const margin =
+
+        /*
+        |--------------------------------------------------------------------------
+        | Profit Margin
+        |--------------------------------------------------------------------------
+        */
+
+        const marginElement =
+            document.getElementById(
+                'profitMarginChart'
+            );
+
+
+        if (
+            marginElement
+            &&
+            window.ApexCharts
+        ) {
+
+            const margin =
+                Math.min(
+                    100,
                     Math.max(
                         0,
-                        Math.min(
-                            100,
-                            safeNumber(
-                                dashboardData.profitMargin
-                            )
+                        safeNumber(
+                            dashboardData
+                                .profitMargin
                         )
-                    );
-
-
-                const profitMarginChart =
-                    new ApexCharts(
-                        marginElement,
-                        {
-                            chart: {
-                                type: 'radialBar',
-                                height: 250,
-                                sparkline: {
-                                    enabled: true,
-                                },
-                                fontFamily: 'Inter, sans-serif',
-                            },
-
-                            series: [margin],
-
-                            colors: ['#18A897'],
-
-                            plotOptions: {
-                                radialBar: {
-                                    startAngle: -135,
-                                    endAngle: 135,
-                                    hollow: {
-                                        size: '63%',
-                                    },
-                                    track: {
-                                        background: gridColor,
-                                        strokeWidth: '100%',
-                                    },
-                                    dataLabels: {
-                                        name: {
-                                            show: true,
-                                            offsetY: 21,
-                                            color: textColor,
-                                            fontSize: '9px',
-                                        },
-                                        value: {
-                                            offsetY: -15,
-                                            color: headingColor,
-                                            fontSize: '28px',
-                                            fontWeight: 700,
-                                            formatter: function (value) {
-                                                return Number(value)
-                                                    .toFixed(1)
-                                                    +
-                                                    '%';
-                                            },
-                                        },
-                                    },
-                                },
-                            },
-
-                            labels: [
-                                'Gross platform margin',
-                            ],
-
-                            tooltip: {
-                                enabled: true,
-                                theme: isDark ? 'dark' : 'light',
-                                y: {
-                                    formatter: function (value) {
-                                        return Number(value)
-                                            .toFixed(2)
-                                            +
-                                            '% of business volume';
-                                    },
-                                },
-                            },
-                        }
-                    );
-
-
-                profitMarginChart.render();
-            }
-
-
-            /*
-            |------------------------------------------------------------------
-            | Transaction Status Donut
-            |------------------------------------------------------------------
-            */
-
-            const transactionStatusElement =
-                document.querySelector(
-                    '#transactionStatusChart'
+                    )
                 );
 
 
-            if (
-                transactionStatusElement
-                &&
-                window.ApexCharts
-            ) {
+            const marginChart =
+                new ApexCharts(
+                    marginElement,
+                    {
 
-                const transactionSeries =
-                    dashboardData
-                        .transactionStatus
-                        .series
-                        .map(safeNumber);
+                        chart: {
+                            type: 'radialBar',
+                            height: 230,
 
-
-                const transactionTotal =
-                    transactionSeries.reduce(
-                        function (total, value) {
-                            return total + value;
+                            sparkline: {
+                                enabled: true
+                            }
                         },
-                        0
-                    );
 
 
-                const statusChart =
-                    new ApexCharts(
-                        transactionStatusElement,
-                        {
-                            chart: {
-                                type: 'donut',
-                                height: 280,
-                                fontFamily: 'Inter, sans-serif',
-                            },
+                        series: [
+                            margin
+                        ],
 
-                            series: transactionSeries,
 
-                            labels:
-                                dashboardData
-                                    .transactionStatus
-                                    .labels,
+                        colors: [
+                            '#18a98b'
+                        ],
 
-                            colors: [
-                                '#6172F3',
-                                '#12B76A',
-                                '#F04438',
-                                '#98A2B3',
-                            ],
 
-                            stroke: {
-                                width: 2,
-                                colors: [
-                                    isDark
-                                        ? '#111A2F'
-                                        : '#FFFFFF',
-                                ],
-                            },
+                        plotOptions: {
 
-                            legend: {
-                                position: 'bottom',
-                                fontSize: '9px',
-                                labels: {
-                                    colors: textColor,
+                            radialBar: {
+
+                                hollow: {
+                                    size: '66%'
                                 },
-                            },
 
-                            dataLabels: {
-                                enabled: false,
-                            },
+                                track: {
+                                    background:
+                                        isDark
+                                            ? 'rgba(255,255,255,.08)'
+                                            : '#e9eff2'
+                                },
 
-                            plotOptions: {
-                                pie: {
-                                    donut: {
-                                        size: '68%',
-                                        labels: {
-                                            show: true,
-                                            name: {
-                                                show: true,
-                                                color: textColor,
-                                                fontSize: '9px',
-                                            },
-                                            value: {
-                                                show: true,
-                                                color: headingColor,
-                                                fontSize: '22px',
-                                                fontWeight: 700,
-                                            },
-                                            total: {
-                                                show: true,
-                                                label: 'Paid',
-                                                color: textColor,
-                                                fontSize: '9px',
-                                                formatter: function () {
-                                                    return transactionTotal;
-                                                },
-                                            },
-                                        },
+                                dataLabels: {
+
+                                    name: {
+                                        show: true,
+
+                                        offsetY: 22,
+
+                                        color:
+                                            textColor,
+
+                                        fontSize:
+                                            '8px'
                                     },
-                                },
-                            },
 
-                            tooltip: {
-                                theme: isDark ? 'dark' : 'light',
-                                y: {
-                                    formatter: function (
-                                        value,
-                                        context
-                                    ) {
+                                    value: {
+                                        offsetY: -8,
 
-                                        const percentage =
-                                            transactionTotal > 0
-                                                ? (
-                                                    safeNumber(value)
-                                                    /
-                                                    transactionTotal
+                                        color:
+                                            isDark
+                                                ? '#ffffff'
+                                                : '#0b2943',
+
+                                        fontSize:
+                                            '21px',
+
+                                        fontWeight:
+                                            800,
+
+                                        formatter:
+                                            function (value) {
+
+                                                return safeNumber(
+                                                    value
                                                 )
-                                                *
-                                                100
-                                                : 0;
-
-                                        return value
-                                            +
-                                            ' transactions · '
-                                            +
-                                            percentage.toFixed(1)
-                                            +
-                                            '%';
-                                    },
-                                },
-                            },
-
-                            noData: {
-                                text: 'No paid transactions yet',
-                                align: 'center',
-                                verticalAlign: 'middle',
-                                style: {
-                                    color: textColor,
-                                    fontSize: '10px',
-                                },
-                            },
-                        }
-                    );
-
-
-                statusChart.render();
-            }
-
-
-            /*
-            |------------------------------------------------------------------
-            | Profit Composition Donut
-            |------------------------------------------------------------------
-            */
-
-            const profitCompositionElement =
-                document.querySelector(
-                    '#profitCompositionChart'
-                );
-
-
-            if (
-                profitCompositionElement
-                &&
-                window.ApexCharts
-            ) {
-
-                const profitSeries =
-                    dashboardData
-                        .profitComposition
-                        .series
-                        .map(safeNumber);
-
-
-                const profitChart =
-                    new ApexCharts(
-                        profitCompositionElement,
-                        {
-                            chart: {
-                                type: 'donut',
-                                height: 270,
-                                fontFamily: 'Inter, sans-serif',
-                            },
-
-                            series: profitSeries,
-
-                            labels:
-                                dashboardData
-                                    .profitComposition
-                                    .labels,
-
-                            colors: [
-                                '#18A897',
-                                '#7A5AF8',
-                            ],
-
-                            stroke: {
-                                width: 2,
-                                colors: [
-                                    isDark
-                                        ? '#111A2F'
-                                        : '#FFFFFF',
-                                ],
-                            },
-
-                            dataLabels: {
-                                enabled: false,
-                            },
-
-                            legend: {
-                                show: false,
-                            },
-
-                            plotOptions: {
-                                pie: {
-                                    donut: {
-                                        size: '70%',
-                                        labels: {
-                                            show: true,
-                                            name: {
-                                                show: true,
-                                                color: textColor,
-                                                fontSize: '8px',
-                                            },
-                                            value: {
-                                                show: true,
-                                                color: headingColor,
-                                                fontSize: '16px',
-                                                fontWeight: 700,
-                                                formatter: function (value) {
-                                                    return compactCurrency.format(
-                                                        safeNumber(value)
-                                                    );
-                                                },
-                                            },
-                                            total: {
-                                                show: true,
-                                                label: 'Gross profit',
-                                                color: textColor,
-                                                fontSize: '8px',
-                                                formatter: function () {
-                                                    return compactCurrency.format(
-                                                        safeNumber(
-                                                            dashboardData.grossProfit
-                                                        )
-                                                    );
-                                                },
-                                            },
-                                        },
-                                    },
-                                },
-                            },
-
-                            tooltip: {
-                                theme: isDark ? 'dark' : 'light',
-                                y: {
-                                    formatter: function (value) {
-                                        return currency.format(
-                                            safeNumber(value)
-                                        );
-                                    },
-                                },
-                            },
-                        }
-                    );
-
-
-                profitChart.render();
-            }
-
-
-            /*
-            |------------------------------------------------------------------
-            | Package Mix Donut
-            |------------------------------------------------------------------
-            */
-
-            const packageElement =
-                document.querySelector(
-                    '#packageMixChart'
-                );
-
-
-            if (
-                packageElement
-                &&
-                window.ApexCharts
-            ) {
-
-                const packageSeries =
-                    dashboardData
-                        .packageChart
-                        .series
-                        .map(safeNumber);
-
-
-                const packageTotal =
-                    packageSeries.reduce(
-                        function (total, value) {
-                            return total + value;
+                                                .toFixed(
+                                                    1
+                                                )
+                                                +
+                                                '%';
+                                            }
+                                    }
+                                }
+                            }
                         },
-                        0
-                    );
 
 
-                const packageChart =
-                    new ApexCharts(
-                        packageElement,
-                        {
-                            chart: {
-                                type: 'donut',
-                                height: 280,
-                                fontFamily: 'Inter, sans-serif',
-                            },
+                        labels: [
+                            'Gross platform margin'
+                        ]
+                    }
+                );
 
-                            series: packageSeries,
 
-                            labels:
-                                dashboardData
-                                    .packageChart
-                                    .labels,
+            marginChart
+                .render();
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Transaction Status
+        |--------------------------------------------------------------------------
+        */
+
+        const transactionElement =
+            document.getElementById(
+                'transactionStatusChart'
+            );
+
+
+        if (
+            transactionElement
+            &&
+            window.ApexCharts
+        ) {
+
+            const transactionChart =
+                new ApexCharts(
+                    transactionElement,
+                    {
+
+                        chart: {
+                            type: 'donut',
+                            height: 255
+                        },
+
+
+                        series:
+                            dashboardData
+                                .transactionStatus
+                                .series
+                                .map(
+                                    safeNumber
+                                ),
+
+
+                        labels:
+                            dashboardData
+                                .transactionStatus
+                                .labels,
+
+
+                        colors: [
+                            '#3776d7',
+                            '#14a879',
+                            '#e28b29',
+                            '#d65353'
+                        ],
+
+
+                        stroke: {
+                            width: 2,
 
                             colors: [
-                                '#12B76A',
-                                '#7A5AF8',
-                                '#6172F3',
-                                '#F79009',
-                                '#06AED4',
-                                '#EE46BC',
-                            ],
+                                isDark
+                                    ? '#17212b'
+                                    : '#ffffff'
+                            ]
+                        },
 
-                            dataLabels: {
-                                enabled: false,
+
+                        dataLabels: {
+                            enabled: false
+                        },
+
+
+                        legend: {
+
+                            position: 'bottom',
+
+                            labels: {
+                                colors:
+                                    textColor
                             },
 
-                            stroke: {
-                                width: 2,
-                                colors: [
-                                    isDark
-                                        ? '#111A2F'
-                                        : '#FFFFFF',
-                                ],
-                            },
-
-                            legend: {
-                                position: 'bottom',
-                                fontSize: '9px',
-                                labels: {
-                                    colors: textColor,
-                                },
-                            },
-
-                            plotOptions: {
-                                pie: {
-                                    donut: {
-                                        size: '67%',
-                                        labels: {
-                                            show: true,
-                                            total: {
-                                                show: true,
-                                                label: 'Purchases',
-                                                color: textColor,
-                                                fontSize: '9px',
-                                                formatter: function () {
-                                                    return packageTotal;
-                                                },
-                                            },
-                                        },
-                                    },
-                                },
-                            },
-
-                            tooltip: {
-                                theme: isDark ? 'dark' : 'light',
-                                custom: function ({
-                                    series,
-                                    seriesIndex,
-                                    w,
-                                }) {
-
-                                    const label =
-                                        w.globals.labels[seriesIndex]
-                                        ||
-                                        'Package';
+                            fontSize:
+                                '8px'
+                        },
 
 
-                                    const purchases =
-                                        series[seriesIndex]
-                                        ||
-                                        0;
+                        plotOptions: {
+
+                            pie: {
+
+                                donut: {
+                                    size: '70%'
+                                }
+                            }
+                        },
 
 
-                                    const revenue =
-                                        dashboardData
-                                            .packageChart
-                                            .revenue[seriesIndex]
-                                        ||
-                                        0;
-
-
-                                    const background =
-                                        isDark
-                                            ? '#111A2F'
-                                            : '#FFFFFF';
-
-
-                                    const color =
-                                        isDark
-                                            ? '#F4F7FB'
-                                            : '#173052';
-
-
-                                    return `
-                                        <div style="padding:10px 12px;background:${background};color:${color};font-family:Inter,sans-serif;min-width:150px;">
-                                            <strong style="display:block;font-size:11px;margin-bottom:5px;">${label}</strong>
-                                            <span style="display:block;font-size:9px;margin-bottom:3px;">Purchases: <b>${purchases}</b></span>
-                                            <span style="display:block;font-size:9px;">Revenue: <b>${currency.format(safeNumber(revenue))}</b></span>
-                                        </div>
-                                    `;
-                                },
-                            },
-
-                            noData: {
-                                text: 'No package purchases yet',
-                                style: {
-                                    color: textColor,
-                                    fontSize: '10px',
-                                },
-                            },
+                        noData: {
+                            text: 'No transaction data'
                         }
-                    );
+                    }
+                );
 
 
-                packageChart.render();
-            }
-
+            transactionChart
+                .render();
         }
-    );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Withdrawal Status
+        |--------------------------------------------------------------------------
+        */
+
+        const withdrawalElement =
+            document.getElementById(
+                'withdrawalStatusChart'
+            );
+
+
+        if (
+            withdrawalElement
+            &&
+            window.ApexCharts
+        ) {
+
+            const withdrawalChart =
+                new ApexCharts(
+                    withdrawalElement,
+                    {
+
+                        chart: {
+                            type: 'donut',
+                            height: 255
+                        },
+
+
+                        series:
+                            dashboardData
+                                .withdrawalStatus
+                                .series
+                                .map(
+                                    safeNumber
+                                ),
+
+
+                        labels:
+                            dashboardData
+                                .withdrawalStatus
+                                .labels,
+
+
+                        colors: [
+                            '#13a879',
+                            '#3878d6',
+                            '#d45151'
+                        ],
+
+
+                        stroke: {
+
+                            width: 2,
+
+                            colors: [
+                                isDark
+                                    ? '#17212b'
+                                    : '#ffffff'
+                            ]
+                        },
+
+
+                        dataLabels: {
+                            enabled: false
+                        },
+
+
+                        legend: {
+
+                            position:
+                                'bottom',
+
+                            labels: {
+                                colors:
+                                    textColor
+                            },
+
+                            fontSize:
+                                '8px'
+                        },
+
+
+                        plotOptions: {
+
+                            pie: {
+
+                                donut: {
+                                    size:
+                                        '70%'
+                                }
+                            }
+                        },
+
+
+                        noData: {
+                            text:
+                                'No withdrawal data'
+                        }
+                    }
+                );
+
+
+            withdrawalChart
+                .render();
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Profit Composition
+        |--------------------------------------------------------------------------
+        */
+
+        const profitElement =
+            document.getElementById(
+                'profitCompositionChart'
+            );
+
+
+        if (
+            profitElement
+            &&
+            window.ApexCharts
+        ) {
+
+            const profitChart =
+                new ApexCharts(
+                    profitElement,
+                    {
+
+                        chart: {
+                            type: 'donut',
+                            height: 255
+                        },
+
+
+                        series:
+                            dashboardData
+                                .profitComposition
+                                .series
+                                .map(
+                                    safeNumber
+                                ),
+
+
+                        labels:
+                            dashboardData
+                                .profitComposition
+                                .labels,
+
+
+                        colors: [
+                            '#13a98a',
+                            '#775bdc'
+                        ],
+
+
+                        stroke: {
+
+                            width:
+                                2,
+
+                            colors: [
+                                isDark
+                                    ? '#17212b'
+                                    : '#ffffff'
+                            ]
+                        },
+
+
+                        dataLabels: {
+                            enabled:
+                                false
+                        },
+
+
+                        legend: {
+
+                            position:
+                                'bottom',
+
+                            labels: {
+                                colors:
+                                    textColor
+                            },
+
+                            fontSize:
+                                '8px'
+                        },
+
+
+                        plotOptions: {
+
+                            pie: {
+
+                                donut: {
+                                    size:
+                                        '70%'
+                                }
+                            }
+                        },
+
+
+                        noData: {
+                            text:
+                                'No platform revenue yet'
+                        }
+                    }
+                );
+
+
+            profitChart
+                .render();
+        }
+
+    }
+);
 
 </script>
 

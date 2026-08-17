@@ -8,6 +8,10 @@
             );
 
 
+    $canWithdrawals =
+        $canTransactions;
+
+
     $canDisputes =
         auth()
             ->user()
@@ -22,6 +26,12 @@
         );
 
 
+    $withdrawalsActive =
+        request()->routeIs(
+            'admin.withdrawals.*'
+        );
+
+
     $disputesActive =
         request()->routeIs(
             'admin.disputes.*'
@@ -30,6 +40,8 @@
 
     $moduleActive =
         $transactionsActive
+        ||
+        $withdrawalsActive
         ||
         $disputesActive;
 
@@ -46,6 +58,8 @@
 @if(
     $canTransactions
     ||
+    $canWithdrawals
+    ||
     $canDisputes
 )
 
@@ -56,20 +70,15 @@
     "
 >
 
-
     <button
         type="button"
-
         class="
             admin-menu-link
             admin-menu-toggle
             {{ $moduleActive ? 'active-parent' : '' }}
         "
-
         data-sidebar-group
-
         data-tooltip="Transactions"
-
         aria-expanded="{{ $moduleActive ? 'true' : 'false' }}"
     >
 
@@ -138,6 +147,25 @@
 
 
 
+        @if($canWithdrawals)
+
+            <a
+                href="{{ route('admin.withdrawals.index') }}"
+                class="{{ $withdrawalsActive ? 'active' : '' }}"
+            >
+
+                <i class="fa-solid fa-building-columns"></i>
+
+                <span>
+                    Seller Withdrawals
+                </span>
+
+            </a>
+
+        @endif
+
+
+
         @if($canDisputes)
 
             <a
@@ -152,9 +180,7 @@
                 </span>
 
 
-                @if(
-                    $openDisputes > 0
-                )
+                @if($openDisputes > 0)
 
                     <span class="admin-submenu-count">
 
@@ -195,12 +221,13 @@
                 </strong>
 
                 <span>
-                    Payment & dispute monitoring
+                    Payments, payouts & disputes
                 </span>
 
             </div>
 
         </div>
+
 
 
         <div class="admin-flyout-links">
@@ -219,6 +246,23 @@
                 </a>
 
             @endif
+
+
+
+            @if($canWithdrawals)
+
+                <a href="{{ route('admin.withdrawals.index') }}">
+
+                    <i class="fa-solid fa-building-columns"></i>
+
+                    <span>
+                        Seller Withdrawals
+                    </span>
+
+                </a>
+
+            @endif
+
 
 
             @if($canDisputes)

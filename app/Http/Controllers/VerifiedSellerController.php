@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\SellerApplication;
+use App\Models\SellerInvoice;
 use App\Models\SellerPackage;
+use App\Models\SellerSubscription;
 use App\Services\SellerSubscriptionService;
 use Illuminate\Http\Request;
 
@@ -13,9 +15,10 @@ class VerifiedSellerController extends Controller
         Request $request,
         SellerSubscriptionService $subscriptions
     ) {
+
         /*
         |--------------------------------------------------------------------------
-        | Active Seller Packages
+        | Packages
         |--------------------------------------------------------------------------
         */
 
@@ -38,133 +41,77 @@ class VerifiedSellerController extends Controller
                 ->get();
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | Active User Subscription
-        |--------------------------------------------------------------------------
-        */
-
         $activeSubscription =
             null;
 
-
-        if (
-            $request->user()
-        ) {
-
-            /*
-            |--------------------------------------------------------------------------
-            | activeForUser()
-            |--------------------------------------------------------------------------
-            |
-            | This also checks whether the package has expired.
-            |
-            */
-
-            $activeSubscription =
-                $subscriptions
-                    ->activeForUser(
-                        $request->user()
-                    );
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Selected Package From URL
-        |--------------------------------------------------------------------------
-        |
-        | Example:
-        |
-        | /verified-sellers?package=2
-        |
-        */
-
-        $requestedPackage =
-            $request->integer(
-                'package'
-            );
-
-
-        $defaultPackage =
-            $packages->firstWhere(
-                'id',
-                $requestedPackage
-            );
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | If Seller Already Has Active Package
-        |--------------------------------------------------------------------------
-        |
-        | Make that package selected by default.
-        |
-        */
-
-        if (
-            !$defaultPackage
-            &&
-            $activeSubscription
-        ) {
-
-            $defaultPackage =
-                $packages->firstWhere(
-                    'id',
-                    $activeSubscription
-                        ->seller_package_id
-                );
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Otherwise Popular Package
-        |--------------------------------------------------------------------------
-        */
-
-        $defaultPackage =
-            $defaultPackage
-
-            ??
-            $packages->firstWhere(
-                'is_popular',
-                true
-            )
-
-            ??
-            $packages->first();
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Application
-        |--------------------------------------------------------------------------
-        */
+        $latestSubscription =
+            null;
 
         $latestApplication =
             null;
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Pending Invoice
-        |--------------------------------------------------------------------------
-        */
+        $approvedApplication =
+            null;
 
         $pendingInvoice =
             null;
 
+        $latestPaidInvoice =
+            null;
+
+        $canQuickRenew =
+            false;
+
 
         /*
         |--------------------------------------------------------------------------
-        | Logged In User State
+        | Logged In Seller
         |--------------------------------------------------------------------------
         */
 
         if (
             $request->user()
         ) {
+
+            $user =
+                $request->user();
+
+
+            /*
+             * This also expires an overdue package.
+             */
+            $activeSubscription =
+                $subscriptions
+                    ->activeForUser(
+                        $user
+                    );
+
+
+            $latestSubscription =
+                SellerSubscription::query()
+
+                    ->with([
+                        'invoice',
+                        'package',
+                    ])
+
+                    ->where(
+                        'user_id',
+                        $user->id
+                    )
+
+                    ->latest(
+                        'id'
+                    )
+
+                    ->first();
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Latest Application
+            |--------------------------------------------------------------------------
+            */
 
             $latestApplication =
                 SellerApplication::query()
@@ -175,46 +122,217 @@ class VerifiedSellerController extends Controller
 
                     ->where(
                         'user_id',
-                        $request
-                            ->user()
-                            ->id
+                        $user->id
                     )
 
-                    ->latest('id')
+                    ->latest(
+                        'id'
+                    )
 
                     ->first();
 
 
             /*
             |--------------------------------------------------------------------------
-            | Pending Invoice
+            | Previously Approved Application
+            |--------------------------------------------------------------------------
+            |
+            | This is what allows quick renewal without another review.
+            |
+            */
+
+            $approvedApplication =
+                SellerApplication::query()
+
+                    ->where(
+                        'user_id',
+                        $user->id
+                    )
+
+                    ->whereNotNull(
+                        'approved_at'
+                    )
+
+                    ->whereIn(
+                        'status',
+                        [
+                            SellerApplication::STATUS_ACTIVE,
+                            SellerApplication::STATUS_EXPIRED,
+                        ]
+                    )
+
+                    ->latest(
+                        'approved_at'
+                    )
+
+                    ->latest(
+                        'id'
+                    )
+
+                    ->first();
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Quick Renewal
             |--------------------------------------------------------------------------
             */
 
-            if (
-                $latestApplication
+            $canQuickRenew =
+                !$activeSubscription
                 &&
-                $latestApplication->invoice
+                (bool)
+                $approvedApplication
                 &&
-                $latestApplication
-                    ->invoice
-                    ->status
-                ===
-                'unpaid'
-            ) {
+                (bool)
+                $latestSubscription;
 
-                $pendingInvoice =
-                    $latestApplication
-                        ->invoice;
-            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Any Pending Package Invoice
+            |--------------------------------------------------------------------------
+            |
+            | We no longer use:
+            |
+            | $latestApplication->invoice
+            |
+            | because one approved application can now have many invoices.
+            |
+            */
+
+            $pendingInvoice =
+                SellerInvoice::query()
+
+                    ->with([
+                        'application',
+                        'package',
+                    ])
+
+                    ->where(
+                        'user_id',
+                        $user->id
+                    )
+
+                    ->where(
+                        'status',
+                        'unpaid'
+                    )
+
+                    ->latest(
+                        'id'
+                    )
+
+                    ->first();
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Latest Paid Invoice
+            |--------------------------------------------------------------------------
+            */
+
+            $latestPaidInvoice =
+                SellerInvoice::query()
+
+                    ->where(
+                        'user_id',
+                        $user->id
+                    )
+
+                    ->where(
+                        'status',
+                        'paid'
+                    )
+
+                    ->latest(
+                        'paid_at'
+                    )
+
+                    ->latest(
+                        'id'
+                    )
+
+                    ->first();
         }
 
 
         /*
         |--------------------------------------------------------------------------
-        | View
+        | Selected Package
         |--------------------------------------------------------------------------
         */
+
+        $requestedPackage =
+            $request->integer(
+                'package'
+            );
+
+
+        $defaultPackage =
+            $packages
+                ->firstWhere(
+                    'id',
+                    $requestedPackage
+                );
+
+
+        /*
+         * Current active package.
+         */
+        if (
+            !$defaultPackage
+            &&
+            $activeSubscription
+        ) {
+
+            $defaultPackage =
+                $packages
+                    ->firstWhere(
+                        'id',
+                        $activeSubscription
+                            ->seller_package_id
+                    );
+        }
+
+
+        /*
+         * Expired seller defaults to previous package.
+         */
+        if (
+            !$defaultPackage
+            &&
+            !$activeSubscription
+            &&
+            $latestSubscription
+        ) {
+
+            $defaultPackage =
+                $packages
+                    ->firstWhere(
+                        'id',
+                        $latestSubscription
+                            ->seller_package_id
+                    );
+        }
+
+
+        $defaultPackage =
+            $defaultPackage
+
+            ??
+
+            $packages
+                ->firstWhere(
+                    'is_popular',
+                    true
+                )
+
+            ??
+
+            $packages
+                ->first();
+
 
         return view(
             'frontend.pages.verified-sellers',
@@ -222,8 +340,12 @@ class VerifiedSellerController extends Controller
                 'packages',
                 'defaultPackage',
                 'latestApplication',
+                'approvedApplication',
+                'activeSubscription',
+                'latestSubscription',
                 'pendingInvoice',
-                'activeSubscription'
+                'latestPaidInvoice',
+                'canQuickRenew'
             )
         );
     }

@@ -99,17 +99,38 @@ class SellerInvoicePaymentController extends Controller
         |
         */
 
+        if (
+            $invoice->isInitialPurchase()
+        ) {
+
+            $allowedStatuses = [
+                SellerApplication::STATUS_PAYMENT_PENDING,
+                SellerApplication::STATUS_ACTIVE,
+            ];
+
+        } else {
+
+            /*
+            * Renewal does NOT require another admin approval.
+            *
+            * After expiry the original approved application normally has
+            * status = expired.
+            */
+            $allowedStatuses = [
+                SellerApplication::STATUS_EXPIRED,
+                SellerApplication::STATUS_ACTIVE,
+            ];
+        }
+
+
         abort_unless(
             in_array(
                 $application->status,
-                [
-                    SellerApplication::STATUS_PAYMENT_PENDING,
-                    SellerApplication::STATUS_ACTIVE,
-                ],
+                $allowedStatuses,
                 true
             ),
             409,
-            'This seller application is not waiting for payment.'
+            'This seller invoice is not currently payable.'
         );
 
 
@@ -344,7 +365,13 @@ class SellerInvoicePaymentController extends Controller
                                     $application->business_name,
 
                                 'package_name' =>
-                                    $application->package_name,
+                                    $invoice->effective_package_name,
+
+                                'purchase_type' =>
+                                    $invoice->purchase_type,
+
+                                'renewal_of_subscription_id' =>
+                                    $invoice->renewal_of_subscription_id,
 
                             ],
                             JSON_UNESCAPED_SLASHES

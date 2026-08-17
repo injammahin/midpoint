@@ -9,7 +9,6 @@ use App\Models\SellerWalletTransaction;
 use App\Models\SellerWithdrawal;
 use App\Models\SellerWithdrawalAccount;
 use App\Services\PaystackService;
-use App\Support\IdentityNameMatcher;
 use App\Services\SellerWithdrawalService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -28,17 +27,26 @@ class SellerWalletController extends Controller
 
 
         /*
-         * Opportunistically reconcile a few pending withdrawals
-         * when seller opens wallet.
-         */
+        |--------------------------------------------------------------------------
+        | Reconcile Pending
+        |--------------------------------------------------------------------------
+        */
+
         $withdrawalService
             ->reconcilePendingForSeller(
                 $seller
             );
 
 
+        /*
+        |--------------------------------------------------------------------------
+        | Wallet
+        |--------------------------------------------------------------------------
+        */
+
         $wallet =
             SellerWallet::query()
+
                 ->firstOrCreate(
                     [
                         'seller_id' =>
@@ -63,6 +71,12 @@ class SellerWalletController extends Controller
                 );
 
 
+        /*
+        |--------------------------------------------------------------------------
+        | Bank Accounts
+        |--------------------------------------------------------------------------
+        */
+
         $accounts =
             SellerWithdrawalAccount::query()
 
@@ -82,6 +96,20 @@ class SellerWalletController extends Controller
                 ->get();
 
 
+        $activeAccount =
+            $accounts
+                ->firstWhere(
+                    'is_active',
+                    true
+                );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | KYC
+        |--------------------------------------------------------------------------
+        */
+
         $kyc =
             SellerKycVerification::query()
 
@@ -92,6 +120,42 @@ class SellerWalletController extends Controller
 
                 ->first();
 
+
+        $kycApproved =
+            $kyc
+
+            &&
+
+            $kyc->status
+            ===
+            SellerKycVerification::STATUS_APPROVED;
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Automated KYC Bank Match
+        |--------------------------------------------------------------------------
+        */
+
+        $bankIdentityMatches =
+            $kycApproved
+
+            &&
+
+            $activeAccount
+
+            &&
+
+            $kyc->bank_name_match
+            !==
+            false;
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Withdrawals
+        |--------------------------------------------------------------------------
+        */
 
         $withdrawals =
             SellerWithdrawal::query()
@@ -111,6 +175,12 @@ class SellerWalletController extends Controller
 
                 ->withQueryString();
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | Wallet Ledger
+        |--------------------------------------------------------------------------
+        */
 
         $ledger =
             SellerWalletTransaction::query()
@@ -133,17 +203,13 @@ class SellerWalletController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Supported Banks
+        | Banks
         |--------------------------------------------------------------------------
         */
 
-        $banks = [];
+        $banks =
+            [];
 
-        $bankLoadError =
-            null;
-
-
-        $banks = [];
 
         $bankLoadError =
             null;
@@ -151,7 +217,7 @@ class SellerWalletController extends Controller
 
         try {
 
-            $banksCollection =
+            $banks =
                 collect(
                     $paystack
                         ->listBanks(
@@ -160,108 +226,24 @@ class SellerWalletController extends Controller
                 )
 
                     ->filter(
-                        function (
-                            $bank
-                        ) {
+                        fn ($bank) =>
+                            !empty(
+                                $bank[
+                                    'code'
+                                ]
+                            )
 
-                            return
-                                !empty(
-                                    $bank['code']
-                                )
-                                &&
-                                !empty(
-                                    $bank['name']
-                                );
-                        }
-                    );
+                            &&
 
-
-            /*
-            |--------------------------------------------------------------------------
-            | Add Paystack Test Bank
-            |--------------------------------------------------------------------------
-            |
-            | Only show this fake/test bank when using sk_test_...
-            |
-            */
-
-            $isPaystackTestMode =
-                \Illuminate\Support\Str::startsWith(
-                    (string)
-                    config(
-                        'services.paystack.secret_key'
-                    ),
-                    'sk_test_'
-                );
-
-
-            if (
-                $isPaystackTestMode
-            ) {
-
-                $hasTestBank =
-                    $banksCollection
-                        ->contains(
-                            function (
-                                $bank
-                            ) {
-
-                                return
-                                    (string) (
-                                        $bank['code']
-                                        ??
-                                        ''
-                                    )
-                                    ===
-                                    '001';
-                            }
-                        );
-
-
-                if (
-                    !$hasTestBank
-                ) {
-
-                    $banksCollection
-                        ->prepend([
-                            'name' =>
-                                'Paystack Test Bank',
-
-                            'code' =>
-                                '001',
-                        ]);
-                }
-            }
-
-
-            $banks =
-                $banksCollection
+                            !empty(
+                                $bank[
+                                    'name'
+                                ]
+                            )
+                    )
 
                     ->sortBy(
-                        function (
-                            $bank
-                        ) {
-
-                            /*
-                            * Keep test bank at top during development.
-                            */
-                            if (
-                                (string)
-                                $bank['code']
-                                ===
-                                '001'
-                            ) {
-
-                                return
-                                    '000000';
-                            }
-
-
-                            return
-                                strtolower(
-                                    $bank['name']
-                                );
-                        }
+                        'name'
                     )
 
                     ->values()
@@ -279,60 +261,24 @@ class SellerWalletController extends Controller
             Log::warning(
                 'Paystack bank list failed on seller wallet.',
                 [
+
                     'seller_id' =>
                         $seller->id,
 
                     'error' =>
                         $exception
                             ->getMessage(),
-                ]
-            );
-        } catch (
-            Throwable $exception
-        ) {
 
-            $bankLoadError =
-                'Supported banks could not be loaded right now. Please refresh and try again.';
-
-
-            Log::warning(
-                'Paystack bank list failed on seller wallet.',
-                [
-                    'seller_id' =>
-                        $seller->id,
-
-                    'error' =>
-                        $exception
-                            ->getMessage(),
                 ]
             );
         }
 
 
-        $activeAccount =
-            $accounts
-                ->firstWhere(
-                    'is_active',
-                    true
-                );
-
-
-        $kycApproved =
-            $kyc
-            &&
-            $kyc->status
-            ===
-            SellerKycVerification::STATUS_APPROVED;
-
-        $bankIdentityMatches =
-            $kycApproved
-            &&
-            $activeAccount
-            &&
-            IdentityNameMatcher::matches(
-                $kyc->verified_full_name,
-                $activeAccount->account_name
-            );
+        /*
+        |--------------------------------------------------------------------------
+        | Minimum
+        |--------------------------------------------------------------------------
+        */
 
         $minimumWithdrawal =
             (float)
@@ -344,7 +290,7 @@ class SellerWalletController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Tooltip blockers
+        | Blockers
         |--------------------------------------------------------------------------
         */
 
@@ -378,14 +324,16 @@ class SellerWalletController extends Controller
         ) {
 
             $withdrawalBlockers[] =
-                'Your active bank account name does not match your verified identity.';
+                'Your active bank account does not match your verified identity.';
         }
 
 
         if (
-            (float)
-            $wallet
-                ->available_balance
+            (
+                (float)
+                $wallet
+                    ->available_balance
+            )
             <
             $minimumWithdrawal
         ) {
@@ -405,18 +353,31 @@ class SellerWalletController extends Controller
         return view(
             'seller.wallet.index',
             compact(
+
                 'seller',
+
                 'wallet',
+
                 'accounts',
+
                 'activeAccount',
-                'bankIdentityMatches',
+
                 'kyc',
+
                 'kycApproved',
+
+                'bankIdentityMatches',
+
                 'withdrawals',
+
                 'ledger',
+
                 'banks',
+
                 'bankLoadError',
+
                 'minimumWithdrawal',
+
                 'withdrawalBlockers'
             )
         );
@@ -436,11 +397,17 @@ class SellerWalletController extends Controller
 
         $validated =
             $request->validate([
+
                 'amount' => [
+
                     'required',
+
                     'numeric',
+
                     'min:0.01',
+
                 ],
+
             ]);
 
 
@@ -449,7 +416,10 @@ class SellerWalletController extends Controller
             $withdrawal =
                 $withdrawals
                     ->requestWithdrawal(
-                        $request->user(),
+
+                        $request
+                            ->user(),
+
                         (float)
                         $validated[
                             'amount'
@@ -457,32 +427,75 @@ class SellerWalletController extends Controller
                     );
 
 
+            /*
+            |--------------------------------------------------------------------------
+            | Correct User Message
+            |--------------------------------------------------------------------------
+            */
+
             $message =
-                $withdrawal->status
-                ===
-                SellerWithdrawal::STATUS_OTP
+                match (
+                    $withdrawal
+                        ->status
+                ) {
 
-                    ? 'Withdrawal created, but Paystack requires transfer OTP/approval. Complete the transfer from your Paystack transfer controls.'
+                    SellerWithdrawal::STATUS_SUCCESSFUL =>
 
-                    : 'Withdrawal submitted successfully. The amount is now reserved while Paystack processes the transfer.';
+                        'Withdrawal completed successfully. ₦'
+                        .
+                        number_format(
+                            (float)
+                            $withdrawal
+                                ->amount,
+                            2
+                        )
+                        .
+                        ' was sent through Paystack to '
+                        .
+                        $withdrawal
+                            ->bank_name
+                        .
+                        ' ••••'
+                        .
+                        $withdrawal
+                            ->account_number_last4
+                        .
+                        '.',
+
+
+                    SellerWithdrawal::STATUS_OTP =>
+
+                        'Automatic payout could not continue because Paystack transfer confirmation/OTP is enabled. Please contact Midpoint support.',
+
+
+                    SellerWithdrawal::STATUS_FAILED,
+                    SellerWithdrawal::STATUS_REVERSED =>
+
+                        'The withdrawal could not be completed. The reserved amount has been returned to your available Midpoint balance.',
+
+
+                    default =>
+
+                        'Withdrawal submitted successfully. Paystack is processing the bank transfer automatically. No admin approval is required.',
+                };
 
 
             return redirect()
+
                 ->route(
                     'seller.wallet'
                 )
+
                 ->with(
                     'success',
                     $message
                 );
 
+
         } catch (
             Throwable $exception
         ) {
 
-            /*
-             * Preserve Laravel's normal validation response.
-             */
             if (
                 $exception
                 instanceof
@@ -496,6 +509,7 @@ class SellerWalletController extends Controller
             Log::error(
                 'Seller withdrawal request failed.',
                 [
+
                     'seller_id' =>
                         $request
                             ->user()
@@ -504,6 +518,7 @@ class SellerWalletController extends Controller
                     'error' =>
                         $exception
                             ->getMessage(),
+
                 ]
             );
 
@@ -514,8 +529,11 @@ class SellerWalletController extends Controller
 
                 ->with(
                     'error',
+
                     'The withdrawal could not be started. Please refresh your wallet before trying again. '
+
                     .
+
                     $exception
                         ->getMessage()
                 );
