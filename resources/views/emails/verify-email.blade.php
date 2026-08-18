@@ -77,7 +77,7 @@
     >
 
     <title>
-        Verify your MidPoint email address
+        Verify your Midpoint email address
     </title>
 
     <style>
@@ -191,7 +191,7 @@
             mso-hide: all;
         "
     >
-        Verify your MidPoint email address to activate your account.
+        Verify your Midpoint email address to activate your account.
     </div>
 
 
@@ -449,7 +449,7 @@
 
                                             please confirm that you want to
                                             use this email address for your
-                                            MidPoint account. Once verified,
+                                            Midpoint account. Once verified,
                                             you can securely access your
                                             account.
                                         </p>
@@ -695,7 +695,7 @@
                                 "
                             >
                                 &copy; {{ date('Y') }}
-                                MidPoint Technologies Ltd.
+                                Midpoint Technologies Ltd.
                                 All rights reserved.
                             </p>
 
