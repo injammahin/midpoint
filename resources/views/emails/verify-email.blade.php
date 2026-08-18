@@ -1,346 +1,504 @@
-<!DOCTYPE html>
+@php
+    /*
+    |--------------------------------------------------------------------------
+    | Uploaded MidPoint Logo
+    |--------------------------------------------------------------------------
+    */
+
+    $configuredLogoPath = trim(
+        (string) config('midpoint.logo_path', '')
+    );
+
+    $relativeLogoPath = ltrim(
+        $configuredLogoPath,
+        '/'
+    );
+
+    $logoUrl = null;
+
+    if ($relativeLogoPath !== '') {
+        $absoluteLogoPath = public_path(
+            $relativeLogoPath
+        );
+
+        if (is_file($absoluteLogoPath)) {
+            /*
+            |--------------------------------------------------------------------------
+            | Public Logo URL
+            |--------------------------------------------------------------------------
+            |
+            | Do not use $message->embed() here because Gmail may display
+            | the embedded logo as a separate attachment.
+            |
+            */
+
+            $logoUrl = asset(
+                $relativeLogoPath
+            );
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Recipient Name
+    |--------------------------------------------------------------------------
+    */
+
+    $recipientName = trim(
+        (string) ($user->name ?? '')
+    );
+
+    $recipientName =
+        $recipientName !== ''
+            ? $recipientName
+            : 'there';
+@endphp
+<!doctype html>
 
 <html lang="en">
 
 <head>
 
-    <meta charset="UTF-8">
+    <meta charset="utf-8">
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
 
-    <meta name="color-scheme" content="light">
+    <meta
+        name="color-scheme"
+        content="light"
+    >
 
-    <meta name="supported-color-schemes" content="light">
-
+    <meta
+        name="supported-color-schemes"
+        content="light"
+    >
 
     <title>
-        Verify your Midpoint email address
+        Verify your MidPoint email address
     </title>
 
-
     <style>
-        /*
-        |--------------------------------------------------------------------------
-        | Email Responsive Styles
-        |--------------------------------------------------------------------------
-        */
-
+        html,
         body {
-            margin: 0;
-            padding: 0;
-            background: #F3F7F5;
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+            background-color: #F2F5F3;
+        }
+
+        body,
+        table,
+        td,
+        a {
             font-family:
                 Arial,
                 Helvetica,
                 sans-serif;
-            color: #17251F;
         }
 
-
-        table {
-            border-spacing: 0;
-            border-collapse: collapse;
+        table,
+        td {
+            border-collapse: collapse !important;
         }
-
 
         img {
-            border: 0;
             display: block;
+            border: 0;
+            outline: none;
+            text-decoration: none;
         }
-
 
         a {
             text-decoration: none;
         }
 
-
         @media only screen and (max-width: 620px) {
-
-            .email-wrapper {
+            .email-shell {
                 width: 100% !important;
             }
 
-
-            .email-card {
-                border-radius: 0 !important;
+            .mobile-page-padding {
+                padding:
+                    20px 12px !important;
             }
 
+            .email-card {
+                border-radius:
+                    14px !important;
+            }
+
+            .email-header {
+                padding:
+                    30px 22px 20px !important;
+            }
 
             .email-content {
                 padding:
-                    30px 22px !important;
+                    4px 22px 30px !important;
             }
-
 
             .email-title {
                 font-size:
                     25px !important;
+
+                line-height:
+                    32px !important;
             }
 
+            .email-copy {
+                font-size:
+                    14px !important;
 
-            .email-button {
-                display: block !important;
-                width: auto !important;
-                text-align: center !important;
+                line-height:
+                    22px !important;
             }
 
+            .footer-content {
+                padding-right:
+                    14px !important;
+
+                padding-left:
+                    14px !important;
+            }
         }
     </style>
 
 </head>
 
+<body
+    style="
+        margin: 0;
+        padding: 0;
+        background-color: #F2F5F3;
+    "
+>
 
-<body>
+    {{-- =========================================================
+        HIDDEN EMAIL PREVIEW
+    ========================================================== --}}
+
+    <div
+        style="
+            display: none;
+            max-height: 0;
+            overflow: hidden;
+            opacity: 0;
+            color: transparent;
+            line-height: 1px;
+            mso-hide: all;
+        "
+    >
+        Verify your MidPoint email address to activate your account.
+    </div>
 
 
     {{-- =========================================================
-    OUTER BACKGROUND
+        EMAIL BACKGROUND
     ========================================================== --}}
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="
+
+    <table
+        role="presentation"
+        width="100%"
+        cellpadding="0"
+        cellspacing="0"
+        border="0"
+        style="
             width: 100%;
-            background: #F3F7F5;
-        ">
+            background-color: #F2F5F3;
+        "
+    >
 
         <tr>
 
-            <td align="center" style="
-                    padding:
-                        42px 16px;
-                ">
-
+            <td
+                align="center"
+                class="mobile-page-padding"
+                style="
+                    padding: 42px 16px;
+                "
+            >
 
                 {{-- =================================================
-                EMAIL WIDTH
+                    EMAIL WRAPPER
                 ================================================== --}}
-                <table role="presentation" width="600" cellpadding="0" cellspacing="0" class="email-wrapper" style="
+
+                <table
+                    role="presentation"
+                    width="600"
+                    cellpadding="0"
+                    cellspacing="0"
+                    border="0"
+                    class="email-shell"
+                    style="
                         width: 600px;
                         max-width: 600px;
-                    ">
-
-
-                    {{-- =============================================
-                    BRAND
-                    ============================================== --}}
-                    <tr>
-
-                        <td align="center" style="
-                                padding-bottom: 24px;
-                            ">
-
-                            <a href="{{ route('home') }}" style="
-                                    display: inline-block;
-                                ">
-
-                                <table role="presentation" cellpadding="0" cellspacing="0">
-
-                                    <tr>
-
-
-                                        {{-- Icon --}}
-                                        <td>
-
-                                            <div style="
-                                                    width: 40px;
-                                                    height: 40px;
-                                                    line-height: 40px;
-                                                    text-align: center;
-                                                    border-radius: 12px;
-                                                    background: #0B7A53;
-                                                    color: #FFFFFF;
-                                                    font-size: 19px;
-                                                    font-weight: 700;
-                                                ">
-                                                M
-                                            </div>
-
-                                        </td>
-
-
-                                        {{-- Name --}}
-                                        <td style="
-                                                padding-left: 10px;
-                                                font-size: 24px;
-                                                font-weight: 700;
-                                                color: #0B3D2E;
-                                                vertical-align: middle;
-                                            ">
-
-                                            Mid<span style="
-                                                    color: #7A5AF8;
-                                                ">Point</span>
-
-                                        </td>
-
-                                    </tr>
-
-                                </table>
-
-                            </a>
-
-                        </td>
-
-                    </tr>
-
-
+                    "
+                >
 
                     {{-- =============================================
-                    MAIN CARD
+                        MAIN WHITE CARD
                     ============================================== --}}
+
                     <tr>
 
-                        <td class="email-card" style="
+                        <td
+                            class="email-card"
+                            style="
                                 overflow: hidden;
-                                border:
-                                    1px solid #E1E9E5;
+                                border: 1px solid #DFE7E2;
                                 border-radius: 18px;
-                                background: #FFFFFF;
+                                background-color: #FFFFFF;
                                 box-shadow:
-                                    0 18px 45px rgba(
-                                        11,
-                                        61,
-                                        46,
-                                        0.08
-                                    );
-                            ">
+                                    0 14px 40px
+                                    rgba(11, 61, 46, 0.08);
+                            "
+                        >
 
+                            <table
+                                role="presentation"
+                                width="100%"
+                                cellpadding="0"
+                                cellspacing="0"
+                                border="0"
+                            >
 
-                            {{-- =========================================
-                            TOP GREEN ACCENT
-                            ========================================== --}}
-                            <div style="
-                                    height: 5px;
-                                    background:
-                                        linear-gradient(
-                                            90deg,
-                                            #0B3D2E 0%,
-                                            #12B76A 55%,
-                                            #7A5AF8 100%
-                                        );
-                                "></div>
-
-
-
-                            {{-- =========================================
-                            CONTENT
-                            ========================================== --}}
-                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                {{-- =================================
+                                    TOP BRAND ACCENT
+                                ================================== --}}
 
                                 <tr>
 
-                                    <td class="email-content" style="
+                                    <td
+                                        height="5"
+                                        style="
+                                            height: 5px;
+                                            background-color: #12B76A;
+                                            font-size: 0;
+                                            line-height: 0;
+                                        "
+                                    >
+                                        &nbsp;
+                                    </td>
+
+                                </tr>
+
+
+                                {{-- =================================
+                                    UPLOADED LOGO
+                                ================================== --}}
+
+                                <tr>
+
+                                    <td
+                                        align="center"
+                                        class="email-header"
+                                        style="
                                             padding:
-                                                42px 44px 38px;
-                                        ">
+                                                34px 40px 22px;
+                                        "
+                                    >
+
+                                        <a
+                                            href="{{ route('home') }}"
+                                            aria-label="Visit MidPoint"
+                                            style="
+                                                display: inline-block;
+                                            "
+                                        >
+
+                                            @if($logoUrl)
+
+                                                <img
+                                                    src="{{ $logoUrl }}"
+                                                    alt="MidPoint"
+                                                    width="190"
+                                                    style="
+                                                        display: block;
+                                                        width: auto;
+                                                        height: auto;
+                                                        max-width: 190px;
+                                                        max-height: 58px;
+                                                    "
+                                                >
+
+                                            @else
+
+                                                {{-- =====================
+                                                    FALLBACK LOGO
+                                                ====================== --}}
+
+                                                <table
+                                                    role="presentation"
+                                                    cellpadding="0"
+                                                    cellspacing="0"
+                                                    border="0"
+                                                >
+
+                                                    <tr>
+
+                                                        <td
+                                                            align="center"
+                                                            width="38"
+                                                            height="38"
+                                                            style="
+                                                                width: 38px;
+                                                                height: 38px;
+                                                                border-radius: 11px;
+                                                                background-color: #0B3D2E;
+                                                                color: #FFFFFF;
+                                                                font-size: 18px;
+                                                                font-weight: 700;
+                                                                line-height: 38px;
+                                                                text-align: center;
+                                                            "
+                                                        >
+                                                            M
+                                                        </td>
+
+                                                        <td
+                                                            style="
+                                                                padding-left: 10px;
+                                                                color: #0B3D2E;
+                                                                font-size: 24px;
+                                                                font-weight: 700;
+                                                                line-height: 30px;
+                                                                vertical-align: middle;
+                                                            "
+                                                        >
+                                                            Mid<span
+                                                                style="
+                                                                    color: #7A5AF8;
+                                                                "
+                                                            >Point</span>
+                                                        </td>
+
+                                                    </tr>
+
+                                                </table>
+
+                                            @endif
+
+                                        </a>
+
+                                    </td>
+
+                                </tr>
 
 
-                                        {{-- =================================
-                                        EMAIL ICON
-                                        ================================== --}}
-                                        <table role="presentation" cellpadding="0" cellspacing="0">
+                                {{-- =================================
+                                    EMAIL CONTENT
+                                ================================== --}}
 
-                                            <tr>
+                                <tr>
 
-                                                <td style="
-                                                        width: 54px;
-                                                        height: 54px;
-                                                        border-radius: 15px;
-                                                        background: #E8F7EF;
-                                                        color: #0B8B5A;
-                                                        font-size: 26px;
-                                                        text-align: center;
-                                                        vertical-align: middle;
-                                                    ">
-                                                    ✉
-                                                </td>
+                                    <td
+                                        align="center"
+                                        class="email-content"
+                                        style="
+                                            padding:
+                                                4px 48px 40px;
+                                        "
+                                    >
 
-                                            </tr>
+                                        {{-- =============================
+                                            TITLE
+                                        ============================== --}}
 
-                                        </table>
-
-
-
-                                        {{-- =================================
-                                        TITLE
-                                        ================================== --}}
-                                        <h1 class="email-title" style="
-                                                margin:
-                                                    25px 0 8px;
-                                                color: #101915;
-                                                font-size: 30px;
-                                                line-height: 1.25;
+                                        <h1
+                                            class="email-title"
+                                            style="
+                                                margin: 0;
+                                                color: #17251F;
+                                                font-size: 29px;
                                                 font-weight: 700;
-                                            ">
+                                                line-height: 37px;
+                                                text-align: center;
+                                            "
+                                        >
                                             Verify your email address
                                         </h1>
 
 
+                                        {{-- =============================
+                                            MESSAGE
+                                        ============================== --}}
 
-                                        {{-- =================================
-                                        GREETING
-                                        ================================== --}}
-                                        <p style="
+                                        <p
+                                            class="email-copy"
+                                            style="
                                                 margin:
-                                                    20px 0 0;
-                                                color: #435149;
+                                                    18px 0 0;
+                                                color: #53615A;
                                                 font-size: 15px;
-                                                line-height: 1.7;
-                                            ">
-
+                                                line-height: 24px;
+                                                text-align: center;
+                                            "
+                                        >
                                             Hi
 
-                                            <strong style="
-                                                    color: #16261F;
-                                                ">
-                                                {{ $user->name }},
+                                            <strong
+                                                style="
+                                                    color: #26352E;
+                                                "
+                                            >
+                                                {{ $recipientName }},
                                             </strong>
 
+                                            please confirm that you want to
+                                            use this email address for your
+                                            MidPoint account. Once verified,
+                                            you can securely access your
+                                            account.
                                         </p>
 
 
+                                        {{-- =============================
+                                            VERIFICATION BUTTON
+                                        ============================== --}}
 
-                                        {{-- =================================
-                                        MESSAGE
-                                        ================================== --}}
-                                        <p style="
-                                                margin:
-                                                    10px 0 0;
-                                                color: #59665F;
-                                                font-size: 15px;
-                                                line-height: 1.75;
-                                            ">
-                                            Thanks for creating your
-                                            Midpoint account. Please confirm
-                                            that this email address belongs
-                                            to you before you start using
-                                            your account.
-                                        </p>
-
-
-
-                                        {{-- =================================
-                                        BUTTON
-                                        ================================== --}}
-                                        <table role="presentation" cellpadding="0" cellspacing="0" style="
+                                        <table
+                                            role="presentation"
+                                            width="100%"
+                                            cellpadding="0"
+                                            cellspacing="0"
+                                            border="0"
+                                            style="
+                                                width: 100%;
                                                 margin-top: 28px;
-                                            ">
+                                            "
+                                        >
 
                                             <tr>
 
-                                                <td align="center" bgcolor="#0B3D2E" style="
-                                                        border-radius: 11px;
-                                                    ">
+                                                <td
+                                                    align="center"
+                                                    bgcolor="#0B3D2E"
+                                                    style="
+                                                        border-radius: 10px;
+                                                    "
+                                                >
 
-                                                    <a href="{{ $verificationUrl }}" class="email-button" style="
-                                                            display: inline-block;
+                                                    <a
+                                                        href="{{ $verificationUrl }}"
+                                                        style="
+                                                            display: block;
                                                             padding:
-                                                                15px 28px;
-                                                            border-radius: 11px;
-                                                            background: #0B3D2E;
+                                                                16px 24px;
+                                                            border:
+                                                                1px solid #0B3D2E;
+                                                            border-radius: 10px;
+                                                            background-color: #0B3D2E;
                                                             color: #FFFFFF;
-                                                            font-size: 12px;
+                                                            font-size: 15px;
                                                             font-weight: 700;
-                                                        ">
-                                                        Verify email address
+                                                            line-height: 20px;
+                                                            text-align: center;
+                                                        "
+                                                    >
+                                                        Verify my email
                                                     </a>
 
                                                 </td>
@@ -350,68 +508,49 @@
                                         </table>
 
 
+                                        {{-- =============================
+                                            EXPIRATION NOTICE
+                                        ============================== --}}
 
-                                        {{-- =================================
-                                        EXPIRY
-                                        ================================== --}}
-                                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="
-                                                margin-top: 28px;
-                                            ">
+                                        <table
+                                            role="presentation"
+                                            width="100%"
+                                            cellpadding="0"
+                                            cellspacing="0"
+                                            border="0"
+                                            style="
+                                                width: 100%;
+                                                margin-top: 22px;
+                                            "
+                                        >
 
                                             <tr>
 
-                                                <td style="
-                                                        padding: 14px 16px;
+                                                <td
+                                                    align="center"
+                                                    style="
+                                                        padding:
+                                                            12px 16px;
                                                         border:
-                                                            1px solid #DCEAE3;
-                                                        border-radius: 11px;
-                                                        background: #F5FAF7;
-                                                    ">
+                                                            1px solid #D9E9E0;
+                                                        border-radius: 9px;
+                                                        background-color: #F4FAF7;
+                                                        color: #52645A;
+                                                        font-size: 12px;
+                                                        line-height: 18px;
+                                                    "
+                                                >
+                                                    For your security, this
+                                                    verification link expires in
 
-                                                    <table role="presentation" cellpadding="0" cellspacing="0">
-
-                                                        <tr>
-
-                                                            <td style="
-                                                                    padding-right: 10px;
-                                                                    font-size: 18px;
-                                                                    vertical-align: top;
-                                                                ">
-                                                                ⏱
-                                                            </td>
-
-
-                                                            <td>
-
-                                                                <strong style="
-                                                                        display: block;
-                                                                        color: #0B3D2E;
-                                                                        font-size: 13px;
-                                                                    ">
-                                                                    Link expires in
-                                                                    {{ $expireMinutes }}
-                                                                    minutes
-                                                                </strong>
-
-
-                                                                <span style="
-                                                                        display: block;
-                                                                        margin-top: 4px;
-                                                                        color: #718078;
-                                                                        font-size: 12px;
-                                                                        line-height: 1.5;
-                                                                    ">
-                                                                    For your security,
-                                                                    verification links are
-                                                                    time-limited.
-                                                                </span>
-
-                                                            </td>
-
-                                                        </tr>
-
-                                                    </table>
-
+                                                    <strong
+                                                        style="
+                                                            color: #0B3D2E;
+                                                        "
+                                                    >
+                                                        {{ $expireMinutes }}
+                                                        minutes
+                                                    </strong>.
                                                 </td>
 
                                             </tr>
@@ -419,81 +558,105 @@
                                         </table>
 
 
+                                        {{-- =============================
+                                            MANUAL VERIFICATION URL
+                                        ============================== --}}
 
-                                        {{-- =================================
-                                        NEW LINK WARNING
-                                        ================================== --}}
-                                        <p style="
+                                        <p
+                                            style="
                                                 margin:
-                                                    25px 0 0;
-                                                color: #66746D;
-                                                font-size: 13px;
-                                                line-height: 1.7;
-                                            ">
-                                            If you request another
-                                            verification email, this link
-                                            will automatically stop working.
-                                        </p>
-
-
-
-                                        {{-- =================================
-                                        SECURITY
-                                        ================================== --}}
-                                        <p style="
-                                                margin:
-                                                    10px 0 0;
-                                                color: #66746D;
-                                                font-size: 13px;
-                                                line-height: 1.7;
-                                            ">
-                                            If you didn't create a Midpoint
-                                            account, you can safely ignore
-                                            this email.
-                                        </p>
-
-
-
-                                        {{-- =================================
-                                        SEPARATOR
-                                        ================================== --}}
-                                        <div style="
-                                                height: 1px;
-                                                margin:
-                                                    28px 0;
-                                                background: #E7ECE9;
-                                            "></div>
-
-
-
-                                        {{-- =================================
-                                        MANUAL URL
-                                        ================================== --}}
-                                        <p style="
-                                                margin: 0;
-                                                color: #7A8680;
-                                                font-size: 11px;
-                                                line-height: 1.6;
-                                            ">
-                                            Having trouble with the button?
-                                            Copy and paste this link into
+                                                    27px 0 0;
+                                                color: #7B8781;
+                                                font-size: 12px;
+                                                line-height: 19px;
+                                                text-align: center;
+                                            "
+                                        >
+                                            Or copy and paste this link into
                                             your browser:
                                         </p>
 
-
-                                        <p style="
+                                        <p
+                                            style="
                                                 margin:
-                                                    8px 0 0;
-                                                word-break: break-all;
+                                                    7px 0 0;
                                                 color: #0E8A5D;
                                                 font-size: 11px;
-                                                line-height: 1.6;
-                                            ">
-                                            <a href="{{ $verificationUrl }}" style="
+                                                line-height: 18px;
+                                                text-align: center;
+                                                word-break: break-all;
+                                            "
+                                        >
+
+                                            <a
+                                                href="{{ $verificationUrl }}"
+                                                style="
                                                     color: #0E8A5D;
-                                                ">
+                                                    text-decoration: underline;
+                                                "
+                                            >
                                                 {{ $verificationUrl }}
                                             </a>
+
+                                        </p>
+
+
+                                        {{-- =============================
+                                            SEPARATOR
+                                        ============================== --}}
+
+                                        <table
+                                            role="presentation"
+                                            width="100%"
+                                            cellpadding="0"
+                                            cellspacing="0"
+                                            border="0"
+                                            style="
+                                                width: 100%;
+                                                margin-top: 28px;
+                                            "
+                                        >
+
+                                            <tr>
+
+                                                <td
+                                                    height="1"
+                                                    style="
+                                                        height: 1px;
+                                                        background-color: #E7ECE9;
+                                                        font-size: 0;
+                                                        line-height: 0;
+                                                    "
+                                                >
+                                                    &nbsp;
+                                                </td>
+
+                                            </tr>
+
+                                        </table>
+
+
+                                        {{-- =============================
+                                            SECURITY MESSAGE
+                                        ============================== --}}
+
+                                        <p
+                                            style="
+                                                margin:
+                                                    20px 0 0;
+                                                color: #748078;
+                                                font-size: 12px;
+                                                line-height: 19px;
+                                                text-align: center;
+                                            "
+                                        >
+                                            If you did not create a MidPoint
+                                            account, you can safely ignore
+                                            this email.
+
+                                            If you request another
+                                            verification email, this link
+                                            will automatically stop working.
                                         </p>
 
                                     </td>
@@ -507,80 +670,104 @@
                     </tr>
 
 
-
                     {{-- =============================================
-                    FOOTER
+                        EMAIL FOOTER
                     ============================================== --}}
+
                     <tr>
 
-                        <td align="center" style="
+                        <td
+                            align="center"
+                            class="footer-content"
+                            style="
                                 padding:
-                                    25px 15px 0;
-                            ">
+                                    24px 24px 0;
+                            "
+                        >
 
-                            <p style="
+                            <p
+                                style="
                                     margin: 0;
-                                    color: #7A8780;
-                                    font-size: 12px;
-                                    line-height: 1.6;
-                                ">
-                                © {{ date('Y') }}
-                                Midpoint Technologies Ltd.
+                                    color: #7C8881;
+                                    font-size: 11px;
+                                    line-height: 18px;
+                                    text-align: center;
+                                "
+                            >
+                                &copy; {{ date('Y') }}
+                                MidPoint Technologies Ltd.
                                 All rights reserved.
                             </p>
 
-
-                            <p style="
+                            <p
+                                style="
                                     margin:
-                                        7px 0 0;
-                                    color: #9AA49F;
+                                        5px 0 0;
+                                    color: #98A29D;
                                     font-size: 11px;
-                                    line-height: 1.6;
-                                ">
+                                    line-height: 18px;
+                                    text-align: center;
+                                "
+                            >
                                 Buy with confidence.
                                 Sell with confidence.
                             </p>
 
-
-                            <p style="
+                            <p
+                                style="
                                     margin:
-                                        13px 0 0;
+                                        12px 0 0;
+                                    color: #A3ACA7;
                                     font-size: 11px;
-                                ">
+                                    line-height: 18px;
+                                    text-align: center;
+                                "
+                            >
 
-                                <a href="{{ route('privacy-policy') }}" style="
-                                        color: #5E6C65;
-                                    ">
+                                <a
+                                    href="{{ route('privacy-policy') }}"
+                                    style="
+                                        color: #607068;
+                                    "
+                                >
                                     Privacy Policy
                                 </a>
 
-                                <span style="
+                                <span
+                                    style="
                                         padding:
-                                            0 6px;
-                                        color: #B1BAB5;
-                                    ">
-                                    •
+                                            0 7px;
+                                        color: #B8C0BC;
+                                    "
+                                >
+                                    &bull;
                                 </span>
 
-
-                                <a href="{{ route('terms-and-conditions') }}" style="
-                                        color: #5E6C65;
-                                    ">
+                                <a
+                                    href="{{ route('terms-and-conditions') }}"
+                                    style="
+                                        color: #607068;
+                                    "
+                                >
                                     Terms
                                 </a>
 
-                                <span style="
+                                <span
+                                    style="
                                         padding:
-                                            0 6px;
-                                        color: #B1BAB5;
-                                    ">
-                                    •
+                                            0 7px;
+                                        color: #B8C0BC;
+                                    "
+                                >
+                                    &bull;
                                 </span>
 
-
-                                <a href="{{ route('support') }}" style="
-                                        color: #5E6C65;
-                                    ">
+                                <a
+                                    href="{{ route('support') }}"
+                                    style="
+                                        color: #607068;
+                                    "
+                                >
                                     Support
                                 </a>
 

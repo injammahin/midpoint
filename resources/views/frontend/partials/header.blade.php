@@ -25,35 +25,15 @@
         <a
             href="{{ route('home') }}"
             class="flex shrink-0
-                   items-center gap-[9px]
-                   font-['Bricolage_Grotesque']
-                   text-[20px]
-                   font-extrabold
-                   leading-none"
+                items-center gap-[9px]
+                font-['Bricolage_Grotesque']
+                text-[20px]
+                font-extrabold
+                leading-none"
+            aria-label="MidPoint home"
         >
-
-            <span
-                class="grid h-8 w-8
-                       place-items-center
-                       rounded-[10px]
-                       bg-gradient-to-br
-                       from-[#0B3D2E]
-                       to-[#12B76A]
-                       text-[15px]
-                       font-extrabold
-                       text-white"
-            >
-                M
-            </span>
-
-            <span>
-                <span class="text-[#0B3D2E]">
-                    Mid
-                </span><span class="text-[#7A5AF8]">Point</span>
-            </span>
-
+            <x-midpoint-brand variant="header" />
         </a>
-
 
         {{-- =====================================================
             DESKTOP NAVIGATION

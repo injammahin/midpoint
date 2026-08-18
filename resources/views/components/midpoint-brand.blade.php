@@ -34,11 +34,7 @@
 @if($variant === 'admin')
 
 
-    <span class="admin-brand-icon">
 
-        M
-
-    </span>
 
 
     <span class="admin-brand-text">
@@ -56,8 +52,8 @@
                 style="
                     display:block;
                     width:auto;
-                    max-width:132px;
-                    max-height:28px;
+                    max-width:190px;
+                    max-height:50px;
                     object-fit:contain;
                     object-position:left center;
                 "
@@ -78,11 +74,7 @@
         @endif
 
 
-        <small>
 
-            Admin Panel
-
-        </small>
 
 
     </span>
