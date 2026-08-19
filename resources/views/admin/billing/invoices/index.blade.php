@@ -288,7 +288,7 @@
                                     </strong>
 
                                     <small>
-                                        {{ $invoice->application?->package_name ?? 'N/A' }}
+                                        {{ $invoice->effective_package_name }}
                                     </small>
 
                                 </td>

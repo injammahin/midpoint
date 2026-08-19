@@ -26,6 +26,12 @@ use App\Http\Controllers\PaystackPaymentController;
 use App\Http\Controllers\ContentPageController;
 use App\Http\Controllers\PaystackTransferApprovalController;
 use App\Http\Controllers\SellerSubscriptionRenewalController;
+use App\Http\Controllers\SellerPackageWalletPaymentController;
+
+
+
+
+
 /*
 |--------------------------------------------------------------------------
 | Authentication Controllers
@@ -681,6 +687,20 @@ Route::post(
     )->name('seller-invoices.pay');
 
 
+    Route::post(
+        '/verified-sellers/invoices/{invoice}/wallet-pay',
+        [
+            SellerPackageWalletPaymentController::class,
+            'store',
+        ]
+    )
+        ->middleware(
+            'throttle:10,1'
+        )
+        ->name(
+            'seller-invoices.wallet-pay'
+        );
+        
     Route::get(
         '/verified-sellers/invoices/{invoice}/download',
         [

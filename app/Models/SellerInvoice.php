@@ -16,6 +16,10 @@ class SellerInvoice extends Model
     public const TYPE_UPGRADE =
         'upgrade';
 
+    /*
+     * Historical only.
+     * New downgrades are not allowed.
+     */
     public const TYPE_DOWNGRADE =
         'downgrade';
 
@@ -38,8 +42,30 @@ class SellerInvoice extends Model
 
         'product_limit',
 
+        /*
+         * Full package price.
+         *
+         * For upgrade this may be different from amount.
+         */
+        'package_price',
+
+        /*
+         * Unused value from previous/current package.
+         */
+        'proration_credit',
+
+        /*
+         * Value already consumed from previous/current package.
+         */
+        'proration_used_amount',
+
+        'proration_calculated_at',
+
         'user_id',
 
+        /*
+         * Actual amount seller needs to pay.
+         */
         'amount',
 
         'currency',
@@ -63,8 +89,20 @@ class SellerInvoice extends Model
         'amount' =>
             'decimal:2',
 
+        'package_price' =>
+            'decimal:2',
+
+        'proration_credit' =>
+            'decimal:2',
+
+        'proration_used_amount' =>
+            'decimal:2',
+
         'product_limit' =>
             'integer',
+
+        'proration_calculated_at' =>
+            'datetime',
 
         'issued_at' =>
             'datetime',
@@ -177,6 +215,15 @@ class SellerInvoice extends Model
     }
 
 
+    public function walletTransactions()
+    {
+        return $this->hasMany(
+            SellerWalletTransaction::class,
+            'seller_invoice_id'
+        );
+    }
+
+
     /*
     |--------------------------------------------------------------------------
     | Helpers
@@ -213,6 +260,24 @@ class SellerInvoice extends Model
     }
 
 
+    public function isUpgrade(): bool
+    {
+        return
+            $this->purchase_type
+            ===
+            self::TYPE_UPGRADE;
+    }
+
+
+    public function hasProrationCredit(): bool
+    {
+        return
+            (float) $this->proration_credit
+            >
+            0;
+    }
+
+
     public function getPurchaseTypeLabelAttribute(): string
     {
         return match (
@@ -241,7 +306,7 @@ class SellerInvoice extends Model
     | Effective Package Snapshot
     |--------------------------------------------------------------------------
     |
-    | Fallbacks keep old invoices working.
+    | Old invoices continue working through fallbacks.
     |
     */
 
@@ -292,5 +357,36 @@ class SellerInvoice extends Model
 
                 0
             );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Full Target Package Price
+    |--------------------------------------------------------------------------
+    |
+    | Important for prorated upgrades.
+    |
+    | Example:
+    |
+    | Premium price = 25,000
+    | amount actually paid = 15,666
+    |
+    | effective_package_price = 25,000
+    |
+    */
+
+    public function getEffectivePackagePriceAttribute(): float
+    {
+        return round(
+            (float) (
+                $this->package_price
+                ??
+                $this->amount
+                ??
+                0
+            ),
+            2
+        );
     }
 }

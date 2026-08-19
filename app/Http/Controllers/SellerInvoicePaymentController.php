@@ -69,7 +69,50 @@ class SellerInvoicePaymentController extends Controller
                     'This seller invoice has already been paid and your seller package is active.'
                 );
         }
+        if (
+            $invoice
+                ->status
+            !==
+            'unpaid'
+        ) {
 
+            return redirect()
+
+                ->route(
+                    'verified-sellers'
+                )
+
+                ->with(
+                    'error',
+                    'This seller invoice is no longer payable.'
+                );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Downgrades Are Not Allowed
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            $invoice
+                ->purchase_type
+            ===
+            SellerInvoice::TYPE_DOWNGRADE
+        ) {
+
+            return redirect()
+
+                ->route(
+                    'verified-sellers'
+                )
+
+                ->with(
+                    'error',
+                    'Seller package downgrades are not allowed. You can renew your current package or upgrade to a higher-priced package.'
+                );
+        }
 
         /*
         |--------------------------------------------------------------------------

@@ -8,6 +8,7 @@ use App\Models\SellerPackage;
 use App\Models\SellerSubscription;
 use App\Services\SellerSubscriptionService;
 use Illuminate\Http\Request;
+use App\Models\SellerWallet;
 
 class VerifiedSellerController extends Controller
 {
@@ -21,7 +22,12 @@ class VerifiedSellerController extends Controller
         | Packages
         |--------------------------------------------------------------------------
         */
+        $sellerWallet =
+            null;
 
+
+        $sellerWalletBalance =
+            0.00;
         $packages =
             SellerPackage::query()
 
@@ -76,7 +82,27 @@ class VerifiedSellerController extends Controller
             $user =
                 $request->user();
 
+            $sellerWallet =
+                SellerWallet::query()
 
+                    ->where(
+                        'seller_id',
+                        $user->id
+                    )
+
+                    ->first();
+
+
+            $sellerWalletBalance =
+                round(
+                    (float) (
+                        $sellerWallet
+                            ?->available_balance
+                        ?:
+                        0
+                    ),
+                    2
+                );
             /*
              * This also expires an overdue package.
              */
@@ -207,6 +233,7 @@ class VerifiedSellerController extends Controller
                     ->with([
                         'application',
                         'package',
+                        'renewalOfSubscription',
                     ])
 
                     ->where(
@@ -345,7 +372,9 @@ class VerifiedSellerController extends Controller
                 'latestSubscription',
                 'pendingInvoice',
                 'latestPaidInvoice',
-                'canQuickRenew'
+                'canQuickRenew',
+                'sellerWallet',
+                'sellerWalletBalance'
             )
         );
     }

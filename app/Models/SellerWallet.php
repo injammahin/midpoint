@@ -13,9 +13,12 @@ class SellerWallet extends Model
         'pending_withdrawal_balance',
         'total_credited',
         'total_withdrawn',
+        'total_spent',
     ];
 
+
     protected $casts = [
+
         'available_balance' =>
             'decimal:2',
 
@@ -27,7 +30,11 @@ class SellerWallet extends Model
 
         'total_withdrawn' =>
             'decimal:2',
+
+        'total_spent' =>
+            'decimal:2',
     ];
+
 
     /*
     |--------------------------------------------------------------------------
@@ -42,6 +49,7 @@ class SellerWallet extends Model
             'seller_id'
         );
     }
+
 
     /*
     |--------------------------------------------------------------------------

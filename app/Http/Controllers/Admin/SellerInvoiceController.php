@@ -163,15 +163,9 @@ class SellerInvoiceController extends Controller
             )
         ) {
 
-            $query->whereHas(
-                'application',
-                function ($query) use ($request) {
-
-                    $query->where(
-                        'seller_package_id',
-                        $request->package_id
-                    );
-                }
+            $query->where(
+                'seller_package_id',
+                $request->package_id
             );
         }
 

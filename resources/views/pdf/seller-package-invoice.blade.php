@@ -318,7 +318,17 @@
 
     $packageName =
         $invoice->effective_package_name;
+        
+    $packageFullPrice =
+        (float)
+        $invoice
+            ->effective_package_price;
 
+
+    $prorationCredit =
+        (float)
+        $invoice
+            ->proration_credit;
 
     $billingPeriod =
         $invoice->effective_billing_period;
@@ -618,7 +628,7 @@
 
             {{
                 number_format(
-                    $application->product_limit
+                    $productLimit
                 )
             }}
 
@@ -636,6 +646,66 @@
 
     </td>
 
+    @if($prorationCredit > 0)
+
+        <tr>
+
+            <td class="summary-label">
+
+                Full package price
+
+            </td>
+
+
+            <td class="summary-value">
+
+                ₦{{
+                    number_format(
+                        $packageFullPrice,
+                        2
+                    )
+                }}
+
+            </td>
+
+        </tr>
+
+
+        <tr>
+
+            <td
+                class="summary-label"
+
+                style="
+                    color:#067647;
+                "
+            >
+
+                Unused current-plan credit
+
+            </td>
+
+
+            <td
+                class="summary-value"
+
+                style="
+                    color:#067647;
+                "
+            >
+
+                -₦{{
+                    number_format(
+                        $prorationCredit,
+                        2
+                    )
+                }}
+
+            </td>
+
+        </tr>
+
+    @endif
 
     <td class="summary-value">
 
@@ -781,9 +851,8 @@
     This invoice confirms that Midpoint received payment
     for the seller package shown above.
 
-    The corresponding Verified Seller subscription becomes
-    active only after Midpoint verifies the payment with
-    Paystack.
+    The corresponding Verified Seller subscription became active
+    after Midpoint confirmed the payment method shown above.
 
     Keep this PDF for your records.
 

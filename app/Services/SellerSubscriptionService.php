@@ -571,11 +571,13 @@ class SellerSubscriptionService
 
                     'package_price' =>
                         (float)
-                        $invoice->amount,
+                        $invoice
+                            ->effective_package_price,
 
                     'price' =>
                         (float)
-                        $invoice->amount,
+                        $invoice
+                            ->effective_package_price,
 
                     'billing_period' =>
                         $billingPeriod,

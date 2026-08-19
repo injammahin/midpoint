@@ -6,6 +6,7 @@ use App\Mail\SellerPackagePaymentConfirmedMail;
 use App\Models\SellerApplication;
 use App\Models\SellerInvoice;
 use App\Models\SellerInvoicePayment;
+use App\Models\TransactionNotification;
 use App\Models\User;
 use App\Notifications\SellerPaymentReceivedAdminNotification;
 use Carbon\Carbon;
@@ -39,9 +40,7 @@ class SellerInvoicePaymentService
             strtolower(
                 trim(
                     (string) (
-                        $data[
-                            'status'
-                        ]
+                        $data['status']
                         ??
                         ''
                     )
@@ -52,9 +51,7 @@ class SellerInvoicePaymentService
         $reference =
             trim(
                 (string) (
-                    $data[
-                        'reference'
-                    ]
+                    $data['reference']
                     ??
                     ''
                 )
@@ -63,9 +60,7 @@ class SellerInvoicePaymentService
 
         $amountSubunit =
             (int) (
-                $data[
-                    'amount'
-                ]
+                $data['amount']
                 ??
                 0
             );
@@ -75,9 +70,7 @@ class SellerInvoicePaymentService
             strtoupper(
                 trim(
                     (string) (
-                        $data[
-                            'currency'
-                        ]
+                        $data['currency']
                         ??
                         ''
                     )
@@ -102,7 +95,7 @@ class SellerInvoicePaymentService
 
         /*
         |--------------------------------------------------------------------------
-        | Load
+        | Load Invoice Relationships
         |--------------------------------------------------------------------------
         */
 
@@ -116,9 +109,7 @@ class SellerInvoicePaymentService
             $payment->invoice;
 
 
-        if (
-            !$invoice
-        ) {
+        if (!$invoice) {
 
             throw new RuntimeException(
                 'Seller invoice was not found for this payment.'
@@ -127,18 +118,14 @@ class SellerInvoicePaymentService
 
 
         $application =
-            $invoice
-                ->application;
+            $invoice->application;
 
 
         $user =
-            $invoice
-                ->user;
+            $invoice->user;
 
 
-        if (
-            !$application
-        ) {
+        if (!$application) {
 
             throw new RuntimeException(
                 'Seller application was not found for this invoice.'
@@ -146,9 +133,7 @@ class SellerInvoicePaymentService
         }
 
 
-        if (
-            !$user
-        ) {
+        if (!$user) {
 
             throw new RuntimeException(
                 'Seller account was not found for this invoice.'
@@ -162,35 +147,33 @@ class SellerInvoicePaymentService
         |--------------------------------------------------------------------------
         */
 
-        $this
-            ->validateRelationships(
-                $payment,
-                $invoice,
-                $application
-            );
+        $this->validateRelationships(
+            $payment,
+            $invoice,
+            $application
+        );
 
 
         /*
         |--------------------------------------------------------------------------
-        | Verify Paystack Identity
+        | Validate Paystack Identity
         |--------------------------------------------------------------------------
         */
 
-        $this
-            ->validateGatewayIdentity(
-                $payment,
-                $invoice,
-                $user,
-                $reference,
-                $amountSubunit,
-                $currency,
-                $paystackEmail
-            );
+        $this->validateGatewayIdentity(
+            $payment,
+            $invoice,
+            $user,
+            $reference,
+            $amountSubunit,
+            $currency,
+            $paystackEmail
+        );
 
 
         /*
         |--------------------------------------------------------------------------
-        | Not Successful
+        | Paystack Has Not Confirmed Success
         |--------------------------------------------------------------------------
         */
 
@@ -200,12 +183,11 @@ class SellerInvoicePaymentService
             'success'
         ) {
 
-            $this
-                ->processFailedOrPendingPayment(
-                    $payment,
-                    $data,
-                    $status
-                );
+            $this->processFailedOrPendingPayment(
+                $payment,
+                $data,
+                $status
+            );
 
 
             return [
@@ -218,72 +200,149 @@ class SellerInvoicePaymentService
                 'email_sent' =>
                     false,
 
+                'seller_notified' =>
+                    false,
+
                 'purchase_type' =>
-                    $invoice
-                        ->purchase_type,
+                    $invoice->purchase_type,
             ];
         }
 
 
-        $paidAt =
-            $this
-                ->resolvePaidAt(
-                    $data
-                );
-
-
         /*
         |--------------------------------------------------------------------------
-        | Save Gateway Success First
+        | Resolve Paid Time
         |--------------------------------------------------------------------------
         */
 
-        $this
-            ->persistGatewaySuccess(
-                $payment->id,
-                $data,
-                $paidAt
+        $paidAt =
+            $this->resolvePaidAt(
+                $data
             );
 
 
         /*
         |--------------------------------------------------------------------------
-        | Fulfill Invoice
+        | Save Paystack Success
+        |--------------------------------------------------------------------------
+        |
+        | Paystack has now confirmed the money.
+        |
+        */
+
+        $this->persistGatewaySuccess(
+            $payment->id,
+            $data,
+            $paidAt
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Fulfill Invoice + Activate Seller Package
         |--------------------------------------------------------------------------
         */
 
         $newlyPaid =
-            $this
-                ->fulfillSuccessfulPayment(
-                    $payment->id,
-                    $invoice->id,
-                    $application->id,
-                    $reference,
-                    $amountSubunit,
-                    $paidAt,
-                    $data
-                );
+            $this->fulfillSuccessfulPayment(
+                $payment->id,
+                $invoice->id,
+                $application->id,
+                $reference,
+                $amountSubunit,
+                $paidAt,
+                $data
+            );
 
 
         $emailSent =
             null;
 
 
+        $sellerNotified =
+            null;
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Post-Payment Communications
+        |--------------------------------------------------------------------------
+        |
+        | CRITICAL:
+        |
+        | At this point the financial payment and package activation have
+        | already completed.
+        |
+        | An email or notification failure MUST NOT cause:
+        |
+        | "Payment could not be completed"
+        |
+        */
+
         if (
             $newlyPaid
         ) {
 
-            $emailSent =
-                $this
-                    ->sendCustomerConfirmation(
-                        $invoice->id
+            try {
+
+                $communications =
+                    $this
+                        ->sendSuccessfulPaymentCommunications(
+                            $invoice->id
+                        );
+
+
+                $emailSent =
+                    (bool) (
+                        $communications['email_sent']
+                        ??
+                        false
                     );
 
 
-            $this
-                ->notifyAdmins(
-                    $invoice->id
+                $sellerNotified =
+                    (bool) (
+                        $communications['seller_notified']
+                        ??
+                        false
+                    );
+
+
+            } catch (
+                Throwable $exception
+            ) {
+
+                Log::error(
+                    'Seller package payment succeeded but post-payment communications failed.',
+                    [
+                        'seller_invoice_id' =>
+                            $invoice->id,
+
+                        'reference' =>
+                            $reference,
+
+                        'error' =>
+                            $exception->getMessage(),
+                    ]
                 );
+
+
+                report(
+                    $exception
+                );
+
+
+                /*
+                 * Payment/package activation remain successful.
+                 */
+
+                $emailSent =
+                    false;
+
+
+                $sellerNotified =
+                    false;
+            }
         }
 
 
@@ -297,16 +356,451 @@ class SellerInvoicePaymentService
             'email_sent' =>
                 $emailSent,
 
+            'seller_notified' =>
+                $sellerNotified,
+
             'purchase_type' =>
-                $invoice
-                    ->purchase_type,
+                $invoice->purchase_type,
         ];
     }
 
 
+
     /*
     |--------------------------------------------------------------------------
-    | Validate Relationships
+    | Fulfill Midpoint Wallet / Alternative Payment
+    |--------------------------------------------------------------------------
+    |
+    | Wallet deduction itself is handled by SellerPackageWalletPaymentService.
+    |
+    | This method handles:
+    |
+    | invoice paid
+    | subscription activation
+    |
+    */
+
+    public function fulfillAlternativePayment(
+        SellerInvoice $invoice,
+        string $paymentMethod,
+        string $reference,
+        ?Carbon $paidAt = null
+    ): bool {
+
+        $paidAt =
+            $paidAt
+            ?:
+            now();
+
+
+        return DB::transaction(
+            function () use (
+                $invoice,
+                $paymentMethod,
+                $reference,
+                $paidAt
+            ) {
+
+                /*
+                |--------------------------------------------------------------------------
+                | Lock Invoice
+                |--------------------------------------------------------------------------
+                */
+
+                $invoice =
+                    SellerInvoice::query()
+
+                        ->whereKey(
+                            $invoice->id
+                        )
+
+                        ->lockForUpdate()
+
+                        ->firstOrFail();
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Lock Seller Application
+                |--------------------------------------------------------------------------
+                */
+
+                $application =
+                    SellerApplication::query()
+
+                        ->whereKey(
+                            $invoice->seller_application_id
+                        )
+
+                        ->lockForUpdate()
+
+                        ->firstOrFail();
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Initial Seller Package Cannot Use Wallet
+                |--------------------------------------------------------------------------
+                */
+
+                if (
+                    $invoice->isInitialPurchase()
+                ) {
+
+                    throw new RuntimeException(
+                        'Initial seller package payment must use Paystack.'
+                    );
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Downgrade Protection
+                |--------------------------------------------------------------------------
+                */
+
+                if (
+                    $invoice->purchase_type
+                    ===
+                    SellerInvoice::TYPE_DOWNGRADE
+                ) {
+
+                    throw new RuntimeException(
+                        'Seller package downgrades are not allowed.'
+                    );
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Invoice Already Paid
+                |--------------------------------------------------------------------------
+                |
+                | Makes wallet payment idempotent.
+                |
+                */
+
+                if (
+                    $invoice->status
+                    ===
+                    'paid'
+                ) {
+
+                    /*
+                     * Different payment reference means somebody is trying
+                     * to fulfill an already-paid invoice with another payment.
+                     */
+
+                    if (
+                        $invoice->payment_reference
+                        &&
+                        $invoice->payment_reference
+                        !==
+                        $reference
+                    ) {
+
+                        throw new RuntimeException(
+                            'This seller invoice has already been paid using another payment reference.'
+                        );
+                    }
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Repair Missing Subscription
+                    |--------------------------------------------------------------------------
+                    |
+                    | Invoice is paid but subscription somehow does not exist.
+                    |
+                    */
+
+                    if (
+                        !$invoice
+                            ->subscription()
+                            ->exists()
+                    ) {
+
+                        $this->activateForInvoice(
+                            $invoice,
+                            $application,
+                            $reference
+                        );
+                    }
+
+
+                    return false;
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Invoice Must Still Be Unpaid
+                |--------------------------------------------------------------------------
+                */
+
+                if (
+                    $invoice->status
+                    !==
+                    'unpaid'
+                ) {
+
+                    throw new RuntimeException(
+                        'This seller invoice is no longer payable.'
+                    );
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Application Status
+                |--------------------------------------------------------------------------
+                */
+
+                if (
+                    !$this->applicationCanPayInvoice(
+                        $application,
+                        $invoice
+                    )
+                ) {
+
+                    throw new RuntimeException(
+                        'This seller invoice cannot be activated from application status: '
+                        .
+                        $application->status
+                    );
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Validate Payment Values
+                |--------------------------------------------------------------------------
+                */
+
+                $paymentMethod =
+                    trim(
+                        $paymentMethod
+                    );
+
+
+                $reference =
+                    trim(
+                        $reference
+                    );
+
+
+                if (
+                    $paymentMethod === ''
+                    ||
+                    $reference === ''
+                ) {
+
+                    throw new RuntimeException(
+                        'Payment method and reference are required to fulfill the seller invoice.'
+                    );
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Mark Invoice Paid
+                |--------------------------------------------------------------------------
+                */
+
+                $invoice->update([
+                    'status' =>
+                        'paid',
+
+                    'payment_method' =>
+                        $paymentMethod,
+
+                    'payment_reference' =>
+                        $reference,
+
+                    'paid_at' =>
+                        $paidAt,
+                ]);
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Activate Package
+                |--------------------------------------------------------------------------
+                */
+
+                $this->activateForInvoice(
+                    $invoice,
+                    $application,
+                    $reference
+                );
+
+
+                return true;
+            },
+            3
+        );
+    }
+
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Successful Payment Communications
+    |--------------------------------------------------------------------------
+    |
+    | Every communication is isolated.
+    |
+    | NOTHING inside this method is allowed to cause a successful payment
+    | to be treated as unsuccessful.
+    |
+    */
+
+    public function sendSuccessfulPaymentCommunications(
+        int $invoiceId
+    ): array {
+
+        $sellerNotified =
+            false;
+
+
+        $emailSent =
+            false;
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Seller Dashboard Notification
+        |--------------------------------------------------------------------------
+        */
+
+        try {
+
+            $sellerNotified =
+                $this
+                    ->notifySellerInApp(
+                        $invoiceId
+                    );
+
+
+        } catch (
+            Throwable $exception
+        ) {
+
+            Log::error(
+                'Seller package dashboard notification failed after successful payment.',
+                [
+                    'seller_invoice_id' =>
+                        $invoiceId,
+
+                    'error' =>
+                        $exception->getMessage(),
+                ]
+            );
+
+
+            report(
+                $exception
+            );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Seller Email + PDF Invoice
+        |--------------------------------------------------------------------------
+        */
+
+        try {
+
+            $emailSent =
+                $this
+                    ->sendCustomerConfirmation(
+                        $invoiceId
+                    );
+
+
+        } catch (
+            Throwable $exception
+        ) {
+
+            Log::error(
+                'Seller package confirmation email failed after successful payment.',
+                [
+                    'seller_invoice_id' =>
+                        $invoiceId,
+
+                    'error' =>
+                        $exception->getMessage(),
+                ]
+            );
+
+
+            report(
+                $exception
+            );
+
+
+            $emailSent =
+                false;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Admin Notification
+        |--------------------------------------------------------------------------
+        */
+
+        try {
+
+            $this
+                ->notifyAdmins(
+                    $invoiceId
+                );
+
+
+        } catch (
+            Throwable $exception
+        ) {
+
+            Log::error(
+                'Seller package admin notification failed after successful payment.',
+                [
+                    'seller_invoice_id' =>
+                        $invoiceId,
+
+                    'error' =>
+                        $exception->getMessage(),
+                ]
+            );
+
+
+            report(
+                $exception
+            );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Never Throw
+        |--------------------------------------------------------------------------
+        */
+
+        return [
+            'seller_notified' =>
+                $sellerNotified,
+
+            'email_sent' =>
+                $emailSent,
+        ];
+    }
+
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Validate Local Relationships
     |--------------------------------------------------------------------------
     */
 
@@ -317,13 +811,9 @@ class SellerInvoicePaymentService
     ): void {
 
         if (
-            (int)
-            $payment
-                ->seller_invoice_id
+            (int) $payment->seller_invoice_id
             !==
-            (int)
-            $invoice
-                ->id
+            (int) $invoice->id
         ) {
 
             throw new RuntimeException(
@@ -333,13 +823,9 @@ class SellerInvoicePaymentService
 
 
         if (
-            (int)
-            $payment
-                ->seller_application_id
+            (int) $payment->seller_application_id
             !==
-            (int)
-            $application
-                ->id
+            (int) $application->id
         ) {
 
             throw new RuntimeException(
@@ -349,13 +835,9 @@ class SellerInvoicePaymentService
 
 
         if (
-            (int)
-            $payment
-                ->user_id
+            (int) $payment->user_id
             !==
-            (int)
-            $invoice
-                ->user_id
+            (int) $invoice->user_id
         ) {
 
             throw new RuntimeException(
@@ -365,9 +847,10 @@ class SellerInvoicePaymentService
     }
 
 
+
     /*
     |--------------------------------------------------------------------------
-    | Validate Paystack
+    | Validate Paystack Identity
     |--------------------------------------------------------------------------
     */
 
@@ -381,13 +864,17 @@ class SellerInvoicePaymentService
         string $paystackEmail
     ): void {
 
+        /*
+        |--------------------------------------------------------------------------
+        | Reference
+        |--------------------------------------------------------------------------
+        */
+
         if (
             $reference === ''
             ||
             !hash_equals(
-                (string)
-                $payment
-                    ->reference,
+                (string) $payment->reference,
                 $reference
             )
         ) {
@@ -398,12 +885,16 @@ class SellerInvoicePaymentService
         }
 
 
+        /*
+        |--------------------------------------------------------------------------
+        | Payment Amount
+        |--------------------------------------------------------------------------
+        */
+
         if (
             $amountSubunit
             !==
-            (int)
-            $payment
-                ->amount_subunit
+            (int) $payment->amount_subunit
         ) {
 
             throw new RuntimeException(
@@ -412,14 +903,15 @@ class SellerInvoicePaymentService
         }
 
 
+        /*
+        |--------------------------------------------------------------------------
+        | Invoice Amount
+        |--------------------------------------------------------------------------
+        */
+
         $invoiceAmountSubunit =
-            (int)
-            round(
-                (
-                    (float)
-                    $invoice
-                        ->amount
-                )
+            (int) round(
+                ((float) $invoice->amount)
                 *
                 100
             );
@@ -437,12 +929,16 @@ class SellerInvoicePaymentService
         }
 
 
+        /*
+        |--------------------------------------------------------------------------
+        | Currency
+        |--------------------------------------------------------------------------
+        */
+
         $paymentCurrency =
             strtoupper(
                 trim(
-                    (string)
-                    $payment
-                        ->currency
+                    (string) $payment->currency
                 )
             );
 
@@ -451,8 +947,7 @@ class SellerInvoicePaymentService
             strtoupper(
                 trim(
                     (string) (
-                        $invoice
-                            ->currency
+                        $invoice->currency
                         ?:
                         'NGN'
                     )
@@ -463,13 +958,9 @@ class SellerInvoicePaymentService
         if (
             $currency === ''
             ||
-            $currency
-            !==
-            $paymentCurrency
+            $currency !== $paymentCurrency
             ||
-            $currency
-            !==
-            $invoiceCurrency
+            $currency !== $invoiceCurrency
         ) {
 
             throw new RuntimeException(
@@ -478,12 +969,16 @@ class SellerInvoicePaymentService
         }
 
 
+        /*
+        |--------------------------------------------------------------------------
+        | Seller Email
+        |--------------------------------------------------------------------------
+        */
+
         $localEmail =
             strtolower(
                 trim(
-                    (string)
-                    $user
-                        ->email
+                    (string) $user->email
                 )
             );
 
@@ -491,9 +986,7 @@ class SellerInvoicePaymentService
         if (
             $paystackEmail !== ''
             &&
-            $paystackEmail
-            !==
-            $localEmail
+            $paystackEmail !== $localEmail
         ) {
 
             throw new RuntimeException(
@@ -503,9 +996,10 @@ class SellerInvoicePaymentService
     }
 
 
+
     /*
     |--------------------------------------------------------------------------
-    | Paid Time
+    | Resolve Paid Time
     |--------------------------------------------------------------------------
     */
 
@@ -514,18 +1008,10 @@ class SellerInvoicePaymentService
     ): Carbon {
 
         $value =
-            $data[
-                'paid_at'
-            ]
-
+            $data['paid_at']
             ??
-
-            $data[
-                'paidAt'
-            ]
-
+            $data['paidAt']
             ??
-
             null;
 
 
@@ -540,9 +1026,10 @@ class SellerInvoicePaymentService
     }
 
 
+
     /*
     |--------------------------------------------------------------------------
-    | Save Gateway Success
+    | Persist Gateway Success
     |--------------------------------------------------------------------------
     */
 
@@ -564,29 +1051,20 @@ class SellerInvoicePaymentService
 
                 'paystack_transaction_id' =>
                     isset(
-                        $data[
-                            'id'
-                        ]
+                        $data['id']
                     )
 
-                        ? (string)
-                            $data[
-                                'id'
-                            ]
+                        ? (string) $data['id']
 
                         : null,
 
                 'channel' =>
-                    $data[
-                        'channel'
-                    ]
+                    $data['channel']
                     ??
                     null,
 
                 'gateway_response' =>
-                    $data[
-                        'gateway_response'
-                    ]
+                    $data['gateway_response']
                     ??
                     'Successful',
 
@@ -599,9 +1077,10 @@ class SellerInvoicePaymentService
     }
 
 
+
     /*
     |--------------------------------------------------------------------------
-    | Fulfill
+    | Fulfill Verified Paystack Payment
     |--------------------------------------------------------------------------
     */
 
@@ -626,6 +1105,12 @@ class SellerInvoicePaymentService
                 $data
             ) {
 
+                /*
+                |--------------------------------------------------------------------------
+                | Lock Payment
+                |--------------------------------------------------------------------------
+                */
+
                 $payment =
                     SellerInvoicePayment::query()
 
@@ -637,6 +1122,12 @@ class SellerInvoicePaymentService
 
                         ->firstOrFail();
 
+
+                /*
+                |--------------------------------------------------------------------------
+                | Lock Invoice
+                |--------------------------------------------------------------------------
+                */
 
                 $invoice =
                     SellerInvoice::query()
@@ -650,6 +1141,12 @@ class SellerInvoicePaymentService
                         ->firstOrFail();
 
 
+                /*
+                |--------------------------------------------------------------------------
+                | Lock Application
+                |--------------------------------------------------------------------------
+                */
+
                 $application =
                     SellerApplication::query()
 
@@ -661,6 +1158,12 @@ class SellerInvoicePaymentService
 
                         ->firstOrFail();
 
+
+                /*
+                |--------------------------------------------------------------------------
+                | Local Payment Must Be Success
+                |--------------------------------------------------------------------------
+                */
 
                 if (
                     $payment->status
@@ -674,14 +1177,15 @@ class SellerInvoicePaymentService
                 }
 
 
+                /*
+                |--------------------------------------------------------------------------
+                | Re-check Amount Under Lock
+                |--------------------------------------------------------------------------
+                */
+
                 $lockedAmount =
-                    (int)
-                    round(
-                        (
-                            (float)
-                            $invoice
-                                ->amount
-                        )
+                    (int) round(
+                        ((float) $invoice->amount)
                         *
                         100
                     );
@@ -704,8 +1208,7 @@ class SellerInvoicePaymentService
                 | Invoice Already Paid
                 |--------------------------------------------------------------------------
                 |
-                | Never reactivate an expired historical subscription merely
-                | because an old webhook was delivered again.
+                | Paystack callbacks/webhooks may arrive more than once.
                 |
                 */
 
@@ -715,12 +1218,16 @@ class SellerInvoicePaymentService
                     'paid'
                 ) {
 
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Different Payment Reference
+                    |--------------------------------------------------------------------------
+                    */
+
                     if (
-                        $invoice
-                            ->payment_reference
+                        $invoice->payment_reference
                         &&
-                        $invoice
-                            ->payment_reference
+                        $invoice->payment_reference
                         !==
                         $reference
                     ) {
@@ -732,8 +1239,7 @@ class SellerInvoicePaymentService
                                     $invoice->id,
 
                                 'existing_reference' =>
-                                    $invoice
-                                        ->payment_reference,
+                                    $invoice->payment_reference,
 
                                 'new_reference' =>
                                     $reference,
@@ -741,30 +1247,31 @@ class SellerInvoicePaymentService
                         );
 
 
+                        /*
+                         * Do not attempt activation/payment again.
+                         */
+
                         return false;
                     }
 
 
                     /*
-                     * Only repair activation if the invoice has NO
-                     * subscription record at all.
-                     */
-                    $subscriptionExists =
-                        $invoice
-                            ->subscription()
-                            ->exists();
-
+                    |--------------------------------------------------------------------------
+                    | Repair Missing Subscription Only
+                    |--------------------------------------------------------------------------
+                    */
 
                     if (
-                        !$subscriptionExists
+                        !$invoice
+                            ->subscription()
+                            ->exists()
                     ) {
 
-                        $this
-                            ->activateForInvoice(
-                                $invoice,
-                                $application,
-                                $reference
-                            );
+                        $this->activateForInvoice(
+                            $invoice,
+                            $application,
+                            $reference
+                        );
                     }
 
 
@@ -774,33 +1281,71 @@ class SellerInvoicePaymentService
 
                 /*
                 |--------------------------------------------------------------------------
-                | Validate Application Status
+                | Invoice Must Be Unpaid
                 |--------------------------------------------------------------------------
                 */
 
                 if (
-                    !$this
-                        ->applicationCanPayInvoice(
-                            $application,
-                            $invoice
-                        )
+                    $invoice->status
+                    !==
+                    'unpaid'
+                ) {
+
+                    throw new RuntimeException(
+                        'This seller invoice is no longer payable.'
+                    );
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Downgrade Protection
+                |--------------------------------------------------------------------------
+                */
+
+                if (
+                    $invoice->purchase_type
+                    ===
+                    SellerInvoice::TYPE_DOWNGRADE
+                ) {
+
+                    throw new RuntimeException(
+                        'Seller package downgrades are not allowed.'
+                    );
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Application Status
+                |--------------------------------------------------------------------------
+                */
+
+                if (
+                    !$this->applicationCanPayInvoice(
+                        $application,
+                        $invoice
+                    )
                 ) {
 
                     throw new RuntimeException(
                         'This seller invoice cannot be activated from application status: '
                         .
-                        $application
-                            ->status
+                        $application->status
                     );
                 }
 
 
+                /*
+                |--------------------------------------------------------------------------
+                | Payment Method
+                |--------------------------------------------------------------------------
+                */
+
                 $channel =
                     trim(
                         (string) (
-                            $data[
-                                'channel'
-                            ]
+                            $data['channel']
                             ??
                             ''
                         )
@@ -840,16 +1385,15 @@ class SellerInvoicePaymentService
 
                 /*
                 |--------------------------------------------------------------------------
-                | Activate Correct Subscription Flow
+                | Activate Correct Seller Subscription
                 |--------------------------------------------------------------------------
                 */
 
-                $this
-                    ->activateForInvoice(
-                        $invoice,
-                        $application,
-                        $reference
-                    );
+                $this->activateForInvoice(
+                    $invoice,
+                    $application,
+                    $reference
+                );
 
 
                 return true;
@@ -857,6 +1401,7 @@ class SellerInvoicePaymentService
             3
         );
     }
+
 
 
     /*
@@ -870,14 +1415,18 @@ class SellerInvoicePaymentService
         SellerInvoice $invoice
     ): bool {
 
+        /*
+        |--------------------------------------------------------------------------
+        | Initial Purchase
+        |--------------------------------------------------------------------------
+        */
+
         if (
-            $invoice
-                ->isInitialPurchase()
+            $invoice->isInitialPurchase()
         ) {
 
             return in_array(
-                $application
-                    ->status,
+                $application->status,
                 [
                     SellerApplication::STATUS_PAYMENT_PENDING,
                     SellerApplication::STATUS_ACTIVE,
@@ -888,12 +1437,20 @@ class SellerInvoicePaymentService
 
 
         /*
-         * A renewal invoice is normally paid while the application is
-         * expired. ACTIVE is also accepted for safe callback reconciliation.
-         */
+        |--------------------------------------------------------------------------
+        | Renewal / Upgrade
+        |--------------------------------------------------------------------------
+        |
+        | EXPIRED:
+        | normal renewal or upgrade after expiration.
+        |
+        | ACTIVE:
+        | active seller upgrading immediately.
+        |
+        */
+
         return in_array(
-            $application
-                ->status,
+            $application->status,
             [
                 SellerApplication::STATUS_EXPIRED,
                 SellerApplication::STATUS_ACTIVE,
@@ -901,6 +1458,7 @@ class SellerInvoicePaymentService
             true
         );
     }
+
 
 
     /*
@@ -915,9 +1473,14 @@ class SellerInvoicePaymentService
         string $reference
     ) {
 
+        /*
+        |--------------------------------------------------------------------------
+        | Initial Seller Package
+        |--------------------------------------------------------------------------
+        */
+
         if (
-            $invoice
-                ->isInitialPurchase()
+            $invoice->isInitialPurchase()
         ) {
 
             return $this
@@ -930,6 +1493,12 @@ class SellerInvoicePaymentService
         }
 
 
+        /*
+        |--------------------------------------------------------------------------
+        | Renewal / Upgrade
+        |--------------------------------------------------------------------------
+        */
+
         return $this
             ->subscriptions
             ->activateFromRenewalInvoice(
@@ -939,9 +1508,10 @@ class SellerInvoicePaymentService
     }
 
 
+
     /*
     |--------------------------------------------------------------------------
-    | Failed / Pending
+    | Failed / Pending Gateway Payment
     |--------------------------------------------------------------------------
     */
 
@@ -950,6 +1520,12 @@ class SellerInvoicePaymentService
         array $data,
         string $status
     ): void {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Terminal Failure
+        |--------------------------------------------------------------------------
+        */
 
         if (
             in_array(
@@ -971,9 +1547,7 @@ class SellerInvoicePaymentService
                     now(),
 
                 'gateway_response' =>
-                    $data[
-                        'gateway_response'
-                    ]
+                    $data['gateway_response']
                     ??
                     $status,
             ]);
@@ -983,6 +1557,12 @@ class SellerInvoicePaymentService
         }
 
 
+        /*
+        |--------------------------------------------------------------------------
+        | Still Pending
+        |--------------------------------------------------------------------------
+        */
+
         $payment->update([
             'status' =>
                 SellerInvoicePayment::STATUS_PENDING,
@@ -991,13 +1571,12 @@ class SellerInvoicePaymentService
                 now(),
 
             'gateway_response' =>
-                $data[
-                    'gateway_response'
-                ]
+                $data['gateway_response']
                 ??
                 $status,
         ]);
     }
+
 
 
     /*
@@ -1025,14 +1604,19 @@ class SellerInvoicePaymentService
 
 
             $application =
-                $invoice
-                    ->application;
+                $invoice->application;
 
 
             $user =
                 $application
                     ?->user;
 
+
+            /*
+            |--------------------------------------------------------------------------
+            | Recipient
+            |--------------------------------------------------------------------------
+            */
 
             if (
                 !$application
@@ -1049,6 +1633,12 @@ class SellerInvoicePaymentService
                 );
             }
 
+
+            /*
+            |--------------------------------------------------------------------------
+            | Send Existing Midpoint Payment Email
+            |--------------------------------------------------------------------------
+            */
 
             Mail::to(
                 $user->email
@@ -1070,17 +1660,29 @@ class SellerInvoicePaymentService
                         $user->id,
 
                     'purchase_type' =>
-                        $invoice
-                            ->purchase_type,
+                        $invoice->purchase_type,
+
+                    'payment_method' =>
+                        $invoice->payment_method,
                 ]
             );
 
 
             return true;
 
+
         } catch (
             Throwable $exception
         ) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | IMPORTANT
+            |--------------------------------------------------------------------------
+            |
+            | Do not throw email errors into financial processing.
+            |
+            */
 
             Log::error(
                 'Seller package payment confirmation email failed.',
@@ -1089,8 +1691,7 @@ class SellerInvoicePaymentService
                         $invoiceId,
 
                     'error' =>
-                        $exception
-                            ->getMessage(),
+                        $exception->getMessage(),
                 ]
             );
 
@@ -1105,6 +1706,233 @@ class SellerInvoicePaymentService
     }
 
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Seller In-App Notification
+    |--------------------------------------------------------------------------
+    */
+
+    protected function notifySellerInApp(
+        int $invoiceId
+    ): bool {
+
+        try {
+
+            /*
+            |--------------------------------------------------------------------------
+            | Invoice
+            |--------------------------------------------------------------------------
+            */
+
+            $invoice =
+                SellerInvoice::query()
+
+                    ->with([
+                        'application',
+                        'user',
+                    ])
+
+                    ->findOrFail(
+                        $invoiceId
+                    );
+
+
+            $user =
+                $invoice->user;
+
+
+            $application =
+                $invoice->application;
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Seller
+            |--------------------------------------------------------------------------
+            */
+
+            if (
+                !$user
+                ||
+                !$application
+            ) {
+
+                throw new RuntimeException(
+                    'Seller package notification recipient is missing.'
+                );
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Notification Title
+            |--------------------------------------------------------------------------
+            */
+
+            $title =
+                match (
+                    $invoice->purchase_type
+                ) {
+
+                    SellerInvoice::TYPE_RENEWAL =>
+                        'Seller package renewed',
+
+                    SellerInvoice::TYPE_UPGRADE =>
+                        'Seller package upgraded',
+
+                    default =>
+                        'Seller package payment confirmed',
+                };
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Notification Action
+            |--------------------------------------------------------------------------
+            */
+
+            $action =
+                match (
+                    $invoice->purchase_type
+                ) {
+
+                    SellerInvoice::TYPE_RENEWAL =>
+                        'renewal',
+
+                    SellerInvoice::TYPE_UPGRADE =>
+                        'upgrade',
+
+                    default =>
+                        'purchase',
+                };
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Create Idempotent Notification
+            |--------------------------------------------------------------------------
+            |
+            | firstOrCreate prevents duplicate callback/webhook notifications.
+            |
+            */
+
+            TransactionNotification::firstOrCreate(
+                [
+                    'event_key' =>
+                        'seller-invoice:'
+                        .
+                        $invoice->id
+                        .
+                        ':seller:paid',
+                ],
+                [
+                    'user_id' =>
+                        $user->id,
+
+                    'secure_transaction_id' =>
+                        null,
+
+                    'audience' =>
+                        'seller',
+
+                    'type' =>
+                        'payment',
+
+                    'title' =>
+                        $title,
+
+                    'message' =>
+                        'Your '
+                        .
+                        $invoice->effective_package_name
+                        .
+                        ' package '
+                        .
+                        $action
+                        .
+                        ' payment of ₦'
+                        .
+                        number_format(
+                            (float) $invoice->amount,
+                            2
+                        )
+                        .
+                        ' has been confirmed. Invoice '
+                        .
+                        $invoice->invoice_number
+                        .
+                        ' is paid.',
+
+                    'data' => [
+                        'invoice_id' =>
+                            $invoice->id,
+
+                        'invoice_number' =>
+                            $invoice->invoice_number,
+
+                        'purchase_type' =>
+                            $invoice->purchase_type,
+
+                        'package_name' =>
+                            $invoice->effective_package_name,
+
+                        'amount' =>
+                            (float) $invoice->amount,
+
+                        'payment_method' =>
+                            $invoice->payment_method,
+
+                        'payment_reference' =>
+                            $invoice->payment_reference,
+
+                        'url' =>
+                            route(
+                                'verified-sellers'
+                            )
+                            .
+                            '#seller-invoice',
+                    ],
+                ]
+            );
+
+
+            return true;
+
+
+        } catch (
+            Throwable $exception
+        ) {
+
+            Log::error(
+                'Seller package in-app notification failed.',
+                [
+                    'seller_invoice_id' =>
+                        $invoiceId,
+
+                    'error' =>
+                        $exception->getMessage(),
+                ]
+            );
+
+
+            report(
+                $exception
+            );
+
+
+            /*
+             * Payment is already successful.
+             *
+             * Never throw from here.
+             */
+
+            return false;
+        }
+    }
+
+
+
     /*
     |--------------------------------------------------------------------------
     | Admin Notification
@@ -1116,6 +1944,12 @@ class SellerInvoicePaymentService
     ): void {
 
         try {
+
+            /*
+            |--------------------------------------------------------------------------
+            | Invoice
+            |--------------------------------------------------------------------------
+            */
 
             $invoice =
                 SellerInvoice::query()
@@ -1130,8 +1964,7 @@ class SellerInvoicePaymentService
 
 
             $application =
-                $invoice
-                    ->application;
+                $invoice->application;
 
 
             if (
@@ -1141,6 +1974,12 @@ class SellerInvoicePaymentService
                 return;
             }
 
+
+            /*
+            |--------------------------------------------------------------------------
+            | Active Admin Users
+            |--------------------------------------------------------------------------
+            */
 
             $admins =
                 User::query()
@@ -1158,9 +1997,14 @@ class SellerInvoicePaymentService
                     ->get();
 
 
+            /*
+            |--------------------------------------------------------------------------
+            | Existing Admin Notification
+            |--------------------------------------------------------------------------
+            */
+
             if (
-                $admins
-                    ->isNotEmpty()
+                $admins->isNotEmpty()
             ) {
 
                 Notification::send(
@@ -1172,9 +2016,19 @@ class SellerInvoicePaymentService
                 );
             }
 
+
         } catch (
             Throwable $exception
         ) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | IMPORTANT
+            |--------------------------------------------------------------------------
+            |
+            | Admin notification failure must not affect seller payment.
+            |
+            */
 
             Log::error(
                 'Admin seller package payment notification failed.',
@@ -1183,8 +2037,7 @@ class SellerInvoicePaymentService
                         $invoiceId,
 
                     'error' =>
-                        $exception
-                            ->getMessage(),
+                        $exception->getMessage(),
                 ]
             );
 

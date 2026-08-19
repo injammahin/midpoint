@@ -19,7 +19,6 @@ class SellerSubscriptionRenewalController extends Controller
         Request $request,
         SellerSubscriptionService $subscriptions
     ) {
-
         $user =
             $request->user();
 
@@ -39,18 +38,17 @@ class SellerSubscriptionRenewalController extends Controller
                     Rule::exists(
                         'seller_packages',
                         'id'
-                    )
-                        ->where(
-                            'is_active',
-                            true
-                        ),
+                    )->where(
+                        'is_active',
+                        true
+                    ),
                 ],
             ]);
 
 
         /*
         |--------------------------------------------------------------------------
-        | Synchronize Expiry
+        | Synchronize Expired Subscription
         |--------------------------------------------------------------------------
         */
 
@@ -62,61 +60,10 @@ class SellerSubscriptionRenewalController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Do Not Renew While Current Plan Is Active
-        |--------------------------------------------------------------------------
-        */
-
-        $activeSubscription =
-            $subscriptions
-                ->activeForUser(
-                    $user
-                );
-
-
-        if (
-            $activeSubscription
-        ) {
-
-            throw ValidationException::withMessages([
-                'seller_package_id' =>
-                    'Your current seller package is still active. Renewal becomes available after it expires.',
-            ]);
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Selected Package
-        |--------------------------------------------------------------------------
-        */
-
-        $package =
-            SellerPackage::query()
-
-                ->whereKey(
-                    $validated[
-                        'seller_package_id'
-                    ]
-                )
-
-                ->where(
-                    'is_active',
-                    true
-                )
-
-                ->firstOrFail();
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Originally Approved Seller Application
+        | Existing Approved Seller Application
         |--------------------------------------------------------------------------
         |
-        | No new application.
-        |
-        | No new documents.
-        |
-        | No admin review.
+        | Renewal/upgrade does NOT require another seller application.
         |
         */
 
@@ -157,18 +104,18 @@ class SellerSubscriptionRenewalController extends Controller
 
             throw ValidationException::withMessages([
                 'seller_package_id' =>
-                    'A previously approved seller application is required before using quick renewal.',
+                    'A previously approved seller application is required before using package renewal or upgrade.',
             ]);
         }
 
 
         /*
         |--------------------------------------------------------------------------
-        | Previous Subscription
+        | Seller Must Already Have Purchased A Package
         |--------------------------------------------------------------------------
         */
 
-        $previousSubscription =
+        $latestSubscription =
             SellerSubscription::query()
 
                 ->where(
@@ -184,7 +131,7 @@ class SellerSubscriptionRenewalController extends Controller
 
 
         if (
-            !$previousSubscription
+            !$latestSubscription
         ) {
 
             throw ValidationException::withMessages([
@@ -196,7 +143,7 @@ class SellerSubscriptionRenewalController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Create Renewal Invoice
+        | Create Renewal / Upgrade Invoice
         |--------------------------------------------------------------------------
         */
 
@@ -204,14 +151,13 @@ class SellerSubscriptionRenewalController extends Controller
             DB::transaction(
                 function () use (
                     $user,
-                    $package,
-                    $approvedApplication,
-                    $previousSubscription
+                    $validated,
+                    $approvedApplication
                 ) {
 
                     /*
                     |--------------------------------------------------------------------------
-                    | Lock User
+                    | Lock Seller
                     |--------------------------------------------------------------------------
                     */
 
@@ -228,11 +174,59 @@ class SellerSubscriptionRenewalController extends Controller
 
                     /*
                     |--------------------------------------------------------------------------
-                    | Recheck Active Package
+                    | Lock Selected Package
                     |--------------------------------------------------------------------------
                     */
 
-                    $stillActive =
+                    $package =
+                        SellerPackage::query()
+
+                            ->whereKey(
+                                $validated[
+                                    'seller_package_id'
+                                ]
+                            )
+
+                            ->where(
+                                'is_active',
+                                true
+                            )
+
+                            ->lockForUpdate()
+
+                            ->firstOrFail();
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Lock Approved Seller Application
+                    |--------------------------------------------------------------------------
+                    */
+
+                    $application =
+                        SellerApplication::query()
+
+                            ->whereKey(
+                                $approvedApplication->id
+                            )
+
+                            ->where(
+                                'user_id',
+                                $user->id
+                            )
+
+                            ->lockForUpdate()
+
+                            ->firstOrFail();
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Current Active Subscription
+                    |--------------------------------------------------------------------------
+                    */
+
+                    $activeSubscription =
                         SellerSubscription::query()
 
                             ->where(
@@ -242,29 +236,86 @@ class SellerSubscriptionRenewalController extends Controller
 
                             ->active()
 
+                            ->latest(
+                                'id'
+                            )
+
                             ->lockForUpdate()
 
-                            ->exists();
+                            ->first();
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Reference Subscription
+                    |--------------------------------------------------------------------------
+                    |
+                    | Active:
+                    | use current active package.
+                    |
+                    | Expired:
+                    | use seller's latest historical package.
+                    |
+                    */
+
+                    $previous =
+                        $activeSubscription;
 
 
                     if (
-                        $stillActive
+                        !$previous
+                    ) {
+
+                        $previous =
+                            SellerSubscription::query()
+
+                                ->where(
+                                    'user_id',
+                                    $user->id
+                                )
+
+                                ->latest(
+                                    'id'
+                                )
+
+                                ->lockForUpdate()
+
+                                ->first();
+                    }
+
+
+                    if (
+                        !$previous
                     ) {
 
                         throw ValidationException::withMessages([
                             'seller_package_id' =>
-                                'Your current seller package is still active.',
+                                'Your previous seller subscription could not be found.',
                         ]);
                     }
 
 
                     /*
                     |--------------------------------------------------------------------------
-                    | Existing Unpaid Renewal Invoice
+                    | Determine Renewal / Upgrade
+                    |--------------------------------------------------------------------------
+                    */
+
+                    $purchaseType =
+                        $this
+                            ->determinePurchaseType(
+                                $previous,
+                                $package,
+                                (bool) $activeSubscription
+                            );
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Existing Unpaid Recurring Invoice
                     |--------------------------------------------------------------------------
                     |
-                    | Prevent two checkout links for different package renewals
-                    | from being active simultaneously.
+                    | Seller cannot create several unpaid upgrade invoices.
                     |
                     */
 
@@ -286,7 +337,6 @@ class SellerSubscriptionRenewalController extends Controller
                                 [
                                     SellerInvoice::TYPE_RENEWAL,
                                     SellerInvoice::TYPE_UPGRADE,
-                                    SellerInvoice::TYPE_DOWNGRADE,
                                 ]
                             )
 
@@ -303,6 +353,11 @@ class SellerSubscriptionRenewalController extends Controller
                         $existingInvoice
                     ) {
 
+                        /*
+                         * Same selected package:
+                         * return existing invoice instead of creating duplicate.
+                         */
+
                         if (
                             (int)
                             $existingInvoice
@@ -312,52 +367,111 @@ class SellerSubscriptionRenewalController extends Controller
                             $package->id
                         ) {
 
-                            return $existingInvoice;
+                            return
+                                $existingInvoice;
                         }
 
 
                         throw ValidationException::withMessages([
                             'seller_package_id' =>
-                                'You already have an unpaid package renewal invoice. Complete that payment before selecting another package.',
+                                'You already have an unpaid package invoice. Complete that payment before selecting another package.',
                         ]);
                     }
 
 
                     /*
                     |--------------------------------------------------------------------------
-                    | Previous Subscription
+                    | Target Package Price
                     |--------------------------------------------------------------------------
                     */
 
-                    $previous =
-                        SellerSubscription::query()
+                    $packagePrice =
+                        round(
+                            (float) $package->price,
+                            2
+                        );
 
-                            ->whereKey(
-                                $previousSubscription->id
-                            )
 
-                            ->where(
-                                'user_id',
-                                $user->id
-                            )
+                    $prorationCredit =
+                        0.00;
 
-                            ->lockForUpdate()
 
-                            ->firstOrFail();
+                    $prorationUsedAmount =
+                        0.00;
+
+
+                    $prorationCalculatedAt =
+                        null;
 
 
                     /*
                     |--------------------------------------------------------------------------
-                    | Determine Purchase Type
+                    | Active Package Upgrade Proration
+                    |--------------------------------------------------------------------------
+                    |
+                    | Only an ACTIVE package gets unused-plan credit.
+                    |
+                    | If the package is already expired, there is no unused value.
+                    |
+                    */
+
+                    if (
+                        $activeSubscription
+                        &&
+                        $purchaseType
+                        ===
+                        SellerInvoice::TYPE_UPGRADE
+                    ) {
+
+                        $proration =
+                            $this
+                                ->calculateUpgradeProration(
+                                    $activeSubscription,
+                                    $package
+                                );
+
+
+                        $prorationCredit =
+                            $proration[
+                                'credit'
+                            ];
+
+
+                        $prorationUsedAmount =
+                            $proration[
+                                'used_amount'
+                            ];
+
+
+                        $prorationCalculatedAt =
+                            now();
+                    }
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Final Amount Due
                     |--------------------------------------------------------------------------
                     */
 
-                    $purchaseType =
-                        $this
-                            ->determinePurchaseType(
-                                $previous,
-                                $package
-                            );
+                    $amountDue =
+                        round(
+                            $packagePrice
+                            -
+                            $prorationCredit,
+                            2
+                        );
+
+
+                    if (
+                        $amountDue <= 0
+                    ) {
+
+                        throw ValidationException::withMessages([
+                            'seller_package_id' =>
+                                'The calculated package amount is invalid. Please contact Midpoint support.',
+                        ]);
+                    }
 
 
                     /*
@@ -371,7 +485,7 @@ class SellerSubscriptionRenewalController extends Controller
                             SellerInvoice::generateInvoiceNumber(),
 
                         'seller_application_id' =>
-                            $approvedApplication->id,
+                            $application->id,
 
                         'seller_package_id' =>
                             $package->id,
@@ -382,9 +496,11 @@ class SellerSubscriptionRenewalController extends Controller
                         'renewal_of_subscription_id' =>
                             $previous->id,
 
+
                         /*
-                         * Snapshot current package configuration.
+                         * Target package snapshot.
                          */
+
                         'package_name' =>
                             $package->name,
 
@@ -394,11 +510,34 @@ class SellerSubscriptionRenewalController extends Controller
                         'product_limit' =>
                             $package->product_limit,
 
+                        'package_price' =>
+                            $packagePrice,
+
+
+                        /*
+                         * Upgrade proration snapshot.
+                         */
+
+                        'proration_credit' =>
+                            $prorationCredit,
+
+                        'proration_used_amount' =>
+                            $prorationUsedAmount,
+
+                        'proration_calculated_at' =>
+                            $prorationCalculatedAt,
+
+
                         'user_id' =>
                             $user->id,
 
+
+                        /*
+                         * Actual amount seller pays.
+                         */
+
                         'amount' =>
-                            $package->price,
+                            $amountDue,
 
                         'currency' =>
                             'NGN',
@@ -416,10 +555,9 @@ class SellerSubscriptionRenewalController extends Controller
                             now(),
 
                         'due_at' =>
-                            now()
-                                ->addDays(
-                                    7
-                                ),
+                            now()->addDays(
+                                7
+                            ),
 
                         'paid_at' =>
                             null,
@@ -431,7 +569,7 @@ class SellerSubscriptionRenewalController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Show Invoice
+        | Open Payment Method Modal
         |--------------------------------------------------------------------------
         */
 
@@ -440,6 +578,36 @@ class SellerSubscriptionRenewalController extends Controller
                 $invoice
                     ->purchase_type_label
             );
+
+
+        $message =
+            'Your '
+            .
+            $label
+            .
+            ' invoice is ready.';
+
+
+        if (
+            (float)
+            $invoice
+                ->proration_credit
+            >
+            0
+        ) {
+
+            $message .=
+                ' An unused-plan credit of ₦'
+                .
+                number_format(
+                    (float)
+                    $invoice
+                        ->proration_credit,
+                    2
+                )
+                .
+                ' has already been applied.';
+        }
 
 
         return redirect()
@@ -454,11 +622,14 @@ class SellerSubscriptionRenewalController extends Controller
 
             ->with(
                 'success',
-                'Your '
+                $message
                 .
-                $label
-                .
-                ' invoice has been created. Complete the Paystack payment below. No new seller application or admin approval is required.'
+                ' Choose Midpoint Wallet or Paystack to complete payment.'
+            )
+
+            ->with(
+                'open_package_payment_modal',
+                true
             );
     }
 
@@ -471,19 +642,73 @@ class SellerSubscriptionRenewalController extends Controller
 
     protected function determinePurchaseType(
         SellerSubscription $previous,
-        SellerPackage $package
+        SellerPackage $package,
+        bool $hasActiveSubscription
     ): string {
 
-        /*
-         * Same package.
-         */
-        if (
+        $samePackage =
             (int)
             $previous
                 ->seller_package_id
             ===
             (int)
-            $package->id
+            $package->id;
+
+
+        $oldPrice =
+            round(
+                (float) (
+                    $previous
+                        ->package_price
+
+                    ?:
+
+                    $previous
+                        ->price
+                ),
+                2
+            );
+
+
+        $newPrice =
+            round(
+                (float)
+                $package
+                    ->price,
+                2
+            );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Active Same Package
+        |--------------------------------------------------------------------------
+        |
+        | Do not allow early renewal.
+        |
+        */
+
+        if (
+            $hasActiveSubscription
+            &&
+            $samePackage
+        ) {
+
+            throw ValidationException::withMessages([
+                'seller_package_id' =>
+                    'Your current seller package is still active. You can upgrade now, but renewal of the same package becomes available after it expires.',
+            ]);
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Same Expired Package = Renewal
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            $samePackage
         ) {
 
             return
@@ -491,21 +716,15 @@ class SellerSubscriptionRenewalController extends Controller
         }
 
 
-        $oldPrice =
-            (float) (
-                $previous->price
-                ?:
-                $previous->package_price
-            );
-
-
-        $newPrice =
-            (float)
-            $package->price;
-
+        /*
+        |--------------------------------------------------------------------------
+        | Different Package Must Have Higher Price
+        |--------------------------------------------------------------------------
+        */
 
         if (
-            $newPrice >
+            $newPrice
+            >
             $oldPrice
         ) {
 
@@ -514,7 +733,252 @@ class SellerSubscriptionRenewalController extends Controller
         }
 
 
-        return
-            SellerInvoice::TYPE_DOWNGRADE;
+        /*
+        |--------------------------------------------------------------------------
+        | Downgrade
+        |--------------------------------------------------------------------------
+        */
+
+        throw ValidationException::withMessages([
+            'seller_package_id' =>
+                'Package downgrades are not allowed. You can renew your current package or upgrade to a higher-priced package.',
+        ]);
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Calculate Exact Unused Value
+    |--------------------------------------------------------------------------
+    |
+    | We use exact subscription seconds instead of rounded days.
+    |
+    */
+
+    protected function calculateUpgradeProration(
+        SellerSubscription $current,
+        SellerPackage $targetPackage
+    ): array {
+
+        $startedAt =
+            $current
+                ->started_at
+
+            ?:
+
+            $current
+                ->starts_at
+
+            ?:
+
+            $current
+                ->created_at;
+
+
+        $expiresAt =
+            $current
+                ->expires_at;
+
+
+        if (
+            !$startedAt
+            ||
+            !$expiresAt
+        ) {
+
+            throw ValidationException::withMessages([
+                'seller_package_id' =>
+                    'Midpoint could not calculate the unused value of your current package. Please contact support before upgrading.',
+            ]);
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Subscription Duration
+        |--------------------------------------------------------------------------
+        */
+
+        $totalSeconds =
+            (int)
+            $expiresAt
+                ->timestamp
+            -
+            (int)
+            $startedAt
+                ->timestamp;
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Remaining Subscription Time
+        |--------------------------------------------------------------------------
+        */
+
+        $remainingSeconds =
+            (int)
+            $expiresAt
+                ->timestamp
+            -
+            (int)
+            now()
+                ->timestamp;
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Current Package Full Price
+        |--------------------------------------------------------------------------
+        */
+
+        $currentPackagePrice =
+            round(
+                (float) (
+                    $current
+                        ->package_price
+
+                    ?:
+
+                    $current
+                        ->price
+                ),
+                2
+            );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Target Package Full Price
+        |--------------------------------------------------------------------------
+        */
+
+        $targetPackagePrice =
+            round(
+                (float)
+                $targetPackage
+                    ->price,
+                2
+            );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Validate Upgrade
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            $currentPackagePrice <= 0
+            ||
+            $targetPackagePrice
+            <=
+            $currentPackagePrice
+        ) {
+
+            throw ValidationException::withMessages([
+                'seller_package_id' =>
+                    'The selected package is not a valid higher-priced upgrade.',
+            ]);
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Nothing Remaining
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            $totalSeconds <= 0
+            ||
+            $remainingSeconds <= 0
+        ) {
+
+            return [
+                'credit' =>
+                    0.00,
+
+                'used_amount' =>
+                    $currentPackagePrice,
+            ];
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Protect Against Incorrect Future Dates
+        |--------------------------------------------------------------------------
+        */
+
+        $remainingSeconds =
+            min(
+                $remainingSeconds,
+                $totalSeconds
+            );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Remaining Ratio
+        |--------------------------------------------------------------------------
+        */
+
+        $remainingRatio =
+            $remainingSeconds
+            /
+            $totalSeconds;
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Unused Monetary Credit
+        |--------------------------------------------------------------------------
+        */
+
+        $credit =
+            round(
+                $currentPackagePrice
+                *
+                $remainingRatio,
+                2
+            );
+
+
+        /*
+         * Credit must never exceed original package amount.
+         */
+
+        $credit =
+            min(
+                $currentPackagePrice,
+                max(
+                    0,
+                    $credit
+                )
+            );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Amount Already Used
+        |--------------------------------------------------------------------------
+        */
+
+        $usedAmount =
+            round(
+                $currentPackagePrice
+                -
+                $credit,
+                2
+            );
+
+
+        return [
+            'credit' =>
+                $credit,
+
+            'used_amount' =>
+                $usedAmount,
+        ];
     }
 }

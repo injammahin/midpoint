@@ -22,6 +22,9 @@ class SellerWalletTransaction extends Model
     public const TYPE_WITHDRAWAL_REFUND =
         'withdrawal_refund';
 
+    public const TYPE_PACKAGE_PAYMENT =
+        'package_payment';
+
 
     /*
     |--------------------------------------------------------------------------
@@ -56,6 +59,7 @@ class SellerWalletTransaction extends Model
         'seller_wallet_id',
         'seller_id',
         'secure_transaction_id',
+        'seller_invoice_id',
         'seller_withdrawal_id',
         'reference',
         'type',
@@ -72,6 +76,7 @@ class SellerWalletTransaction extends Model
 
 
     protected $casts = [
+
         'amount' =>
             'decimal:2',
 
@@ -112,6 +117,15 @@ class SellerWalletTransaction extends Model
         return $this->belongsTo(
             SecureTransaction::class,
             'secure_transaction_id'
+        );
+    }
+
+
+    public function invoice()
+    {
+        return $this->belongsTo(
+            SellerInvoice::class,
+            'seller_invoice_id'
         );
     }
 

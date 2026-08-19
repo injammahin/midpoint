@@ -23,7 +23,27 @@
         ?:
         \App\Models\SellerInvoice::TYPE_INITIAL;
 
+    $paymentSource =
+        $invoice
+            ->payment_method
+        ===
+        'midpoint_wallet'
 
+            ? 'your Midpoint Wallet'
+
+            : 'Paystack';
+
+
+    $packageFullPrice =
+        (float)
+        $invoice
+            ->effective_package_price;
+
+
+    $prorationCredit =
+        (float)
+        $invoice
+            ->proration_credit;
     $packageName =
         $invoice->effective_package_name;
 
@@ -52,29 +72,47 @@
 
     $actionTitle =
         $isRenewal
+
             ? 'Package renewed successfully!'
+
             : (
                 $isUpgrade
+
                     ? 'Package upgraded successfully!'
+
                     : (
                         $isDowngrade
+
                             ? 'Package changed successfully!'
-                            : '{{ $actionTitle }}'
+
+                            : 'Payment confirmed successfully!'
                     )
             );
 
 
     $actionDescription =
         $isRenewal
-            ? 'Your seller package renewal payment was successfully verified with Paystack.'
+
+            ? 'Your seller package renewal payment was successfully completed using '
+                .
+                $paymentSource
+                .
+                '.'
+
             : (
                 $isUpgrade
-                    ? 'Your seller package upgrade payment was successfully verified with Paystack.'
-                    : (
-                        $isDowngrade
-                            ? 'Your new seller package payment was successfully verified with Paystack.'
-                            : 'We successfully verified your seller package payment with Paystack.'
-                    )
+
+                    ? 'Your seller package upgrade payment was successfully completed using '
+                        .
+                        $paymentSource
+                        .
+                        '.'
+
+                    : 'Your seller package payment was successfully completed using '
+                        .
+                        $paymentSource
+                        .
+                        '.'
             );
 
 @endphp
@@ -459,7 +497,83 @@ Verified Seller package is now active.
                             Invoice number
 
                         </td>
+                        @if($prorationCredit > 0)
 
+                            <tr>
+
+                                <td
+                                    style="
+                                        padding-top:9px;
+                                        color:#718078;
+                                        font-size:11px;
+                                    "
+                                >
+
+                                    Full package price
+
+                                </td>
+
+
+                                <td
+                                    align="right"
+
+                                    style="
+                                        padding-top:9px;
+                                        font-size:11px;
+                                        font-weight:700;
+                                    "
+                                >
+
+                                    ₦{{
+                                        number_format(
+                                            $packageFullPrice,
+                                            2
+                                        )
+                                    }}
+
+                                </td>
+
+                            </tr>
+
+
+                            <tr>
+
+                                <td
+                                    style="
+                                        padding-top:9px;
+                                        color:#067647;
+                                        font-size:11px;
+                                    "
+                                >
+
+                                    Unused current-plan credit
+
+                                </td>
+
+
+                                <td
+                                    align="right"
+
+                                    style="
+                                        padding-top:9px;
+                                        color:#067647;
+                                        font-size:11px;
+                                        font-weight:700;
+                                    "
+                                >
+
+                                    -₦{{
+                                        number_format(
+                                            $prorationCredit,
+                                            2
+                                        )
+                                    }}
+
+                                </td>
+
+                            </tr>
+
+                        @endif
 
                         <td
                             align="right"
