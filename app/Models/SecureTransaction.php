@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
-
+use App\Support\RichTextSanitizer;
 class SecureTransaction extends Model
 {
     /*
@@ -412,7 +412,46 @@ class SecureTransaction extends Model
             'seller_product_id'
         );
     }
+    /*
+    |--------------------------------------------------------------------------
+    | Safe Description
+    |--------------------------------------------------------------------------
+    */
 
+    public function getSafeDescriptionHtmlAttribute(): string
+    {
+        return RichTextSanitizer::sanitize(
+            (string) $this->description
+        );
+    }
+
+    public function getPlainDescriptionAttribute(): string
+    {
+        return RichTextSanitizer::plainText(
+            $this->description
+        );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Safe Delivery Arrangement
+    |--------------------------------------------------------------------------
+    */
+
+    public function getSafeDeliveryNoteHtmlAttribute(): string
+    {
+        return RichTextSanitizer::sanitize(
+            (string) $this->delivery_note
+        );
+    }
+
+    public function getPlainDeliveryNoteAttribute(): string
+    {
+        return RichTextSanitizer::plainText(
+            $this->delivery_note
+        );
+    }
 
     /*
     |--------------------------------------------------------------------------

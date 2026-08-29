@@ -546,7 +546,7 @@
 
                                 {{
                                     \Illuminate\Support\Str::limit(
-                                        $transaction->description,
+                                        $transaction->plain_description,
                                         100
                                     )
                                 }}
@@ -1100,15 +1100,19 @@
                 </h3>
 
 
-                <p class="tm-delivery">
+                <div class="tm-delivery">
 
-                    {{
-                        $transaction->delivery_note
-                        ?:
-                        'Seller-arranged delivery.'
-                    }}
+                    @if($transaction->delivery_note)
 
-                </p>
+                        {!! $transaction->safe_delivery_note_html !!}
+
+                    @else
+
+                        Seller-arranged delivery.
+
+                    @endif
+
+                </div>
 
 
                 @if($isBuyer && $whatsappUrl)
