@@ -1826,7 +1826,7 @@
 
 
     .mp-period-control label {
-        color: #708398;
+        color: var(--admin-muted, #708398);
 
         font-size: 10px;
         font-weight: 700;
@@ -1836,17 +1836,38 @@
     .mp-period-control select {
         padding: 9px 32px 9px 11px;
 
-        border: 1px solid #dbe5eb;
+        border: 1px solid var(--admin-border, #dbe5eb);
         border-radius: 9px;
 
         outline: none;
 
-        background: var(--admin-card-bg, #fff);
+        background: var(--admin-surface, #ffffff);
 
-        color: #263e55;
+        color: var(--admin-text, #263e55);
 
         font-size: 12px;
         font-weight: 600;
+
+        color-scheme: inherit;
+
+        transition:
+            border-color .2s ease,
+            background-color .2s ease,
+            color .2s ease;
+    }
+
+
+    .mp-period-control select:focus {
+        border-color: var(--admin-accent, #19a895);
+
+        box-shadow:
+            0 0 0 3px rgba(25, 168, 149, .12);
+    }
+
+
+    .mp-period-control select option {
+        background: var(--admin-surface, #ffffff);
+        color: var(--admin-text, #263e55);
     }
 
 
@@ -1883,7 +1904,7 @@
                 rgba(11, 150, 121, .06),
                 rgba(255, 255, 255, 0)
             ),
-            var(--admin-card-bg, #fff);
+            var(--admin-surface, #ffffff);
     }
 
 
@@ -2083,7 +2104,7 @@
                 rgba(19, 160, 126, .08),
                 transparent 65%
             ),
-            var(--admin-card-bg, #fff);
+            var(--admin-surface, #ffffff);
     }
 
 
@@ -2744,6 +2765,46 @@
 
     /*
     |--------------------------------------------------------------------------
+    | Dark Theme - Dashboard Specific Fixes
+    |--------------------------------------------------------------------------
+    */
+
+    html[data-admin-theme="dark"] .mp-period-control select {
+        border-color: var(--admin-border, #26334b);
+
+        background: var(--admin-surface, #111a2f);
+
+        color: var(--admin-text, #f4f7fb);
+
+        color-scheme: dark;
+    }
+
+
+    html[data-admin-theme="dark"] .mp-period-control select option {
+        background: var(--admin-surface, #111a2f);
+
+        color: var(--admin-text, #f4f7fb);
+    }
+
+
+    html[data-admin-theme="dark"] .mp-period-control label {
+        color: var(--admin-muted, #8fa3c1);
+    }
+
+
+    /*
+     * ApexCharts writes the radial-bar text color as an SVG fill.
+     * Keep this CSS override as a safety net so the center text always
+     * stays readable when the admin theme is dark.
+     */
+    html[data-admin-theme="dark"] #profitMarginChart .apexcharts-datalabel-value,
+    html[data-admin-theme="dark"] #profitMarginChart .apexcharts-datalabel-label {
+        fill: #ffffff !important;
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
     | Responsive
     |--------------------------------------------------------------------------
     */
@@ -3312,10 +3373,15 @@ document.addEventListener(
                                         offsetY: 22,
 
                                         color:
-                                            textColor,
+                                            isDark
+                                                ? '#ffffff'
+                                                : textColor,
 
                                         fontSize:
-                                            '8px'
+                                            '8px',
+
+                                        fontWeight:
+                                            600
                                     },
 
                                     value: {

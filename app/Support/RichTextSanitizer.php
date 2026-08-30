@@ -9,11 +9,11 @@ final class RichTextSanitizer
     | Limits
     |--------------------------------------------------------------------------
     |
-    | MAX_TEXT_LENGTH is the maximum number of visible characters allowed
-    | in the item description.
+    | Actual visible description:
+    | maximum 20,000 characters.
     |
-    | MAX_HTML_LENGTH is higher because Summernote adds HTML formatting tags
-    | around the visible text.
+    | Summernote HTML:
+    | allowed extra room for formatting tags.
     |
     */
 
@@ -25,15 +25,15 @@ final class RichTextSanitizer
 
     public const MAX_DELIVERY_HTML_LENGTH = 15000;
 
-
     /*
     |--------------------------------------------------------------------------
     | Sanitize Summernote HTML
     |--------------------------------------------------------------------------
     */
 
-    public static function sanitize(string $html): string
-    {
+    public static function sanitize(
+        string $html
+    ): string {
         /*
         |--------------------------------------------------------------------------
         | Remove Dangerous Elements Completely
@@ -46,10 +46,9 @@ final class RichTextSanitizer
             $html
         ) ?? '';
 
-
         /*
         |--------------------------------------------------------------------------
-        | Keep Only Supported Formatting Tags
+        | Keep Supported Formatting Tags
         |--------------------------------------------------------------------------
         */
 
@@ -64,14 +63,20 @@ final class RichTextSanitizer
             . '<table><thead><tbody><tfoot><tr><th><td>'
         );
 
-
         /*
         |--------------------------------------------------------------------------
-        | Remove Attributes; Preserve Only Safe Link URLs
+        | Remove Unsafe Attributes
         |--------------------------------------------------------------------------
         |
-        | All attributes such as style, class, onclick, onerror and other event
-        | handlers are removed. Only safe http, https and mailto links remain.
+        | All style / class / onclick / onerror etc. attributes are removed.
+        |
+        | Only safe:
+        |
+        | http://
+        | https://
+        | mailto:
+        |
+        | links are preserved.
         |
         */
 
@@ -79,10 +84,14 @@ final class RichTextSanitizer
             '/<([a-z0-9]+)(\s[^>]*)?>/i',
 
             function (array $matches): string {
-                $tag = strtolower($matches[1]);
+                $tag =
+                    strtolower(
+                        $matches[1]
+                    );
 
                 if ($tag === 'a') {
-                    $attributes = $matches[2] ?? '';
+                    $attributes =
+                        $matches[2] ?? '';
 
                     $href = null;
 
@@ -93,7 +102,10 @@ final class RichTextSanitizer
                             $hrefMatch
                         )
                     ) {
-                        $candidate = trim($hrefMatch[2]);
+                        $candidate =
+                            trim(
+                                $hrefMatch[2]
+                            );
 
                         if (
                             preg_match(
@@ -101,7 +113,8 @@ final class RichTextSanitizer
                                 $candidate
                             )
                         ) {
-                            $href = $candidate;
+                            $href =
+                                $candidate;
                         }
                     }
 
@@ -109,7 +122,9 @@ final class RichTextSanitizer
                         return '<a href="'
                             . htmlspecialchars(
                                 $href,
-                                ENT_QUOTES | ENT_SUBSTITUTE,
+                                ENT_QUOTES
+                                |
+                                ENT_SUBSTITUTE,
                                 'UTF-8'
                             )
                             . '" target="_blank" rel="noopener noreferrer">';
@@ -118,59 +133,81 @@ final class RichTextSanitizer
                     return '<a>';
                 }
 
-                return '<' . $tag . '>';
+                return '<'
+                    . $tag
+                    . '>';
             },
 
             $html
         ) ?? '';
 
-
         return trim($html);
     }
-
 
     /*
     |--------------------------------------------------------------------------
     | Get Visible Plain Text
     |--------------------------------------------------------------------------
     |
-    | Summernote sends formatted HTML. This method converts that HTML into
-    | visible text for validation and character counting.
+    | Summernote sends HTML.
+    |
+    | This converts the HTML into what the user actually sees so that
+    | formatting tags do not count toward the 20,000-character limit.
     |
     */
 
-    public static function plainText(?string $html): string
-    {
-        $html = (string) $html;
+    public static function plainText(
+        ?string $html
+    ): string {
+        $html =
+            (string) $html;
 
         /*
-         * Add line breaks before removing block-level tags so words from
-         * different paragraphs and list items are not joined together.
-         */
+        |--------------------------------------------------------------------------
+        | Preserve Logical Line Breaks
+        |--------------------------------------------------------------------------
+        */
+
         $html = preg_replace(
             '#<(br\s*/?|/p|/li|/h[2-5]|/tr)>#i',
             "\n",
             $html
         ) ?? $html;
 
-        $text = html_entity_decode(
-            strip_tags($html),
-            ENT_QUOTES | ENT_HTML5,
-            'UTF-8'
-        );
+        /*
+        |--------------------------------------------------------------------------
+        | Remove HTML
+        |--------------------------------------------------------------------------
+        */
+
+        $text =
+            html_entity_decode(
+                strip_tags($html),
+                ENT_QUOTES
+                |
+                ENT_HTML5,
+                'UTF-8'
+            );
 
         /*
-         * Convert non-breaking spaces to regular spaces.
-         */
-        $text = str_replace(
-            "\u{00A0}",
-            ' ',
-            $text
-        );
+        |--------------------------------------------------------------------------
+        | Convert Non-breaking Spaces
+        |--------------------------------------------------------------------------
+        */
+
+        $text =
+            str_replace(
+                "\u{00A0}",
+                ' ',
+                $text
+            );
 
         /*
-         * Remove invisible zero-width spaces that Summernote may insert.
-         */
+        |--------------------------------------------------------------------------
+        | Remove Zero-width Spaces
+        |--------------------------------------------------------------------------
+        */
+
         $text = preg_replace(
             '/\x{200B}/u',
             '',
@@ -180,24 +217,33 @@ final class RichTextSanitizer
         return trim($text);
     }
 
-
     /*
     |--------------------------------------------------------------------------
-    | Count Visible Characters
+    | Count Actual Visible Characters
     |--------------------------------------------------------------------------
     */
 
-    public static function textLength(?string $html): int
-    {
-        $text = self::plainText($html);
+    public static function textLength(
+        ?string $html
+    ): int {
+        $text =
+            self::plainText(
+                $html
+            );
 
-        if (function_exists('mb_strlen')) {
+        if (
+            function_exists(
+                'mb_strlen'
+            )
+        ) {
             return mb_strlen(
                 $text,
                 'UTF-8'
             );
         }
 
-        return strlen($text);
+        return strlen(
+            $text
+        );
     }
 }

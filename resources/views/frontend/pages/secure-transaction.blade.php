@@ -290,7 +290,7 @@
 
                     <div class="st-description">
 
-                        {!! nl2br(e($transaction->description)) !!}
+                            {!! $transaction->safe_description_html !!}
 
                     </div>
 
@@ -1322,11 +1322,302 @@
 
 
             .st-description {
+                width: 100%;
+
                 color: #536159;
 
                 font-size: 12px;
 
                 line-height: 1.75;
+
+                overflow-wrap: anywhere;
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Rich Text - Paragraph
+            |--------------------------------------------------------------------------
+            */
+
+            .st-description p {
+                margin: 0 0 10px;
+            }
+
+
+            .st-description p:last-child {
+                margin-bottom: 0;
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Rich Text - Headings
+            |--------------------------------------------------------------------------
+            */
+
+            .st-description h2,
+            .st-description h3,
+            .st-description h4,
+            .st-description h5 {
+                margin: 18px 0 9px;
+
+                color: #18231D;
+
+                font-family:
+                    'Bricolage Grotesque',
+                    sans-serif;
+
+                font-weight: 800;
+
+                line-height: 1.35;
+            }
+
+
+            .st-description h2 {
+                font-size: 18px;
+            }
+
+
+            .st-description h3 {
+                font-size: 16px;
+            }
+
+
+            .st-description h4 {
+                font-size: 14px;
+            }
+
+
+            .st-description h5 {
+                font-size: 13px;
+            }
+
+
+            .st-description > h2:first-child,
+            .st-description > h3:first-child,
+            .st-description > h4:first-child,
+            .st-description > h5:first-child {
+                margin-top: 0;
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Rich Text - Lists
+            |--------------------------------------------------------------------------
+            */
+
+            .st-description ul,
+            .st-description ol {
+                margin: 8px 0 12px;
+
+                padding-left: 22px;
+            }
+
+
+            .st-description ul {
+                list-style: disc;
+            }
+
+
+            .st-description ol {
+                list-style: decimal;
+            }
+
+
+            .st-description li {
+                margin-bottom: 4px;
+
+                color: #536159;
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Rich Text - Links
+            |--------------------------------------------------------------------------
+            */
+
+            .st-description a {
+                color: #079455;
+
+                font-weight: 600;
+
+                text-decoration: underline;
+
+                text-underline-offset: 2px;
+            }
+
+
+            .st-description a:hover {
+                color: #087443;
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Rich Text - Blockquote
+            |--------------------------------------------------------------------------
+            */
+
+            .st-description blockquote {
+                margin: 12px 0;
+
+                padding: 10px 13px;
+
+                border-left: 3px solid #12B76A;
+
+                border-radius: 0 7px 7px 0;
+
+                background: #F5FAF7;
+
+                color: #526158;
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Rich Text - Horizontal Rule
+            |--------------------------------------------------------------------------
+            */
+
+            .st-description hr {
+                margin: 16px 0;
+
+                border: 0;
+
+                border-top: 1px solid #E2E8E5;
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Rich Text - Table
+            |--------------------------------------------------------------------------
+            */
+
+            .st-description table {
+                width: 100%;
+
+                margin: 12px 0;
+
+                border-collapse: collapse;
+
+                border-spacing: 0;
+
+                border: 1px solid #DDE6E1;
+
+                border-radius: 8px;
+
+                overflow: hidden;
+
+                background: #FFFFFF;
+            }
+
+
+            .st-description thead {
+                background: #F4F8F6;
+            }
+
+
+            .st-description th,
+            .st-description td {
+                padding: 9px 11px;
+
+                border: 1px solid #E1E8E4;
+
+                color: #536159;
+
+                font-size: 11px;
+
+                line-height: 1.5;
+
+                text-align: left;
+
+                vertical-align: top;
+
+                word-break: break-word;
+            }
+
+
+            .st-description th {
+                background: #F4F8F6;
+
+                color: #25332B;
+
+                font-weight: 800;
+            }
+
+
+            .st-description tr:nth-child(even) td {
+                background: #FAFCFB;
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Rich Text - Text Formatting
+            |--------------------------------------------------------------------------
+            */
+
+            .st-description strong,
+            .st-description b {
+                color: #27342D;
+
+                font-weight: 800;
+            }
+
+
+            .st-description em,
+            .st-description i {
+                font-style: italic;
+            }
+
+
+            .st-description u {
+                text-decoration: underline;
+            }
+
+
+            .st-description s {
+                text-decoration: line-through;
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Rich Text - Prevent Empty Element Spacing
+            |--------------------------------------------------------------------------
+            */
+
+            .st-description > *:first-child {
+                margin-top: 0;
+            }
+
+
+            .st-description > *:last-child {
+                margin-bottom: 0;
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Rich Text - Mobile Table
+            |--------------------------------------------------------------------------
+            */
+
+            @media (max-width: 650px) {
+
+                .st-description {
+                    overflow-x: auto;
+                }
+
+
+                .st-description table {
+                    min-width: 500px;
+                }
+
             }
 
 

@@ -240,16 +240,21 @@
                 </h2>
 
                 <p class="dashboard-muted">
+
                     Seller:
                     {{ $featuredSellerName }}
 
                     <span>·</span>
 
-                    {{ $featuredTransaction->delivery_note ?: 'Seller-arranged delivery' }}
+                    {{
+                        $featuredTransaction->plain_delivery_note
+                            ?: 'Seller-arranged delivery'
+                    }}
 
                     <span>·</span>
 
                     {{ $featuredTransaction->reference }}
+
                 </p>
 
                 <p class="buyer-action-description">
