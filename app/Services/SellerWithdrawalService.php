@@ -197,7 +197,34 @@ class SellerWithdrawalService
                                 'Add, verify, and activate a bank account before withdrawing funds.',
                         ]);
                     }
+                    if (
+                        (int)
+                        $kyc
+                            ->seller_withdrawal_account_id
 
+                        !==
+
+                        (int)
+                        $account
+                            ->id
+
+                        ||
+
+                        $kyc
+                            ->bank_name_match
+
+                        !==
+
+                        true
+                    ) {
+
+                        throw ValidationException::withMessages([
+
+                            'amount' =>
+                                'Your active withdrawal bank has not been verified against your BVN. Complete Paystack identity verification for this bank first.',
+
+                        ]);
+                    }
 
                     /*
                     |--------------------------------------------------------------------------

@@ -24,126 +24,222 @@ class SellerKycVerification extends Model
 
 
     protected $fillable = [
+
         'seller_id',
 
         'legal_name',
+
         'date_of_birth',
+
         'country_code',
 
         'id_type',
+
         'id_number',
 
         'document_front_path',
+
         'document_back_path',
+
         'selfie_path',
 
         'status',
 
         'verification_method',
+
         'provider',
+
         'provider_environment',
+
         'provider_status',
 
+        /*
+        |--------------------------------------------------------------------------
+        | Paystack
+        |--------------------------------------------------------------------------
+        */
+
+        'paystack_customer_code',
+
+        'paystack_customer_id',
+
+        'paystack_identification_status',
+
+        'paystack_identification_requested_at',
+
+        'paystack_identification_completed_at',
+
+        /*
+        |--------------------------------------------------------------------------
+        | Verified Identity
+        |--------------------------------------------------------------------------
+        */
+
         'identity_first_name',
+
         'identity_middle_name',
+
         'identity_last_name',
+
         'identity_date_of_birth',
 
+        /*
+        |--------------------------------------------------------------------------
+        | Legacy Automated Checks
+        |--------------------------------------------------------------------------
+        */
+
         'liveness_passed',
+
         'liveness_probability',
 
         'face_match',
+
         'face_confidence',
 
         'name_match',
+
         'dob_match',
+
         'bank_name_match',
+
+        /*
+        |--------------------------------------------------------------------------
+        | Bank Used For KYC
+        |--------------------------------------------------------------------------
+        */
 
         'seller_withdrawal_account_id',
 
+        /*
+        |--------------------------------------------------------------------------
+        | Failure
+        |--------------------------------------------------------------------------
+        */
+
         'failure_code',
+
         'failure_message',
 
         'provider_response',
 
         'verification_attempts',
+
         'last_verification_attempt_at',
 
         'rejection_reason',
 
+        /*
+        |--------------------------------------------------------------------------
+        | Review / Audit
+        |--------------------------------------------------------------------------
+        */
+
         'reviewed_by',
+
         'submitted_at',
+
         'reviewed_at',
 
         'approved_at',
+
         'rejected_at',
 
         'auto_verified_at',
+
     ];
 
 
     protected $hidden = [
+
         'id_number_encrypted',
+
     ];
 
 
     protected $casts = [
+
         'date_of_birth' =>
             'date',
+
 
         'identity_date_of_birth' =>
             'date',
 
+
         'liveness_passed' =>
             'boolean',
+
 
         'liveness_probability' =>
             'float',
 
+
         'face_match' =>
             'boolean',
+
 
         'face_confidence' =>
             'float',
 
+
         'name_match' =>
             'boolean',
+
 
         'dob_match' =>
             'boolean',
 
+
         'bank_name_match' =>
             'boolean',
+
 
         'provider_response' =>
             'array',
 
+
         'verification_attempts' =>
             'integer',
+
 
         'submitted_at' =>
             'datetime',
 
+
         'reviewed_at' =>
             'datetime',
+
 
         'approved_at' =>
             'datetime',
 
+
         'rejected_at' =>
             'datetime',
+
 
         'auto_verified_at' =>
             'datetime',
 
+
         'last_verification_attempt_at' =>
             'datetime',
+
+
+        'paystack_identification_requested_at' =>
+            'datetime',
+
+
+        'paystack_identification_completed_at' =>
+            'datetime',
+
     ];
 
 
     /*
     |--------------------------------------------------------------------------
-    | Relationships
+    | Seller
     |--------------------------------------------------------------------------
     */
 
@@ -156,6 +252,12 @@ class SellerKycVerification extends Model
     }
 
 
+    /*
+    |--------------------------------------------------------------------------
+    | Reviewer
+    |--------------------------------------------------------------------------
+    */
+
     public function reviewer()
     {
         return $this->belongsTo(
@@ -164,6 +266,12 @@ class SellerKycVerification extends Model
         );
     }
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Bank Used During Identity Verification
+    |--------------------------------------------------------------------------
+    */
 
     public function withdrawalAccount()
     {
@@ -176,7 +284,7 @@ class SellerKycVerification extends Model
 
     /*
     |--------------------------------------------------------------------------
-    | Encrypt Identity Number
+    | Encrypt BVN
     |--------------------------------------------------------------------------
     */
 
@@ -186,7 +294,7 @@ class SellerKycVerification extends Model
 
         $number =
             preg_replace(
-                '/\s+/',
+                '/\D+/',
                 '',
                 trim(
                     (string)
@@ -213,6 +321,12 @@ class SellerKycVerification extends Model
     }
 
 
+    /*
+    |--------------------------------------------------------------------------
+    | Decrypt BVN
+    |--------------------------------------------------------------------------
+    */
+
     public function getIdNumberAttribute(): ?string
     {
         if (
@@ -237,22 +351,44 @@ class SellerKycVerification extends Model
 
     /*
     |--------------------------------------------------------------------------
-    | Official Verified Full Name
+    | Verified Full Name
     |--------------------------------------------------------------------------
     */
 
     public function getVerifiedFullNameAttribute(): string
     {
-        return trim(
-            implode(
-                ' ',
-                array_filter([
-                    $this->identity_first_name,
-                    $this->identity_middle_name,
-                    $this->identity_last_name,
-                ])
-            )
-        );
+        $verified =
+            trim(
+                implode(
+                    ' ',
+                    array_filter([
+
+                        $this
+                            ->identity_first_name,
+
+                        $this
+                            ->identity_middle_name,
+
+                        $this
+                            ->identity_last_name,
+
+                    ])
+                )
+            );
+
+
+        /*
+         * If fetching the final Paystack customer failed,
+         * webhook success itself is still valid.
+         *
+         * Fall back to seller-submitted legal name.
+         */
+
+        return $verified !== ''
+            ? $verified
+            : (string)
+                $this
+                    ->legal_name;
     }
 
 
@@ -282,6 +418,7 @@ class SellerKycVerification extends Model
 
             default =>
                 'Not verified',
+
         };
     }
 }

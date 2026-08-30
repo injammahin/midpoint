@@ -882,7 +882,7 @@ Route::post(
 
             /*
             |--------------------------------------------------------------------------
-            | Seller KYC
+            | Seller Paystack KYC
             |--------------------------------------------------------------------------
             */
 
@@ -894,6 +894,17 @@ Route::post(
                 ]
             )->name(
                 'wallet.kyc.store'
+            );
+
+
+            Route::get(
+                '/wallet/kyc/status',
+                [
+                    SellerKycController::class,
+                    'status',
+                ]
+            )->name(
+                'wallet.kyc.status'
             );
 
             /*
@@ -1424,15 +1435,15 @@ Route::post(
 | Admin Panel
 |--------------------------------------------------------------------------
 */
-Route::post(
-    '/wallet/kyc',
-    [
-        SellerKycController::class,
-        'store',
-    ]
-)->name(
-    'wallet.kyc.store'
-);
+// Route::post(
+//     '/wallet/kyc',
+//     [
+//         SellerKycController::class,
+//         'store',
+//     ]
+// )->name(
+//     'wallet.kyc.store'
+// );
 
 Route::prefix('admin')
     ->name('admin.')

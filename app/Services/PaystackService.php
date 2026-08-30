@@ -4,7 +4,6 @@ namespace App\Services;
 
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
-
 use RuntimeException;
 
 class PaystackService
@@ -16,12 +15,6 @@ class PaystackService
 
     public function __construct()
     {
-        /*
-        |--------------------------------------------------------------------------
-        | API URL
-        |--------------------------------------------------------------------------
-        */
-
         $this->baseUrl =
             rtrim(
                 (string) config(
@@ -32,12 +25,6 @@ class PaystackService
             );
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | Secret Key
-        |--------------------------------------------------------------------------
-        */
-
         $this->secretKey =
             trim(
                 (string) config(
@@ -47,7 +34,6 @@ class PaystackService
 
 
         if ($this->secretKey === '') {
-
             throw new RuntimeException(
                 'Paystack secret key is not configured.'
             );
@@ -69,18 +55,13 @@ class PaystackService
             Http::withToken(
                 $this->secretKey
             )
-
                 ->acceptJson()
-
                 ->asJson()
-
                 ->timeout(30)
-
                 ->retry(
                     2,
                     300
                 )
-
                 ->post(
                     $this->baseUrl
                     .
@@ -113,7 +94,6 @@ class PaystackService
 
 
         if ($reference === '') {
-
             throw new RuntimeException(
                 'Paystack transaction reference is missing.'
             );
@@ -124,16 +104,12 @@ class PaystackService
             Http::withToken(
                 $this->secretKey
             )
-
                 ->acceptJson()
-
                 ->timeout(30)
-
                 ->retry(
                     2,
                     300
                 )
-
                 ->get(
                     $this->baseUrl
                     .
@@ -150,36 +126,189 @@ class PaystackService
             'Unable to verify payment.'
         );
     }
-public function listBanks(
-    string $country = 'nigeria'
-): array {
-
-    $banks = [];
-    $next = null;
 
 
-    for (
-        $page = 0;
-        $page < 5;
-        $page++
-    ) {
+    /*
+    |--------------------------------------------------------------------------
+    | List Banks
+    |--------------------------------------------------------------------------
+    */
 
-        $query = [
-            'country' =>
-                $country,
+    public function listBanks(
+        string $country = 'nigeria'
+    ): array {
 
-            'perPage' =>
-                100,
+        $banks = [];
 
-            'use_cursor' =>
-                'true',
-        ];
+        $next = null;
 
 
-        if ($next) {
+        for (
+            $page = 0;
+            $page < 5;
+            $page++
+        ) {
 
-            $query['next'] =
-                $next;
+            $query = [
+
+                'country' =>
+                    $country,
+
+                'perPage' =>
+                    100,
+
+                'use_cursor' =>
+                    'true',
+
+            ];
+
+
+            if ($next) {
+                $query['next'] =
+                    $next;
+            }
+
+
+            $response =
+                Http::withToken(
+                    $this->secretKey
+                )
+                    ->acceptJson()
+                    ->timeout(30)
+                    ->retry(
+                        2,
+                        300
+                    )
+                    ->get(
+                        $this->baseUrl
+                        .
+                        '/bank',
+                        $query
+                    );
+
+
+            $data =
+                $this->extractData(
+                    $response,
+                    'Unable to load supported banks.'
+                );
+
+
+            $banks =
+                array_merge(
+                    $banks,
+                    $data
+                );
+
+
+            $json =
+                $response->json();
+
+
+            $next =
+                is_array(
+                    $json
+                )
+                    ? data_get(
+                        $json,
+                        'meta.next'
+                    )
+                    : null;
+
+
+            if (!$next) {
+                break;
+            }
+        }
+
+
+        return collect(
+            $banks
+        )
+            ->filter(
+                fn ($bank) =>
+                    is_array(
+                        $bank
+                    )
+                    &&
+                    !empty(
+                        $bank['code']
+                    )
+            )
+            ->unique(
+                fn ($bank) =>
+                    (string)
+                    $bank['code']
+            )
+            ->values()
+            ->all();
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Resolve Bank Account
+    |--------------------------------------------------------------------------
+    */
+
+    public function resolveBankAccount(
+        string $accountNumber,
+        string $bankCode
+    ): array {
+
+        $response =
+            Http::withToken(
+                $this->secretKey
+            )
+                ->acceptJson()
+                ->timeout(30)
+                ->retry(
+                    2,
+                    300
+                )
+                ->get(
+                    $this->baseUrl
+                    .
+                    '/bank/resolve',
+                    [
+
+                        'account_number' =>
+                            $accountNumber,
+
+                        'bank_code' =>
+                            $bankCode,
+
+                    ]
+                );
+
+
+        return $this->extractData(
+            $response,
+            'Unable to verify this bank account.'
+        );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Fetch Customer
+    |--------------------------------------------------------------------------
+    */
+
+    public function fetchCustomer(
+        string $emailOrCode
+    ): ?array {
+
+        $emailOrCode =
+            trim(
+                $emailOrCode
+            );
+
+
+        if ($emailOrCode === '') {
+            throw new RuntimeException(
+                'Paystack customer email or code is missing.'
+            );
         }
 
 
@@ -187,134 +316,193 @@ public function listBanks(
             Http::withToken(
                 $this->secretKey
             )
-
                 ->acceptJson()
-
-                ->timeout(
-                    30
-                )
-
-                ->retry(
-                    2,
-                    300
-                )
-
+                ->timeout(30)
                 ->get(
                     $this->baseUrl
                     .
-                    '/bank',
-                    $query
+                    '/customer/'
+                    .
+                    rawurlencode(
+                        $emailOrCode
+                    )
                 );
 
 
-        $data =
-            $this->extractData(
-                $response,
-                'Unable to load supported banks.'
-            );
+        /*
+        |--------------------------------------------------------------------------
+        | Customer Does Not Exist
+        |--------------------------------------------------------------------------
+        */
 
-
-        $banks =
-            array_merge(
-                $banks,
-                $data
-            );
-
-
-        $json =
-            $response->json();
-
-
-        $next =
-            is_array(
-                $json
-            )
-
-                ? data_get(
-                    $json,
-                    'meta.next'
-                )
-
-                : null;
-
-
-        if (!$next) {
-            break;
+        if (
+            $response->status()
+            ===
+            404
+        ) {
+            return null;
         }
+
+
+        return $this->extractData(
+            $response,
+            'Unable to fetch Paystack customer.'
+        );
     }
 
 
-    return collect(
-        $banks
-    )
-        ->filter(
-            fn ($bank) =>
-                is_array(
-                    $bank
-                )
-                &&
-                !empty(
-                    $bank['code']
-                )
-        )
+    /*
+    |--------------------------------------------------------------------------
+    | Create Customer
+    |--------------------------------------------------------------------------
+    */
 
-        ->unique(
-            fn ($bank) =>
-                (string) $bank['code']
-        )
+    public function createCustomer(
+        array $payload
+    ): array {
 
-        ->values()
-
-        ->all();
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Resolve Bank Account
-|--------------------------------------------------------------------------
-*/
-
-public function resolveBankAccount(
-    string $accountNumber,
-    string $bankCode
-): array {
-
-    $response =
-        Http::withToken(
-            $this->secretKey
-        )
-
-            ->acceptJson()
-
-            ->timeout(
-                30
+        $response =
+            Http::withToken(
+                $this->secretKey
             )
+                ->acceptJson()
+                ->asJson()
+                ->timeout(30)
+                ->post(
+                    $this->baseUrl
+                    .
+                    '/customer',
+                    $payload
+                );
 
-            ->retry(
-                2,
-                300
-            )
 
-            ->get(
-                $this->baseUrl
-                .
-                '/bank/resolve',
-                [
-                    'account_number' =>
-                        $accountNumber,
+        return $this->extractData(
+            $response,
+            'Unable to create Paystack customer.'
+        );
+    }
 
-                    'bank_code' =>
-                        $bankCode,
-                ]
+
+    /*
+    |--------------------------------------------------------------------------
+    | Update Customer
+    |--------------------------------------------------------------------------
+    */
+
+    public function updateCustomer(
+        string $customerCode,
+        array $payload
+    ): array {
+
+        $customerCode =
+            trim(
+                $customerCode
             );
 
 
-    return $this->extractData(
-        $response,
-        'Unable to verify this bank account.'
-    );
-}
+        if ($customerCode === '') {
+            throw new RuntimeException(
+                'Paystack customer code is missing.'
+            );
+        }
+
+
+        $response =
+            Http::withToken(
+                $this->secretKey
+            )
+                ->acceptJson()
+                ->asJson()
+                ->timeout(30)
+                ->put(
+                    $this->baseUrl
+                    .
+                    '/customer/'
+                    .
+                    rawurlencode(
+                        $customerCode
+                    ),
+                    $payload
+                );
+
+
+        return $this->extractData(
+            $response,
+            'Unable to update Paystack customer.'
+        );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Validate Customer Identity
+    |--------------------------------------------------------------------------
+    |
+    | Paystack performs this asynchronously.
+    |
+    | The final status comes through:
+    |
+    | customeridentification.success
+    | customeridentification.failed
+    |
+    */
+
+    public function validateCustomerIdentity(
+        string $customerCode,
+        array $payload
+    ): array {
+
+        $customerCode =
+            trim(
+                $customerCode
+            );
+
+
+        if ($customerCode === '') {
+            throw new RuntimeException(
+                'Paystack customer code is missing.'
+            );
+        }
+
+
+        $response =
+            Http::withToken(
+                $this->secretKey
+            )
+                ->acceptJson()
+                ->asJson()
+                ->timeout(30)
+                ->post(
+                    $this->baseUrl
+                    .
+                    '/customer/'
+                    .
+                    rawurlencode(
+                        $customerCode
+                    )
+                    .
+                    '/identification',
+                    $payload
+                );
+
+
+        /*
+         * This endpoint normally returns:
+         *
+         * {
+         *     "status": true,
+         *     "message": "Customer Identification in progress"
+         * }
+         *
+         * There is no data object.
+         */
+
+        return $this->extractEnvelope(
+            $response,
+            'Unable to start Paystack identity verification.'
+        );
+    }
+
 
     /*
     |--------------------------------------------------------------------------
@@ -330,18 +518,13 @@ public function resolveBankAccount(
             Http::withToken(
                 $this->secretKey
             )
-
                 ->acceptJson()
-
                 ->asJson()
-
                 ->timeout(30)
-
                 ->retry(
                     2,
                     300
                 )
-
                 ->post(
                     $this->baseUrl
                     .
@@ -359,7 +542,7 @@ public function resolveBankAccount(
 
     /*
     |--------------------------------------------------------------------------
-    | Initiate Seller Transfer
+    | Initiate Transfer
     |--------------------------------------------------------------------------
     */
 
@@ -371,18 +554,13 @@ public function resolveBankAccount(
             Http::withToken(
                 $this->secretKey
             )
-
                 ->acceptJson()
-
                 ->asJson()
-
                 ->timeout(30)
-
                 ->retry(
                     2,
                     300
                 )
-
                 ->post(
                     $this->baseUrl
                     .
@@ -400,7 +578,7 @@ public function resolveBankAccount(
 
     /*
     |--------------------------------------------------------------------------
-    | Verify Seller Transfer
+    | Verify Transfer
     |--------------------------------------------------------------------------
     */
 
@@ -408,20 +586,29 @@ public function resolveBankAccount(
         string $reference
     ): array {
 
+        $reference =
+            trim(
+                $reference
+            );
+
+
+        if ($reference === '') {
+            throw new RuntimeException(
+                'Paystack transfer reference is missing.'
+            );
+        }
+
+
         $response =
             Http::withToken(
                 $this->secretKey
             )
-
                 ->acceptJson()
-
                 ->timeout(30)
-
                 ->retry(
                     2,
                     300
                 )
-
                 ->get(
                     $this->baseUrl
                     .
@@ -452,7 +639,6 @@ public function resolveBankAccount(
     ): bool {
 
         if (!$signature) {
-
             return false;
         }
 
@@ -476,11 +662,6 @@ public function resolveBankAccount(
     |--------------------------------------------------------------------------
     | Secret Key Fingerprint
     |--------------------------------------------------------------------------
-    |
-    | Safe for logs.
-    |
-    | This DOES NOT reveal the actual Paystack secret key.
-    |
     */
 
     public function secretKeyFingerprint(): string
@@ -498,11 +679,67 @@ public function resolveBankAccount(
 
     /*
     |--------------------------------------------------------------------------
-    | Extract Paystack Response Data
+    | Extract Data
     |--------------------------------------------------------------------------
     */
 
     protected function extractData(
+        Response $response,
+        string $fallbackMessage
+    ): array {
+
+        $json =
+            $this->validatedJson(
+                $response,
+                $fallbackMessage
+            );
+
+
+        if (
+            !isset(
+                $json['data']
+            )
+            ||
+            !is_array(
+                $json['data']
+            )
+        ) {
+
+            throw new RuntimeException(
+                $fallbackMessage
+            );
+        }
+
+
+        return $json['data'];
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Extract Envelope
+    |--------------------------------------------------------------------------
+    */
+
+    protected function extractEnvelope(
+        Response $response,
+        string $fallbackMessage
+    ): array {
+
+        return $this->validatedJson(
+            $response,
+            $fallbackMessage
+        );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Validate Paystack Response
+    |--------------------------------------------------------------------------
+    */
+
+    protected function validatedJson(
         Response $response,
         string $fallbackMessage
     ): array {
@@ -529,13 +766,11 @@ public function resolveBankAccount(
                 is_array(
                     $json
                 )
-
                     ? (string) (
                         $json['message']
                         ??
                         $fallbackMessage
                     )
-
                     : $fallbackMessage;
 
 
@@ -551,22 +786,6 @@ public function resolveBankAccount(
         }
 
 
-        if (
-            !isset(
-                $json['data']
-            )
-            ||
-            !is_array(
-                $json['data']
-            )
-        ) {
-
-            throw new RuntimeException(
-                $fallbackMessage
-            );
-        }
-
-
-        return $json['data'];
+        return $json;
     }
 }

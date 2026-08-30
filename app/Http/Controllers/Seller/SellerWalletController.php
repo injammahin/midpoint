@@ -146,9 +146,29 @@ class SellerWalletController extends Controller
 
             &&
 
-            $kyc->bank_name_match
-            !==
-            false;
+            /*
+            * Paystack BVN verification is tied to one exact
+            * withdrawal bank account.
+            */
+
+            (int)
+            $kyc
+                ->seller_withdrawal_account_id
+
+            ===
+
+            (int)
+            $activeAccount
+                ->id
+
+            &&
+
+            $kyc
+                ->bank_name_match
+
+            ===
+
+            true;
 
 
         /*

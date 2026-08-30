@@ -21,7 +21,7 @@ use App\Services\MarketplaceCheckoutPaymentService;
 use RuntimeException;
 use Throwable;
 use App\Services\SellerWithdrawalService;
-
+use App\Services\PaystackSellerKycService;
 
 class PaystackPaymentController extends Controller
 {
@@ -654,7 +654,75 @@ class PaystackPaymentController extends Controller
             ??
             null;
 
+        if (
+            in_array(
+                $eventName,
+                [
+                    'customeridentification.success',
+                    'customeridentification.failed',
+                ],
+                true
+            )
+        ) {
 
+            try {
+
+                app(
+                    PaystackSellerKycService::class
+                )
+                    ->handleWebhook(
+                        $eventName,
+                        $event[
+                            'data'
+                        ]
+                        ??
+                        []
+                    );
+
+
+                return response(
+                    'OK',
+                    200
+                );
+
+
+            } catch (
+                Throwable $exception
+            ) {
+
+                Log::error(
+                    'Paystack seller KYC webhook processing failed.',
+                    [
+
+                        'event' =>
+                            $eventName,
+
+
+                        'customer_code' =>
+                            data_get(
+                                $event,
+                                'data.customer_code'
+                            ),
+
+
+                        'error' =>
+                            $exception
+                                ->getMessage(),
+
+                    ]
+                );
+
+
+                /*
+                * Non-200 allows Paystack to retry.
+                */
+
+                return response(
+                    'KYC processing failed',
+                    500
+                );
+            }
+        }
         /*
         |--------------------------------------------------------------------------
         | Seller Payout Events

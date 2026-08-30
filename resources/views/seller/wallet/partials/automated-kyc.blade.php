@@ -1,11 +1,178 @@
 {{-- ================================================================
-    AUTOMATED KYC
+    PAYSTACK IDENTITY VERIFICATION
 ================================================================= --}}
+
+@php
+
+    /*
+    |--------------------------------------------------------------------------
+    | Is Existing KYC Valid For Current Active Bank?
+    |--------------------------------------------------------------------------
+    */
+
+    $kycMatchesActiveBank =
+
+        $kyc
+
+        &&
+
+        $activeAccount
+
+        &&
+
+        (int)
+        $kyc
+            ->seller_withdrawal_account_id
+
+        ===
+
+        (int)
+        $activeAccount
+            ->id
+
+        &&
+
+        $kyc
+            ->bank_name_match
+
+        ===
+
+        true;
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Fully Verified
+    |--------------------------------------------------------------------------
+    */
+
+    $kycFullyVerified =
+
+        $kyc
+
+        &&
+
+        $kyc->status
+        ===
+        \App\Models\SellerKycVerification::STATUS_APPROVED
+
+        &&
+
+        $kycMatchesActiveBank;
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Processing For Current Bank
+    |--------------------------------------------------------------------------
+    */
+
+    $kycProcessing =
+
+        $kyc
+
+        &&
+
+        $kyc->status
+        ===
+        \App\Models\SellerKycVerification::STATUS_PROCESSING
+
+        &&
+
+        $activeAccount
+
+        &&
+
+        (int)
+        $kyc
+            ->seller_withdrawal_account_id
+
+        ===
+
+        (int)
+        $activeAccount
+            ->id;
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Prefill Seller Name
+    |--------------------------------------------------------------------------
+    */
+
+    $sourceName =
+        trim(
+            $kyc
+                ? $kyc->legal_name
+                : $seller->name
+        );
+
+
+    $nameParts =
+        preg_split(
+            '/\s+/',
+            $sourceName,
+            -1,
+            PREG_SPLIT_NO_EMPTY
+        )
+        ?:
+        [];
+
+
+    $defaultFirstName =
+        $nameParts[0]
+        ??
+        '';
+
+
+    $defaultLastName =
+        count(
+            $nameParts
+        )
+        >
+        1
+
+            ? $nameParts[
+                count(
+                    $nameParts
+                )
+                -
+                1
+            ]
+
+            : '';
+
+
+    $defaultMiddleName =
+
+        count(
+            $nameParts
+        )
+        >
+        2
+
+            ? implode(
+                ' ',
+                array_slice(
+                    $nameParts,
+                    1,
+                    -1
+                )
+            )
+
+            : '';
+
+@endphp
+
 
 <section
     id="kyc"
     class="wallet-card"
 >
+
+    {{-- ============================================================
+        HEADER
+    ============================================================= --}}
 
     <div class="wallet-card-header">
 
@@ -17,22 +184,19 @@
 
 
             <p>
-                Verify your Nigerian identity automatically using
-                NIN or BVN and a live selfie.
-                No manual admin approval is required.
+
+                Verify your Nigerian identity through Paystack
+                using your BVN and your active verified withdrawal
+                bank account.
+
+                No selfie upload or manual admin approval is required.
+
             </p>
 
         </div>
 
 
-
-        @if(
-            $kyc
-            &&
-            $kyc->status
-            ===
-            \App\Models\SellerKycVerification::STATUS_APPROVED
-        )
+        @if($kycFullyVerified)
 
             <span class="wallet-badge wallet-badge-success">
 
@@ -43,13 +207,7 @@
             </span>
 
 
-        @elseif(
-            $kyc
-            &&
-            $kyc->status
-            ===
-            \App\Models\SellerKycVerification::STATUS_PROCESSING
-        )
+        @elseif($kycProcessing)
 
             <span class="wallet-badge wallet-badge-warning">
 
@@ -109,16 +267,10 @@
 
 
     {{-- ============================================================
-        APPROVED
+        SUCCESS
     ============================================================= --}}
 
-    @if(
-        $kyc
-        &&
-        $kyc->status
-        ===
-        \App\Models\SellerKycVerification::STATUS_APPROVED
-    )
+    @if($kycFullyVerified)
 
         <div class="wallet-alert wallet-alert-success">
 
@@ -128,13 +280,17 @@
             <div>
 
                 <strong>
-                    Identity verified automatically
+                    Identity and bank ownership verified by Paystack
                 </strong>
+
 
                 <br>
 
-                Your government identity, selfie and
-                withdrawal bank account passed verification.
+
+                Your BVN was successfully validated against your
+                active withdrawal bank account.
+
+                Withdrawals are now unlocked.
 
             </div>
 
@@ -148,7 +304,7 @@
                 grid-template-columns:
                     repeat(
                         auto-fit,
-                        minmax(160px, 1fr)
+                        minmax(170px,1fr)
                     );
                 gap:10px;
                 margin-top:15px;
@@ -156,7 +312,7 @@
         >
 
 
-            {{-- Government identity --}}
+            {{-- Verified identity --}}
 
             <div
                 style="
@@ -174,7 +330,7 @@
                         margin-bottom:5px;
                     "
                 >
-                    Government identity
+                    Verified identity
                 </small>
 
 
@@ -184,14 +340,16 @@
                         color:#183529;
                     "
                 >
+
                     {{ $kyc->verified_full_name }}
+
                 </strong>
 
             </div>
 
 
 
-            {{-- ID --}}
+            {{-- BVN --}}
 
             <div
                 style="
@@ -209,7 +367,7 @@
                         margin-bottom:5px;
                     "
                 >
-                    Identity
+                    BVN
                 </small>
 
 
@@ -220,9 +378,7 @@
                     "
                 >
 
-                    {{ strtoupper($kyc->id_type) }}
-
-                    ••••{{ $kyc->id_number_last4 }}
+                    •••••••{{ $kyc->id_number_last4 }}
 
                 </strong>
 
@@ -230,7 +386,7 @@
 
 
 
-            {{-- Face --}}
+            {{-- Verified Bank --}}
 
             <div
                 style="
@@ -248,7 +404,7 @@
                         margin-bottom:5px;
                     "
                 >
-                    Face match
+                    Verified bank
                 </small>
 
 
@@ -261,10 +417,9 @@
 
                     <i class="fa-solid fa-circle-check"></i>
 
-                    {{ number_format(
-                        (float) $kyc->face_confidence,
-                        1
-                    ) }}%
+                    {{ $activeAccount->bank_name }}
+
+                    ••••{{ $activeAccount->account_number_last4 }}
 
                 </strong>
 
@@ -272,7 +427,7 @@
 
 
 
-            {{-- Liveness --}}
+            {{-- Provider --}}
 
             <div
                 style="
@@ -290,7 +445,7 @@
                         margin-bottom:5px;
                     "
                 >
-                    Liveness
+                    Provider
                 </small>
 
 
@@ -303,70 +458,9 @@
 
                     <i class="fa-solid fa-circle-check"></i>
 
-                    {{ number_format(
-                        (float) $kyc->liveness_probability,
-                        1
-                    ) }}%
+                    Paystack verified
 
                 </strong>
-
-            </div>
-
-
-
-            {{-- Bank --}}
-
-            <div
-                style="
-                    padding:12px;
-                    background:#f7faf8;
-                    border:1px solid #e4ebe7;
-                    border-radius:11px;
-                "
-            >
-
-                <small
-                    style="
-                        display:block;
-                        color:#7a8781;
-                        margin-bottom:5px;
-                    "
-                >
-                    Active bank ownership
-                </small>
-
-
-                @if($bankIdentityMatches)
-
-                    <strong
-                        style="
-                            font-size:11px;
-                            color:#087443;
-                        "
-                    >
-
-                        <i class="fa-solid fa-circle-check"></i>
-
-                        Matched
-
-                    </strong>
-
-                @else
-
-                    <strong
-                        style="
-                            font-size:11px;
-                            color:#c43838;
-                        "
-                    >
-
-                        <i class="fa-solid fa-circle-xmark"></i>
-
-                        Current bank mismatch
-
-                    </strong>
-
-                @endif
 
             </div>
 
@@ -374,9 +468,7 @@
 
 
 
-        @if(
-            $kyc->auto_verified_at
-        )
+        @if($kyc->auto_verified_at)
 
             <div
                 style="
@@ -388,11 +480,12 @@
 
                 Verified automatically on
 
-                {{ $kyc
-                    ->auto_verified_at
-                    ->format(
-                        'd M Y, h:i A'
-                    )
+                {{
+                    $kyc
+                        ->auto_verified_at
+                        ->format(
+                            'd M Y, h:i A'
+                        )
                 }}
 
             </div>
@@ -402,7 +495,7 @@
 
 
     {{-- ============================================================
-        NEED BANK FIRST
+        NO ACTIVE BANK
     ============================================================= --}}
 
     @elseif(!$activeAccount)
@@ -418,12 +511,16 @@
                     Add your withdrawal bank first.
                 </strong>
 
+
                 <br>
 
-                Your verified identity must also match
-                the owner of your active withdrawal bank account.
+
+                Paystack identity verification requires a verified
+                active bank account connected to your BVN.
+
 
                 <br><br>
+
 
                 <a
                     href="#bank-accounts"
@@ -432,8 +529,65 @@
                         font-weight:800;
                     "
                 >
+
                     Add bank account →
+
                 </a>
+
+            </div>
+
+        </div>
+
+
+
+    {{-- ============================================================
+        PROCESSING
+    ============================================================= --}}
+
+    @elseif($kycProcessing)
+
+        <div
+            class="wallet-alert wallet-alert-info"
+            id="paystackKycProcessingBox"
+        >
+
+            <i class="fa-solid fa-spinner fa-spin"></i>
+
+
+            <div>
+
+                <strong>
+                    Paystack is verifying your identity
+                </strong>
+
+
+                <br>
+
+
+                Paystack is checking the BVN against
+
+
+                <strong>
+                    {{ $activeAccount->account_name }}
+                </strong>
+
+
+                at
+
+
+                <strong>
+                    {{ $activeAccount->bank_name }}
+                </strong>
+
+
+                ••••{{ $activeAccount->account_number_last4 }}.
+
+
+                <br><br>
+
+
+                This page will automatically refresh when Paystack
+                returns the final verification result.
 
             </div>
 
@@ -448,7 +602,49 @@
     @else
 
 
-        {{-- Rejected --}}
+        {{-- Previous KYC belongs to different bank --}}
+
+        @if(
+            $kyc
+            &&
+            $kyc->status
+            ===
+            \App\Models\SellerKycVerification::STATUS_APPROVED
+            &&
+            !$kycMatchesActiveBank
+        )
+
+            <div class="wallet-alert wallet-alert-info">
+
+                <i class="fa-solid fa-building-columns"></i>
+
+
+                <div>
+
+                    <strong>
+                        Verify your newly active bank account.
+                    </strong>
+
+
+                    <br>
+
+
+                    Your previous identity verification was tied to
+                    another withdrawal account.
+
+                    For security, Paystack must validate your BVN
+                    against this newly active bank before withdrawals
+                    are unlocked again.
+
+                </div>
+
+            </div>
+
+        @endif
+
+
+
+        {{-- Failed --}}
 
         @if(
             $kyc
@@ -464,13 +660,22 @@
                     Verification was not successful
                 </strong>
 
-                <br><br>
-
-                {{ $kyc->failure_message }}
 
                 <br><br>
 
-                Check your information and submit again.
+
+                {{
+                    $kyc->failure_message
+                    ?:
+                    'Paystack could not verify the submitted BVN and bank account.'
+                }}
+
+
+                <br><br>
+
+
+                Check your name, BVN and active bank account,
+                then try again.
 
             </div>
 
@@ -478,7 +683,7 @@
 
 
 
-        {{-- Provider error --}}
+        {{-- Provider Error --}}
 
         @if(
             $kyc
@@ -495,12 +700,23 @@
 
                 <div>
 
-                    {{ $kyc->failure_message }}
+                    <strong>
+                        Verification could not be started.
+                    </strong>
+
 
                     <br>
 
+
+                    {{ $kyc->failure_message }}
+
+
+                    <br><br>
+
+
+                    You can retry below.
+
                     No admin approval is required.
-                    Simply retry the verification.
 
                 </div>
 
@@ -510,7 +726,7 @@
 
 
 
-        {{-- Active bank information --}}
+        {{-- Current Bank --}}
 
         <div class="wallet-alert wallet-alert-info">
 
@@ -519,17 +735,21 @@
 
             <div>
 
-                Your identity will also be compared with:
+                Paystack will validate your BVN against:
+
 
                 <strong>
                     {{ $activeAccount->account_name }}
                 </strong>
 
+
                 at
+
 
                 <strong>
                     {{ $activeAccount->bank_name }}
                 </strong>
+
 
                 ••••{{ $activeAccount->account_number_last4 }}
 
@@ -539,56 +759,114 @@
 
 
 
+        {{-- ========================================================
+            PAYSTACK KYC FORM
+        ========================================================= --}}
+
         <form
             method="POST"
             action="{{ route('seller.wallet.kyc.store') }}"
-            enctype="multipart/form-data"
-            id="automatedKycForm"
+            id="paystackKycForm"
         >
 
             @csrf
 
 
-
             <div class="wallet-form-grid">
 
 
-                {{-- Legal name --}}
+                {{-- First Name --}}
 
                 <div class="wallet-field">
 
-                    <label for="kycLegalName">
-                        Full legal name
+                    <label for="kycFirstName">
+                        First name
                     </label>
 
 
                     <input
-                        id="kycLegalName"
+                        id="kycFirstName"
                         type="text"
-                        name="legal_name"
+                        name="first_name"
                         value="{{
                             old(
-                                'legal_name',
-                                $kyc
-                                    ? $kyc->legal_name
-                                    : $seller->name
+                                'first_name',
+                                $defaultFirstName
                             )
                         }}"
-                        placeholder="Exactly as on your NIN/BVN"
+                        maxlength="100"
+                        autocomplete="given-name"
+                        placeholder="Exactly as registered on your BVN"
                         required
                     >
 
+                </div>
 
-                    <small
-                        style="
-                            display:block;
-                            margin-top:5px;
-                            color:#7c8882;
-                            font-size:9px;
-                        "
+
+
+                {{-- Middle Name --}}
+
+                <div class="wallet-field">
+
+                    <label for="kycMiddleName">
+
+                        Middle name
+
+                        <small
+                            style="
+                                font-weight:400;
+                                color:#89958f;
+                            "
+                        >
+                            Optional
+                        </small>
+
+                    </label>
+
+
+                    <input
+                        id="kycMiddleName"
+                        type="text"
+                        name="middle_name"
+                        value="{{
+                            old(
+                                'middle_name',
+                                $defaultMiddleName
+                            )
+                        }}"
+                        maxlength="100"
+                        autocomplete="additional-name"
+                        placeholder="If present on your BVN"
                     >
-                        Enter your government-registered name.
-                    </small>
+
+                </div>
+
+
+
+                {{-- Last Name --}}
+
+                <div class="wallet-field">
+
+                    <label for="kycLastName">
+                        Last name
+                    </label>
+
+
+                    <input
+                        id="kycLastName"
+                        type="text"
+                        name="last_name"
+                        value="{{
+                            old(
+                                'last_name',
+                                $defaultLastName
+                            )
+                        }}"
+                        maxlength="100"
+                        autocomplete="family-name"
+                        placeholder="Exactly as registered on your BVN"
+                        required
+                    >
 
                 </div>
 
@@ -615,100 +893,13 @@
                                 $kyc->date_of_birth
                                     ? $kyc
                                         ->date_of_birth
-                                        ->format('Y-m-d')
+                                        ->format(
+                                            'Y-m-d'
+                                        )
                                     : ''
                             )
                         }}"
                         max="{{ now()->subDay()->format('Y-m-d') }}"
-                        required
-                    >
-
-                </div>
-
-
-
-                {{-- ID Type --}}
-
-                <div class="wallet-field">
-
-                    <label for="kycIdType">
-                        Identity type
-                    </label>
-
-
-                    <select
-                        id="kycIdType"
-                        name="id_type"
-                        required
-                    >
-
-                        <option value="">
-                            Select identity type
-                        </option>
-
-
-                        <option
-                            value="nin"
-                            {{
-                                old(
-                                    'id_type',
-                                    $kyc
-                                        ? $kyc->id_type
-                                        : ''
-                                )
-                                ===
-                                'nin'
-                                    ? 'selected'
-                                    : ''
-                            }}
-                        >
-                            National Identification Number (NIN)
-                        </option>
-
-
-                        <option
-                            value="bvn"
-                            {{
-                                old(
-                                    'id_type',
-                                    $kyc
-                                        ? $kyc->id_type
-                                        : ''
-                                )
-                                ===
-                                'bvn'
-                                    ? 'selected'
-                                    : ''
-                            }}
-                        >
-                            Bank Verification Number (BVN)
-                        </option>
-
-                    </select>
-
-                </div>
-
-
-
-                {{-- ID number --}}
-
-                <div class="wallet-field">
-
-                    <label for="kycIdNumber">
-                        NIN / BVN
-                    </label>
-
-
-                    <input
-                        id="kycIdNumber"
-                        type="text"
-                        name="id_number"
-                        maxlength="11"
-                        minlength="11"
-                        inputmode="numeric"
-                        pattern="[0-9]{11}"
-                        autocomplete="off"
-                        placeholder="11-digit number"
                         required
                     >
 
@@ -719,29 +910,40 @@
                             margin-top:5px;
                             color:#7c8882;
                             font-size:9px;
+                            line-height:1.5;
                         "
                     >
-                        Your full number is stored encrypted.
+
+                        Stored as part of your Midpoint KYC record.
+
+                        Paystack's BVN-bank verification uses your
+                        BVN, legal name and bank details.
+
                     </small>
 
                 </div>
 
 
 
-                {{-- Selfie --}}
+                {{-- BVN --}}
 
                 <div class="wallet-field wallet-field-full">
 
-                    <label for="kycSelfie">
-                        Live selfie
+                    <label for="kycBvn">
+                        Bank Verification Number (BVN)
                     </label>
 
 
                     <input
-                        id="kycSelfie"
-                        type="file"
-                        name="selfie"
-                        accept="image/jpeg,image/png"
+                        id="kycBvn"
+                        type="password"
+                        name="bvn"
+                        maxlength="11"
+                        minlength="11"
+                        inputmode="numeric"
+                        pattern="[0-9]{11}"
+                        autocomplete="off"
+                        placeholder="Enter your 11-digit BVN"
                         required
                     >
 
@@ -755,11 +957,13 @@
                             line-height:1.55;
                         "
                     >
-                        Use a recent, clear selfie.
-                        Face the camera directly, use good lighting,
-                        remove sunglasses and avoid filters.
-                        The uploaded selfie is sent for verification
-                        and is not permanently stored by Midpoint.
+
+                        Your BVN is sent securely from Midpoint's server
+                        to Paystack.
+
+                        Midpoint stores the full BVN encrypted and only
+                        displays the last four digits.
+
                     </small>
 
                 </div>
@@ -768,7 +972,7 @@
 
 
 
-            {{-- What happens --}}
+            {{-- Checks --}}
 
             <div
                 style="
@@ -789,31 +993,43 @@
                         color:#17372a;
                     "
                 >
-                    Automatic checks
+
+                    Paystack automatic checks
+
                 </strong>
 
-                <div>
-                    ✓ Government identity
-                </div>
 
                 <div>
-                    ✓ Selfie face match
+                    ✓ Bank account exists and is valid
                 </div>
 
-                <div>
-                    ✓ Liveness detection
-                </div>
 
                 <div>
-                    ✓ Legal name
+                    ✓ BVN is valid
                 </div>
 
-                <div>
-                    ✓ Date of birth
-                </div>
 
                 <div>
-                    ✓ Withdrawal bank ownership
+                    ✓ BVN is connected to the active bank account
+                </div>
+
+
+                <div>
+                    ✓ Customer identity information is validated
+                </div>
+
+
+                <div
+                    style="
+                        margin-top:7px;
+                        color:#7c8882;
+                    "
+                >
+
+                    This Paystack validation flow does not perform
+                    selfie or liveness verification, so Midpoint no
+                    longer asks sellers to upload a selfie.
+
                 </div>
 
             </div>
@@ -823,12 +1039,12 @@
             <button
                 type="submit"
                 class="wallet-button"
-                id="submitAutomaticKyc"
+                id="submitPaystackKyc"
             >
 
                 <i class="fa-solid fa-shield-halved"></i>
 
-                Verify my identity
+                Verify identity with Paystack
 
             </button>
 
@@ -841,7 +1057,7 @@
 
 
 {{-- ================================================================
-    AUTOMATED KYC JS
+    KYC JAVASCRIPT
 ================================================================= --}}
 
 <script>
@@ -852,46 +1068,55 @@ document.addEventListener(
 
         const form =
             document.getElementById(
-                'automatedKycForm'
+                'paystackKycForm'
             );
 
 
         const button =
             document.getElementById(
-                'submitAutomaticKyc'
+                'submitPaystackKyc'
             );
 
 
-        const idNumber =
+        const bvn =
             document.getElementById(
-                'kycIdNumber'
+                'kycBvn'
             );
 
 
-        if (
-            idNumber
-        ) {
+        /*
+        |--------------------------------------------------------------------------
+        | BVN Digits Only
+        |--------------------------------------------------------------------------
+        */
 
-            idNumber.addEventListener(
+        if (bvn) {
+
+            bvn.addEventListener(
                 'input',
                 function () {
 
                     this.value =
                         this.value
-
                             .replace(
                                 /\D/g,
                                 ''
                             )
-
                             .slice(
                                 0,
                                 11
                             );
+
                 }
             );
         }
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | Submit State
+        |--------------------------------------------------------------------------
+        */
 
         if (
             form
@@ -903,15 +1128,156 @@ document.addEventListener(
                 'submit',
                 function () {
 
+                    if (
+                        bvn
+                        &&
+                        !/^\d{11}$/.test(
+                            bvn.value
+                        )
+                    ) {
+
+                        return;
+                    }
+
+
                     button.disabled =
                         true;
 
 
                     button.innerHTML =
-                        '<i class="fa-solid fa-spinner fa-spin"></i> Verifying identity...';
+                        '<i class="fa-solid fa-spinner fa-spin"></i> Sending to Paystack...';
+
                 }
             );
         }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Automatically Poll Local Status
+        |--------------------------------------------------------------------------
+        |
+        | Paystack sends the actual result to our webhook.
+        |
+        | This simply detects when our database has been updated.
+        |
+        */
+
+        @if($kycProcessing)
+
+            let attempts =
+                0;
+
+
+            const maximumAttempts =
+                30;
+
+
+            const pollKycStatus =
+                async function () {
+
+                    attempts++;
+
+
+                    try {
+
+                        const response =
+                            await fetch(
+                                '{{ route('seller.wallet.kyc.status') }}',
+                                {
+
+                                    method:
+                                        'GET',
+
+
+                                    headers: {
+
+                                        'Accept':
+                                            'application/json',
+
+
+                                        'X-Requested-With':
+                                            'XMLHttpRequest',
+
+                                    },
+
+
+                                    credentials:
+                                        'same-origin',
+
+                                }
+                            );
+
+
+                        if (
+                            response.ok
+                        ) {
+
+                            const data =
+                                await response.json();
+
+
+                            if (
+                                data.status
+                                ===
+                                'approved'
+
+                                ||
+
+                                data.status
+                                ===
+                                'rejected'
+
+                                ||
+
+                                data.status
+                                ===
+                                'provider_error'
+                            ) {
+
+                                window
+                                    .location
+                                    .reload();
+
+
+                                return;
+                            }
+                        }
+
+                    } catch (
+                        error
+                    ) {
+
+                        /*
+                         * Ignore polling errors.
+                         *
+                         * Paystack webhook remains the source of truth.
+                         */
+
+                    }
+
+
+                    if (
+                        attempts
+                        <
+                        maximumAttempts
+                    ) {
+
+                        window.setTimeout(
+                            pollKycStatus,
+                            4000
+                        );
+                    }
+
+                };
+
+
+            window.setTimeout(
+                pollKycStatus,
+                3000
+            );
+
+        @endif
 
     }
 );
