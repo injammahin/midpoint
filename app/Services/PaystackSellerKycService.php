@@ -692,6 +692,41 @@ class PaystackSellerKycService
             Throwable $exception
         ) {
 
+            /*
+            |------------------------------------------------------------------
+            | Recover An Already-Validated Paystack Customer
+            |------------------------------------------------------------------
+            |
+            | Paystack returns HTTP 400 when the same customer is submitted
+            | again with credentials that it has already validated. This can
+            | happen when our local record was reset, a previous webhook was
+            | missed, or the seller retries after the first verification.
+            |
+            | Do not approve from the error text alone. Fetch the customer and
+            | require Paystack's authoritative `identified` flag as well.
+            |
+            */
+
+            if (
+                $this
+                    ->isAlreadyValidatedWithSameCredentials(
+                        $exception
+                    )
+            ) {
+
+                $recovered =
+                    $this
+                        ->recoverAlreadyValidatedCustomer(
+                            $kyc,
+                            $customerCode
+                        );
+
+
+                if ($recovered) {
+                    return $recovered;
+                }
+            }
+
             Log::warning(
                 'Paystack seller identity verification request failed.',
                 [
@@ -757,6 +792,308 @@ class PaystackSellerKycService
 
             ]);
         }
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Already Validated Response
+    |--------------------------------------------------------------------------
+    |
+    | This must stay deliberately narrow. Other HTTP 400 responses may mean
+    | invalid or mismatched KYC details and must continue through the normal
+    | provider-error path.
+    |
+    */
+
+    protected function isAlreadyValidatedWithSameCredentials(
+        Throwable $exception
+    ): bool {
+
+        $message =
+            strtolower(
+                trim(
+                    $exception
+                        ->getMessage()
+                )
+            );
+
+
+        return
+            str_contains(
+                $message,
+                'customer already validated using the same credentials'
+            )
+            &&
+            str_contains(
+                $message,
+                '[http 400]'
+            );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Reconcile An Existing Paystack Validation
+    |--------------------------------------------------------------------------
+    */
+
+    protected function recoverAlreadyValidatedCustomer(
+        SellerKycVerification $kyc,
+        string $customerCode
+    ): ?SellerKycVerification {
+
+        try {
+
+            $customer =
+                $this
+                    ->paystack
+                    ->fetchCustomer(
+                        $customerCode
+                    );
+
+
+        } catch (
+            Throwable $exception
+        ) {
+
+            Log::warning(
+                'Could not fetch an already-validated Paystack customer.',
+                [
+
+                    'kyc_id' =>
+                        $kyc->id,
+
+
+                    'customer_code' =>
+                        $customerCode,
+
+
+                    'error' =>
+                        $exception
+                            ->getMessage(),
+
+                ]
+            );
+
+
+            return null;
+        }
+
+
+        if (
+            !$customer
+            ||
+            !(
+                (bool) (
+                    $customer[
+                        'identified'
+                    ]
+                    ??
+                    false
+                )
+            )
+        ) {
+
+            Log::warning(
+                'Paystack reported duplicate validation but the customer is not identified.',
+                [
+
+                    'kyc_id' =>
+                        $kyc->id,
+
+
+                    'customer_code' =>
+                        $customerCode,
+
+                ]
+            );
+
+
+            return null;
+        }
+
+
+        $verifiedFirstName =
+            trim(
+                (string) (
+                    $customer[
+                        'first_name'
+                    ]
+                    ??
+                    ''
+                )
+            );
+
+
+        $verifiedLastName =
+            trim(
+                (string) (
+                    $customer[
+                        'last_name'
+                    ]
+                    ??
+                    ''
+                )
+            );
+
+
+        DB::transaction(
+            function () use (
+                $kyc,
+                $customer,
+                $customerCode,
+                $verifiedFirstName,
+                $verifiedLastName
+            ) {
+
+                $locked =
+                    SellerKycVerification::query()
+                        ->whereKey(
+                            $kyc->id
+                        )
+                        ->lockForUpdate()
+                        ->firstOrFail();
+
+
+                $locked
+                    ->forceFill([
+
+                        'status' =>
+                            SellerKycVerification::STATUS_APPROVED,
+
+
+                        'provider_status' =>
+                            'success',
+
+
+                        'paystack_customer_id' =>
+                            isset(
+                                $customer['id']
+                            )
+                                ? (string) $customer['id']
+                                : $locked
+                                    ->paystack_customer_id,
+
+
+                        'paystack_identification_status' =>
+                            'success',
+
+
+                        'identity_first_name' =>
+                            $verifiedFirstName !== ''
+                                ? $verifiedFirstName
+                                : null,
+
+
+                        'identity_middle_name' =>
+                            null,
+
+
+                        'identity_last_name' =>
+                            $verifiedLastName !== ''
+                                ? $verifiedLastName
+                                : null,
+
+
+                        'name_match' =>
+                            true,
+
+
+                        'bank_name_match' =>
+                            true,
+
+
+                        'failure_code' =>
+                            null,
+
+
+                        'failure_message' =>
+                            null,
+
+
+                        'rejection_reason' =>
+                            null,
+
+
+                        'approved_at' =>
+                            now(),
+
+
+                        'auto_verified_at' =>
+                            now(),
+
+
+                        'rejected_at' =>
+                            null,
+
+
+                        'paystack_identification_completed_at' =>
+                            now(),
+
+
+                        'provider_response' =>
+                            array_merge(
+                                $locked
+                                    ->provider_response
+                                ??
+                                [],
+                                [
+
+                                    'status' =>
+                                        'success',
+
+
+                                    'customer_code' =>
+                                        $customerCode,
+
+
+                                    'customer_identified' =>
+                                        true,
+
+
+                                    'reconciliation' =>
+                                        'already_validated_same_credentials',
+
+
+                                    'verified_first_name' =>
+                                        $verifiedFirstName !== ''
+                                            ? $verifiedFirstName
+                                            : null,
+
+
+                                    'verified_last_name' =>
+                                        $verifiedLastName !== ''
+                                            ? $verifiedLastName
+                                            : null,
+
+                                ]
+                            ),
+
+                    ])
+                    ->save();
+
+            },
+            3
+        );
+
+
+        Log::info(
+            'Recovered an already-validated Paystack seller KYC record.',
+            [
+
+                'kyc_id' =>
+                    $kyc->id,
+
+
+                'customer_code' =>
+                    $customerCode,
+
+            ]
+        );
+
+
+        return $kyc->fresh();
     }
 
 
