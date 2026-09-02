@@ -179,7 +179,110 @@ class PaystackTransferApprovalController extends Controller
         $recipientFromPayload = trim(
             (string) $recipientValue
         );
+        /*
+        |--------------------------------------------------------------------------
+        | Extract Paystack Transfer Approval Envelope
+        |--------------------------------------------------------------------------
+        |
+        | Paystack sends transfer approval requests using an envelope:
+        |
+        | {
+        |     "integration": ...,
+        |     "domain": "live",
+        |     "details": {...},
+        |     "transfers": [
+        |         {
+        |             "reference": "...",
+        |             "amount": 50000,
+        |             "recipient": "..."
+        |         }
+        |     ]
+        | }
+        |
+        | Midpoint initiates one withdrawal per request, so exactly one transfer
+        | must be present. Rejecting multiple transfers prevents an unrelated
+        | batch from being approved accidentally.
+        |
+        */
 
+        if (array_key_exists('transfers', $payload)) {
+            $transfers = $payload['transfers'];
+
+            if (
+                !is_array($transfers)
+                ||
+                count($transfers) !== 1
+            ) {
+                Log::warning(
+                    'Rejected Paystack approval because transfer batch was invalid.',
+                    [
+                        'transfer_count' => is_array($transfers)
+                            ? count($transfers)
+                            : 0,
+
+                        'payload_keys' => array_keys($payload),
+                        'request_ip' => $request->ip(),
+                    ]
+                );
+
+                return response()->json([], 400);
+            }
+
+            /*
+            * array_values supports both numeric and associative array indexes.
+            */
+            $transferPayload = array_values($transfers)[0];
+
+            if (!is_array($transferPayload)) {
+                Log::warning(
+                    'Rejected Paystack approval because transfer item was invalid.',
+                    [
+                        'request_ip' => $request->ip(),
+                    ]
+                );
+
+                return response()->json([], 400);
+            }
+
+            $approvalDetails = [];
+
+            if (
+                isset($payload['details'])
+                &&
+                is_array($payload['details'])
+            ) {
+                $approvalDetails = $payload['details'];
+            }
+
+            /*
+            * Transfer-specific values take priority over envelope details.
+            */
+            $payload = array_merge(
+                $approvalDetails,
+                $transferPayload
+            );
+
+            /*
+            * Paystack's approval envelope may omit source from each transfer.
+            * Paystack currently supports "balance" as the transfer source.
+            */
+            if (!isset($payload['source'])) {
+                $payload['source'] =
+                    $approvalDetails['source']
+                    ??
+                    'balance';
+            }
+
+            /*
+            * Midpoint withdrawals use NGN unless Paystack provides a currency.
+            */
+            if (!isset($payload['currency'])) {
+                $payload['currency'] =
+                    $approvalDetails['currency']
+                    ??
+                    'NGN';
+            }
+        }
         /*
         |--------------------------------------------------------------------------
         | Basic Payload Validation
