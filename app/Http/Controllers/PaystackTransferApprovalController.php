@@ -12,102 +12,177 @@ use Illuminate\Support\Facades\Log;
 
 class PaystackTransferApprovalController extends Controller
 {
-    public function approve(
-        Request $request,
-        string $token
-    ) {
-
+    public function approve(Request $request, string $token)
+    {
         /*
         |--------------------------------------------------------------------------
         | Verify Approval URL Secret
         |--------------------------------------------------------------------------
         */
 
-        $configuredToken =
-            trim(
-                (string) config(
-                    'services.paystack.transfer_approval_token'
-                )
-            );
-
+        $configuredToken = trim(
+            (string) config(
+                'services.paystack.transfer_approval_token'
+            )
+        );
 
         if (
             $configuredToken === ''
             ||
-            !hash_equals(
-                $configuredToken,
-                $token
-            )
+            !hash_equals($configuredToken, $token)
         ) {
-
             Log::warning(
-                'Rejected Paystack transfer approval request with invalid token.'
+                'Rejected Paystack transfer approval request with invalid token.',
+                [
+                    'request_method' => $request->method(),
+                    'request_ip' => $request->ip(),
+                ]
             );
 
-
-            return response()->json(
-                [],
-                400
-            );
+            return response()->json([], 400);
         }
-
 
         /*
         |--------------------------------------------------------------------------
-        | Paystack Transfer Payload
+        | Read Paystack Transfer Payload
+        |--------------------------------------------------------------------------
+        |
+        | Laravel normally parses JSON and form-data automatically. However,
+        | this also supports raw JSON, raw URL-encoded data and payloads wrapped
+        | inside data, transfer or payload objects.
+        |
+        */
+
+        $rawBody = (string) $request->getContent();
+
+        $payload = $request->all();
+
+        /*
+         * Try Laravel's JSON request bag.
+         */
+        if (empty($payload)) {
+            $jsonPayload = $request->json()->all();
+
+            if (is_array($jsonPayload) && !empty($jsonPayload)) {
+                $payload = $jsonPayload;
+            }
+        }
+
+        /*
+         * Try decoding the raw request body as JSON.
+         */
+        if (empty($payload) && $rawBody !== '') {
+            $decodedPayload = json_decode($rawBody, true);
+
+            if (
+                json_last_error() === JSON_ERROR_NONE
+                &&
+                is_array($decodedPayload)
+            ) {
+                $payload = $decodedPayload;
+            }
+        }
+
+        /*
+         * Try decoding the raw request body as URL-encoded form data.
+         */
+        if (empty($payload) && $rawBody !== '') {
+            $formPayload = [];
+
+            parse_str($rawBody, $formPayload);
+
+            if (is_array($formPayload) && !empty($formPayload)) {
+                $payload = $formPayload;
+            }
+        }
+
+        /*
+         * Paystack may wrap the actual transfer information.
+         */
+        foreach (['data', 'transfer', 'payload'] as $wrapper) {
+            if (!array_key_exists($wrapper, $payload)) {
+                continue;
+            }
+
+            $wrappedPayload = $payload[$wrapper];
+
+            if (is_array($wrappedPayload)) {
+                $payload = $wrappedPayload;
+                break;
+            }
+
+            if (is_string($wrappedPayload) && $wrappedPayload !== '') {
+                $decodedWrappedPayload = json_decode(
+                    $wrappedPayload,
+                    true
+                );
+
+                if (
+                    json_last_error() === JSON_ERROR_NONE
+                    &&
+                    is_array($decodedWrappedPayload)
+                ) {
+                    $payload = $decodedWrappedPayload;
+                    break;
+                }
+            }
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Normalize Payload Values
         |--------------------------------------------------------------------------
         */
 
-        $reference =
+        $reference = trim(
+            (string) ($payload['reference'] ?? '')
+        );
+
+        $amountInKobo = (int) (
+            $payload['amount'] ?? 0
+        );
+
+        $sourceValue = $payload['source'] ?? '';
+
+        if (is_array($sourceValue)) {
+            $sourceValue =
+                $sourceValue['source']
+                ??
+                $sourceValue['type']
+                ??
+                '';
+        }
+
+        $source = strtolower(
+            trim((string) $sourceValue)
+        );
+
+        $currency = strtoupper(
             trim(
-                (string) $request->input(
-                    'reference',
-                    ''
-                )
-            );
+                (string) ($payload['currency'] ?? 'NGN')
+            )
+        );
 
+        $recipientValue = $payload['recipient'] ?? '';
 
-        $amountInKobo =
-            (int) $request->input(
-                'amount',
-                0
-            );
+        if (is_array($recipientValue)) {
+            $recipientValue =
+                $recipientValue['recipient_code']
+                ??
+                $recipientValue['code']
+                ??
+                $recipientValue['id']
+                ??
+                '';
+        }
 
-
-        $source =
-            strtolower(
-                trim(
-                    (string) $request->input(
-                        'source',
-                        ''
-                    )
-                )
-            );
-
-
-        $currency =
-            strtoupper(
-                trim(
-                    (string) $request->input(
-                        'currency',
-                        'NGN'
-                    )
-                )
-            );
-
-
-        $recipientFromPayload =
-            trim(
-                (string) $request->input(
-                    'recipient',
-                    ''
-                )
-            );
-
+        $recipientFromPayload = trim(
+            (string) $recipientValue
+        );
 
         /*
         |--------------------------------------------------------------------------
-        | Basic Validation
+        | Basic Payload Validation
         |--------------------------------------------------------------------------
         */
 
@@ -118,28 +193,24 @@ class PaystackTransferApprovalController extends Controller
             ||
             $source !== 'balance'
         ) {
-
             Log::warning(
                 'Rejected malformed Paystack transfer approval payload.',
                 [
-                    'reference' =>
-                        $reference,
-
-                    'amount' =>
-                        $amountInKobo,
-
-                    'source' =>
-                        $source,
+                    'reference' => $reference,
+                    'amount' => $amountInKobo,
+                    'source' => $source,
+                    'request_method' => $request->method(),
+                    'content_type' => $request->header('Content-Type'),
+                    'content_length' => $request->header('Content-Length'),
+                    'raw_body_length' => strlen($rawBody),
+                    'payload_keys' => array_keys($payload),
+                    'user_agent' => $request->userAgent(),
+                    'request_ip' => $request->ip(),
                 ]
             );
 
-
-            return response()->json(
-                [],
-                400
-            );
+            return response()->json([], 400);
         }
-
 
         /*
         |--------------------------------------------------------------------------
@@ -147,36 +218,23 @@ class PaystackTransferApprovalController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $withdrawal =
-            SellerWithdrawal::query()
+        $withdrawal = SellerWithdrawal::query()
+            ->where(
+                'paystack_transfer_reference',
+                $reference
+            )
+            ->first();
 
-                ->where(
-                    'paystack_transfer_reference',
-                    $reference
-                )
-
-                ->first();
-
-
-        if (
-            !$withdrawal
-        ) {
-
+        if (!$withdrawal) {
             Log::warning(
                 'Rejected Paystack approval because withdrawal was not found.',
                 [
-                    'reference' =>
-                        $reference,
+                    'reference' => $reference,
                 ]
             );
 
-
-            return response()->json(
-                [],
-                400
-            );
+            return response()->json([], 400);
         }
-
 
         /*
         |--------------------------------------------------------------------------
@@ -184,42 +242,23 @@ class PaystackTransferApprovalController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $expectedAmountInKobo =
-            (int) round(
-                (
-                    (float) $withdrawal->amount
-                )
-                *
-                100
-            );
+        $expectedAmountInKobo = (int) round(
+            (float) $withdrawal->amount * 100
+        );
 
-
-        if (
-            $amountInKobo !==
-            $expectedAmountInKobo
-        ) {
-
+        if ($amountInKobo !== $expectedAmountInKobo) {
             Log::warning(
                 'Rejected Paystack approval because amount did not match.',
                 [
-                    'withdrawal_id' =>
-                        $withdrawal->id,
-
-                    'expected' =>
-                        $expectedAmountInKobo,
-
-                    'received' =>
-                        $amountInKobo,
+                    'withdrawal_id' => $withdrawal->id,
+                    'reference' => $reference,
+                    'expected' => $expectedAmountInKobo,
+                    'received' => $amountInKobo,
                 ]
             );
 
-
-            return response()->json(
-                [],
-                400
-            );
+            return response()->json([], 400);
         }
-
 
         /*
         |--------------------------------------------------------------------------
@@ -227,59 +266,42 @@ class PaystackTransferApprovalController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        if (
-            $currency !==
-            strtoupper(
-                $withdrawal->currency
-                ?:
-                'NGN'
-            )
-        ) {
+        $expectedCurrency = strtoupper(
+            (string) ($withdrawal->currency ?: 'NGN')
+        );
 
+        if ($currency !== $expectedCurrency) {
             Log::warning(
                 'Rejected Paystack approval because currency did not match.',
                 [
-                    'withdrawal_id' =>
-                        $withdrawal->id,
+                    'withdrawal_id' => $withdrawal->id,
+                    'reference' => $reference,
+                    'expected' => $expectedCurrency,
+                    'received' => $currency,
                 ]
             );
 
-
-            return response()->json(
-                [],
-                400
-            );
+            return response()->json([], 400);
         }
-
 
         /*
         |--------------------------------------------------------------------------
-        | Never Approve Final Withdrawal Again
+        | Never Approve a Final Withdrawal Again
         |--------------------------------------------------------------------------
         */
 
-        if (
-            $withdrawal->isFinal()
-        ) {
-
+        if ($withdrawal->isFinal()) {
             Log::warning(
                 'Rejected Paystack approval for final withdrawal.',
                 [
-                    'withdrawal_id' =>
-                        $withdrawal->id,
-
-                    'status' =>
-                        $withdrawal->status,
+                    'withdrawal_id' => $withdrawal->id,
+                    'reference' => $reference,
+                    'status' => $withdrawal->status,
                 ]
             );
 
-
-            return response()->json(
-                [],
-                400
-            );
+            return response()->json([], 400);
         }
-
 
         /*
         |--------------------------------------------------------------------------
@@ -287,44 +309,29 @@ class PaystackTransferApprovalController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $kycApproved =
-            SellerKycVerification::query()
+        $kycApproved = SellerKycVerification::query()
+            ->where(
+                'seller_id',
+                $withdrawal->seller_id
+            )
+            ->where(
+                'status',
+                SellerKycVerification::STATUS_APPROVED
+            )
+            ->exists();
 
-                ->where(
-                    'seller_id',
-                    $withdrawal->seller_id
-                )
-
-                ->where(
-                    'status',
-                    SellerKycVerification::STATUS_APPROVED
-                )
-
-                ->exists();
-
-
-        if (
-            !$kycApproved
-        ) {
-
+        if (!$kycApproved) {
             Log::warning(
                 'Rejected Paystack approval because KYC is not approved.',
                 [
-                    'withdrawal_id' =>
-                        $withdrawal->id,
-
-                    'seller_id' =>
-                        $withdrawal->seller_id,
+                    'withdrawal_id' => $withdrawal->id,
+                    'seller_id' => $withdrawal->seller_id,
+                    'reference' => $reference,
                 ]
             );
 
-
-            return response()->json(
-                [],
-                400
-            );
+            return response()->json([], 400);
         }
-
 
         /*
         |--------------------------------------------------------------------------
@@ -332,48 +339,36 @@ class PaystackTransferApprovalController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $account =
-            SellerWithdrawalAccount::query()
-
-                ->whereKey(
-                    $withdrawal
-                        ->seller_withdrawal_account_id
-                )
-
-                ->where(
-                    'seller_id',
-                    $withdrawal->seller_id
-                )
-
-                ->where(
-                    'is_verified',
-                    true
-                )
-
-                ->first();
-
+        $account = SellerWithdrawalAccount::query()
+            ->whereKey(
+                $withdrawal->seller_withdrawal_account_id
+            )
+            ->where(
+                'seller_id',
+                $withdrawal->seller_id
+            )
+            ->where(
+                'is_verified',
+                true
+            )
+            ->first();
 
         if (
             !$account
             ||
             !$account->paystack_recipient_code
         ) {
-
             Log::warning(
                 'Rejected Paystack approval because bank account is invalid.',
                 [
-                    'withdrawal_id' =>
-                        $withdrawal->id,
+                    'withdrawal_id' => $withdrawal->id,
+                    'seller_id' => $withdrawal->seller_id,
+                    'reference' => $reference,
                 ]
             );
 
-
-            return response()->json(
-                [],
-                400
-            );
+            return response()->json([], 400);
         }
-
 
         /*
         |--------------------------------------------------------------------------
@@ -381,70 +376,62 @@ class PaystackTransferApprovalController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        if (
-            !hash_equals(
-                (string)
-                $withdrawal
-                    ->paystack_recipient_code,
+        $withdrawalRecipient = (string) (
+            $withdrawal->paystack_recipient_code ?? ''
+        );
 
-                (string)
-                $account
-                    ->paystack_recipient_code
+        $accountRecipient = (string) (
+            $account->paystack_recipient_code ?? ''
+        );
+
+        if (
+            $withdrawalRecipient === ''
+            ||
+            $accountRecipient === ''
+            ||
+            !hash_equals(
+                $withdrawalRecipient,
+                $accountRecipient
             )
         ) {
-
             Log::warning(
                 'Rejected Paystack approval because recipient changed.',
                 [
-                    'withdrawal_id' =>
-                        $withdrawal->id,
+                    'withdrawal_id' => $withdrawal->id,
+                    'reference' => $reference,
                 ]
             );
 
-
-            return response()->json(
-                [],
-                400
-            );
+            return response()->json([], 400);
         }
-
 
         /*
         |--------------------------------------------------------------------------
-        | Match Paystack Recipient If It Returns RCP_ Code
+        | Match Paystack Recipient When It Returns an RCP Code
         |--------------------------------------------------------------------------
         */
 
         if (
             str_starts_with(
-                $recipientFromPayload,
+                strtoupper($recipientFromPayload),
                 'RCP_'
             )
             &&
             !hash_equals(
-                (string)
-                $withdrawal
-                    ->paystack_recipient_code,
-
+                $withdrawalRecipient,
                 $recipientFromPayload
             )
         ) {
-
             Log::warning(
                 'Rejected Paystack approval because request recipient did not match.',
                 [
-                    'withdrawal_id' =>
-                        $withdrawal->id,
+                    'withdrawal_id' => $withdrawal->id,
+                    'reference' => $reference,
                 ]
             );
 
-
-            return response()->json(
-                [],
-                400
-            );
+            return response()->json([], 400);
         }
-
 
         /*
         |--------------------------------------------------------------------------
@@ -452,130 +439,93 @@ class PaystackTransferApprovalController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $wallet =
-            SellerWallet::query()
+        $wallet = SellerWallet::query()
+            ->whereKey(
+                $withdrawal->seller_wallet_id
+            )
+            ->where(
+                'seller_id',
+                $withdrawal->seller_id
+            )
+            ->first();
 
-                ->whereKey(
-                    $withdrawal
-                        ->seller_wallet_id
-                )
+        $pendingWithdrawalBalance = $wallet
+            ? (float) $wallet->pending_withdrawal_balance
+            : 0.0;
 
-                ->where(
-                    'seller_id',
-                    $withdrawal->seller_id
-                )
-
-                ->first();
-
+        $withdrawalAmount = (float) $withdrawal->amount;
 
         if (
             !$wallet
             ||
-            (
-                (float)
-                $wallet
-                    ->pending_withdrawal_balance
-            )
-            +
-            0.001
-            <
-            (
-                (float)
-                $withdrawal
-                    ->amount
-            )
+            $pendingWithdrawalBalance + 0.001
+                <
+            $withdrawalAmount
         ) {
-
             Log::warning(
                 'Rejected Paystack approval because wallet reservation is missing.',
                 [
-                    'withdrawal_id' =>
-                        $withdrawal->id,
+                    'withdrawal_id' => $withdrawal->id,
+                    'reference' => $reference,
+                    'required_amount' => $withdrawalAmount,
+                    'pending_withdrawal_balance' =>
+                        $pendingWithdrawalBalance,
                 ]
             );
 
-
-            return response()->json(
-                [],
-                400
-            );
+            return response()->json([], 400);
         }
-
 
         /*
         |--------------------------------------------------------------------------
-        | Wallet Ledger Must Exist
+        | Wallet Withdrawal Ledger Must Exist
         |--------------------------------------------------------------------------
         */
 
-        $ledgerExists =
-            SellerWalletTransaction::query()
+        $ledgerExists = SellerWalletTransaction::query()
+            ->where(
+                'seller_withdrawal_id',
+                $withdrawal->id
+            )
+            ->where(
+                'type',
+                SellerWalletTransaction::TYPE_WITHDRAWAL_REQUEST
+            )
+            ->exists();
 
-                ->where(
-                    'seller_withdrawal_id',
-                    $withdrawal->id
-                )
-
-                ->where(
-                    'type',
-                    SellerWalletTransaction::TYPE_WITHDRAWAL_REQUEST
-                )
-
-                ->exists();
-
-
-        if (
-            !$ledgerExists
-        ) {
-
+        if (!$ledgerExists) {
             Log::warning(
                 'Rejected Paystack approval because withdrawal ledger is missing.',
                 [
-                    'withdrawal_id' =>
-                        $withdrawal->id,
+                    'withdrawal_id' => $withdrawal->id,
+                    'reference' => $reference,
                 ]
             );
 
-
-            return response()->json(
-                [],
-                400
-            );
+            return response()->json([], 400);
         }
-
 
         /*
         |--------------------------------------------------------------------------
-        | APPROVED
+        | Approved
         |--------------------------------------------------------------------------
         |
-        | Do NOT run any external HTTP requests here.
-        |
-        | Paystack expects a very fast response.
+        | Do not make external HTTP requests here. Paystack requires the
+        | approval endpoint to respond quickly.
         |
         */
 
         Log::info(
             'Approved automatic Paystack seller withdrawal.',
             [
-                'withdrawal_id' =>
-                    $withdrawal->id,
-
-                'seller_id' =>
-                    $withdrawal->seller_id,
-
-                'reference' =>
-                    $reference,
-
-                'amount' =>
-                    $withdrawal->amount,
+                'withdrawal_id' => $withdrawal->id,
+                'seller_id' => $withdrawal->seller_id,
+                'reference' => $reference,
+                'amount' => $withdrawal->amount,
+                'currency' => $withdrawal->currency,
             ]
         );
 
-
-        return response()->json(
-            [],
-            200
-        );
+        return response()->json([], 200);
     }
 }
