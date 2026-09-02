@@ -130,57 +130,6 @@ class PaystackTransferApprovalController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Normalize Payload Values
-        |--------------------------------------------------------------------------
-        */
-
-        $reference = trim(
-            (string) ($payload['reference'] ?? '')
-        );
-
-        $amountInKobo = (int) (
-            $payload['amount'] ?? 0
-        );
-
-        $sourceValue = $payload['source'] ?? '';
-
-        if (is_array($sourceValue)) {
-            $sourceValue =
-                $sourceValue['source']
-                ??
-                $sourceValue['type']
-                ??
-                '';
-        }
-
-        $source = strtolower(
-            trim((string) $sourceValue)
-        );
-
-        $currency = strtoupper(
-            trim(
-                (string) ($payload['currency'] ?? 'NGN')
-            )
-        );
-
-        $recipientValue = $payload['recipient'] ?? '';
-
-        if (is_array($recipientValue)) {
-            $recipientValue =
-                $recipientValue['recipient_code']
-                ??
-                $recipientValue['code']
-                ??
-                $recipientValue['id']
-                ??
-                '';
-        }
-
-        $recipientFromPayload = trim(
-            (string) $recipientValue
-        );
-        /*
-        |--------------------------------------------------------------------------
         | Extract Paystack Transfer Approval Envelope
         |--------------------------------------------------------------------------
         |
@@ -283,6 +232,62 @@ class PaystackTransferApprovalController extends Controller
                     'NGN';
             }
         }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Normalize Payload Values
+        |--------------------------------------------------------------------------
+        |
+        | This must run after the Paystack approval envelope has been extracted.
+        |
+        */
+
+        $reference = trim(
+            (string) ($payload['reference'] ?? '')
+        );
+
+        $amountInKobo = (int) (
+            $payload['amount'] ?? 0
+        );
+
+        $sourceValue = $payload['source'] ?? '';
+
+        if (is_array($sourceValue)) {
+            $sourceValue =
+                $sourceValue['source']
+                ??
+                $sourceValue['type']
+                ??
+                '';
+        }
+
+        $source = strtolower(
+            trim((string) $sourceValue)
+        );
+
+        $currency = strtoupper(
+            trim(
+                (string) ($payload['currency'] ?? 'NGN')
+            )
+        );
+
+        $recipientValue = $payload['recipient'] ?? '';
+
+        if (is_array($recipientValue)) {
+            $recipientValue =
+                $recipientValue['recipient_code']
+                ??
+                $recipientValue['code']
+                ??
+                $recipientValue['id']
+                ??
+                '';
+        }
+
+        $recipientFromPayload = trim(
+            (string) $recipientValue
+        );
+
         /*
         |--------------------------------------------------------------------------
         | Basic Payload Validation
