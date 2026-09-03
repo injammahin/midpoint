@@ -1,3 +1,51 @@
+@php
+    /*
+    |--------------------------------------------------------------------------
+    | Uploaded Midpoint logo
+    |--------------------------------------------------------------------------
+    */
+    $configuredLogoPath = trim(
+        (string) config('midpoint.logo_path', '')
+    );
+
+    $relativeLogoPath = ltrim(
+        str_replace('\\', '/', $configuredLogoPath),
+        '/'
+    );
+
+    $logoUrl = null;
+
+    if ($relativeLogoPath !== '') {
+        $absoluteLogoPath = public_path($relativeLogoPath);
+
+        if (
+            is_file($absoluteLogoPath)
+            && is_readable($absoluteLogoPath)
+        ) {
+            /*
+            | Keep the logo as a public URL. Using $message->embed() can make
+            | Gmail display the logo as a separate attachment.
+            */
+            $logoUrl = asset($relativeLogoPath);
+        }
+    }
+
+    $sellerName = trim(
+        (string) (
+            $sellerName
+            ?? $transaction->seller?->name
+            ?? ''
+        )
+    ) ?: 'Seller';
+
+    $secureUrl = $secureUrl ?? route(
+        'buyer.transactions.show',
+        [
+            'secureTransaction' => $transaction->public_token,
+        ]
+    );
+@endphp
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -256,82 +304,76 @@
                                 {{-- =================================
                                     BRAND HEADER
                                 ================================== --}}
-
                                 <tr>
-
                                     <td
                                         align="center"
                                         class="email-header"
                                         style="
-                                            padding:
-                                                32px 40px 22px;
+                                            padding: 34px 40px 22px;
                                         "
                                     >
-
-                                        <table
-                                            role="presentation"
-                                            cellspacing="0"
-                                            cellpadding="0"
-                                            border="0"
+                                        <a
+                                            href="{{ route('home') }}"
+                                            aria-label="Visit Midpoint"
+                                            style="display: inline-block;"
                                         >
-
-                                            <tr>
-
-                                                <td
-                                                    align="center"
-                                                    width="38"
-                                                    height="38"
+                                            @if($logoUrl)
+                                                <img
+                                                    src="{{ $logoUrl }}"
+                                                    alt="Midpoint"
+                                                    width="190"
                                                     style="
-                                                        width: 38px;
-                                                        height: 38px;
-                                                        border-radius: 11px;
-                                                        background-color: #0B3D2E;
-                                                        color: #FFFFFF;
-                                                        font-size: 18px;
-                                                        font-weight: 700;
-                                                        line-height: 38px;
-                                                        text-align: center;
+                                                        display: block;
+                                                        width: auto;
+                                                        height: auto;
+                                                        max-width: 190px;
+                                                        max-height: 58px;
                                                     "
                                                 >
-                                                    M
-                                                </td>
-
-
-                                                <td
-                                                    style="
-                                                        padding-left: 10px;
-                                                        color: #0B3D2E;
-                                                        font-size: 24px;
-                                                        font-weight: 700;
-                                                        line-height: 30px;
-                                                        vertical-align: middle;
-                                                    "
+                                            @else
+                                                <table
+                                                    role="presentation"
+                                                    cellpadding="0"
+                                                    cellspacing="0"
+                                                    border="0"
                                                 >
-                                                    Mid<span
-                                                        style="
-                                                            color: #7A5AF8;
-                                                        "
-                                                    >Point</span>
-                                                </td>
+                                                    <tr>
+                                                        <td
+                                                            align="center"
+                                                            width="38"
+                                                            height="38"
+                                                            style="
+                                                                width: 38px;
+                                                                height: 38px;
+                                                                border-radius: 11px;
+                                                                background-color: #0B3D2E;
+                                                                color: #FFFFFF;
+                                                                font-size: 18px;
+                                                                font-weight: 700;
+                                                                line-height: 38px;
+                                                                text-align: center;
+                                                            "
+                                                        >
+                                                            M
+                                                        </td>
 
-                                            </tr>
-
-                                        </table>
-
-
-                                        <div
-                                            style="
-                                                margin-top: 10px;
-                                                color: #89958F;
-                                                font-size: 11px;
-                                                line-height: 17px;
-                                            "
-                                        >
-                                            Secure transaction invitation
-                                        </div>
-
+                                                        <td
+                                                            style="
+                                                                padding-left: 10px;
+                                                                color: #0B3D2E;
+                                                                font-size: 24px;
+                                                                font-weight: 700;
+                                                                line-height: 30px;
+                                                                vertical-align: middle;
+                                                            "
+                                                        >
+                                                            Mid<span style="color: #7A5AF8;">Point</span>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            @endif
+                                        </a>
                                     </td>
-
                                 </tr>
 
 

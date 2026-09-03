@@ -1,3 +1,36 @@
+@php
+    /*
+    |--------------------------------------------------------------------------
+    | Uploaded Midpoint logo
+    |--------------------------------------------------------------------------
+    */
+    $configuredLogoPath = trim(
+        (string) config('midpoint.logo_path', '')
+    );
+
+    $relativeLogoPath = ltrim(
+        str_replace('\\', '/', $configuredLogoPath),
+        '/'
+    );
+
+    $logoUrl = null;
+
+    if ($relativeLogoPath !== '') {
+        $absoluteLogoPath = public_path($relativeLogoPath);
+
+        if (
+            is_file($absoluteLogoPath)
+            && is_readable($absoluteLogoPath)
+        ) {
+            /*
+            | Keep the logo as a public URL. Using $message->embed() can make
+            | Gmail display the logo as a separate attachment.
+            */
+            $logoUrl = asset($relativeLogoPath);
+        }
+    }
+@endphp
+
 <!DOCTYPE html>
 
 <html lang="en">
@@ -7,26 +40,39 @@
     <meta charset="UTF-8">
 
     <meta
+
         name="viewport"
+
         content="width=device-width, initial-scale=1.0"
+
     >
 
     <title>
+
         Seller Payment Confirmed
+
     </title>
 
 </head>
+
 @php
 
     $purchaseType =
+
         $invoice->purchase_type
+
         ?:
+
         \App\Models\SellerInvoice::TYPE_INITIAL;
 
     $paymentSource =
+
         $invoice
+
             ->payment_method
+
         ===
+
         'midpoint_wallet'
 
             ? 'your Midpoint Wallet'
@@ -34,109 +80,173 @@
             : 'Paystack';
 
 
+
     $packageFullPrice =
+
         (float)
+
         $invoice
+
             ->effective_package_price;
 
 
+
     $prorationCredit =
+
         (float)
+
         $invoice
+
             ->proration_credit;
+
     $packageName =
+
         $invoice->effective_package_name;
 
 
+
     $productLimit =
+
         $invoice->effective_product_limit;
 
 
+
     $isRenewal =
+
         $purchaseType
+
         ===
+
         \App\Models\SellerInvoice::TYPE_RENEWAL;
 
 
+
     $isUpgrade =
+
         $purchaseType
+
         ===
+
         \App\Models\SellerInvoice::TYPE_UPGRADE;
 
 
+
     $isDowngrade =
+
         $purchaseType
+
         ===
+
         \App\Models\SellerInvoice::TYPE_DOWNGRADE;
 
 
+
     $actionTitle =
+
         $isRenewal
 
             ? 'Package renewed successfully!'
 
             : (
+
                 $isUpgrade
 
                     ? 'Package upgraded successfully!'
 
                     : (
+
                         $isDowngrade
 
                             ? 'Package changed successfully!'
 
                             : 'Payment confirmed successfully!'
+
                     )
+
             );
 
 
+
     $actionDescription =
+
         $isRenewal
 
             ? 'Your seller package renewal payment was successfully completed using '
+
                 .
+
                 $paymentSource
+
                 .
+
                 '.'
 
             : (
+
                 $isUpgrade
 
                     ? 'Your seller package upgrade payment was successfully completed using '
+
                         .
+
                         $paymentSource
+
                         .
+
                         '.'
 
                     : 'Your seller package payment was successfully completed using '
+
                         .
+
                         $paymentSource
+
                         .
+
                         '.'
+
             );
 
 @endphp
 
 <body
+
     style="
+
         margin:0;
+
         padding:0;
+
         background:#F2F6F4;
+
         font-family:Arial,Helvetica,sans-serif;
+
         color:#17211D;
+
     "
+
 >
 
 
+
 <table
+
     width="100%"
+
     cellpadding="0"
+
     cellspacing="0"
+
     border="0"
+
     style="
+
         padding:40px 15px;
+
         background:#F2F6F4;
+
     "
+
 >
 
 <tr>
@@ -144,117 +254,187 @@
 <td align="center">
 
 
+
 <table
+
     width="100%"
+
     cellpadding="0"
+
     cellspacing="0"
+
     border="0"
+
     style="
+
         max-width:640px;
+
         overflow:hidden;
+
         border-radius:20px;
+
         background:#FFFFFF;
+
         box-shadow:0 12px 35px rgba(11,61,46,.08);
+
     "
+
 >
+
 
 
     {{-- HEADER --}}
     <tr>
-
         <td
+            height="5"
             style="
-                padding:30px 38px;
-                background:#0B3D2E;
+                height:5px;
+                background:#12B76A;
+                font-size:0;
+                line-height:0;
             "
         >
-
-            <table
-                width="100%"
-                cellpadding="0"
-                cellspacing="0"
-            >
-
-                <tr>
-
-                    <td>
-
-                        <div
-                            style="
-                                color:#FFFFFF;
-                                font-size:25px;
-                                font-weight:800;
-                            "
-                        >
-
-                            Mid<span style="color:#8066FF;">Point</span>
-
-                        </div>
-
-
-                        <div
-                            style="
-                                margin-top:5px;
-                                color:#9CEAC6;
-                                font-size:12px;
-                            "
-                        >
-
-                            Seller Package Payment Confirmation
-
-                        </div>
-
-                    </td>
-
-
-                    <td align="right">
-
-                        <span
-                            style="
-                                display:inline-block;
-                                padding:8px 12px;
-                                border-radius:999px;
-                                background:#DDF8E9;
-                                color:#087443;
-                                font-size:11px;
-                                font-weight:700;
-                            "
-                        >
-
-                            PAYMENT COMPLETE
-
-                        </span>
-
-                    </td>
-
-                </tr>
-
-            </table>
-
+            &nbsp;
         </td>
+    </tr>
 
+    <tr>
+        <td
+            align="center"
+            style="
+                padding:30px 38px 26px;
+                background:#FFFFFF;
+                border-bottom:1px solid #E7ECE9;
+            "
+        >
+            <a
+                href="{{ route('home') }}"
+                aria-label="Visit Midpoint"
+                style="display:inline-block;text-decoration:none;"
+            >
+                @if($logoUrl)
+                    <img
+                        src="{{ $logoUrl }}"
+                        alt="Midpoint"
+                        width="190"
+                        style="
+                            display:block;
+                            width:auto;
+                            height:auto;
+                            max-width:190px;
+                            max-height:58px;
+                            border:0;
+                            outline:none;
+                        "
+                    >
+                @else
+                    <table
+                        role="presentation"
+                        cellpadding="0"
+                        cellspacing="0"
+                        border="0"
+                    >
+                        <tr>
+                            <td
+                                align="center"
+                                width="38"
+                                height="38"
+                                style="
+                                    width:38px;
+                                    height:38px;
+                                    border-radius:11px;
+                                    background:#0B3D2E;
+                                    color:#FFFFFF;
+                                    font-size:18px;
+                                    font-weight:700;
+                                    line-height:38px;
+                                    text-align:center;
+                                "
+                            >
+                                M
+                            </td>
+
+                            <td
+                                style="
+                                    padding-left:10px;
+                                    color:#0B3D2E;
+                                    font-size:24px;
+                                    font-weight:700;
+                                    line-height:30px;
+                                    vertical-align:middle;
+                                "
+                            >
+                                Mid<span style="color:#7A5AF8;">Point</span>
+                            </td>
+                        </tr>
+                    </table>
+                @endif
+            </a>
+
+            <div
+                style="
+                    margin-top:10px;
+                    color:#87938D;
+                    font-size:11px;
+                    line-height:17px;
+                "
+            >
+                Seller Package Payment Confirmation
+            </div>
+
+            <div
+                style="
+                    display:inline-block;
+                    margin-top:14px;
+                    padding:7px 12px;
+                    border:1px solid #ABEFC6;
+                    border-radius:999px;
+                    background:#ECFDF3;
+                    color:#067647;
+                    font-size:10px;
+                    font-weight:700;
+                    letter-spacing:.5px;
+                    line-height:14px;
+                "
+            >
+                PAYMENT COMPLETE
+            </div>
+        </td>
     </tr>
 
 
-
     {{-- BODY --}}
+
     <tr>
 
         <td style="padding:38px;">
 
 
+
             <div
+
                 style="
+
                     width:60px;
+
                     height:60px;
+
                     line-height:60px;
+
                     border-radius:50%;
+
                     background:#E6F8EE;
+
                     color:#087443;
+
                     text-align:center;
+
                     font-size:28px;
+
                     font-weight:800;
+
                 "
+
             >
 
                 ✓
@@ -263,12 +443,20 @@
 
 
 
+
+
             <h1
+
                 style="
+
                     margin:22px 0 10px;
+
                     color:#101915;
+
                     font-size:25px;
+
                 "
+
             >
 
                 {{ $actionTitle }}
@@ -277,13 +465,22 @@
 
 
 
+
+
             <p
+
                 style="
+
                     margin:0 0 14px;
+
                     color:#5A6660;
+
                     font-size:15px;
+
                     line-height:1.7;
+
                 "
+
             >
 
                 Hi {{ $user->name }},
@@ -292,13 +489,22 @@
 
 
 
+
+
             <p
+
                 style="
+
                     margin:0 0 24px;
+
                     color:#5A6660;
+
                     font-size:14px;
+
                     line-height:1.8;
+
                 "
+
             >
 
 {{ $actionDescription }}
@@ -306,7 +512,9 @@
 Your
 
 <strong>
+
     {{ $packageName }}
+
 </strong>
 
 Verified Seller package is now active.
@@ -314,35 +522,55 @@ Verified Seller package is now active.
 @if($invoice->isRecurringPurchase())
 
     You did not need to submit another seller
+
     verification application because your
+
     existing approved seller verification
+
     remains valid.
 
 @endif
 
                 Your official paid invoice is attached
+
                 to this email as a PDF.
 
             </p>
 
 
 
+
+
             {{-- ACTIVE PACKAGE --}}
+
             <div
+
                 style="
+
                     padding:18px;
+
                     border:1px solid #ABEFC6;
+
                     border-radius:14px;
+
                     background:#ECFDF3;
+
                 "
+
             >
 
                 <div
+
                     style="
+
                         color:#067647;
+
                         font-size:13px;
+
                         font-weight:700;
+
                     "
+
                 >
 
                     ✓ Verified Seller Active
@@ -350,16 +578,25 @@ Verified Seller package is now active.
                 </div>
 
 
+
                 <div
+
                     style="
+
                         margin-top:7px;
+
                         color:#446054;
+
                         font-size:13px;
+
                         line-height:1.6;
+
                     "
+
                 >
 
                     Your package allows you to list
+
                     up to
 
                     <strong>
@@ -376,21 +613,36 @@ Verified Seller package is now active.
 
 
 
+
+
             {{-- RECEIPT --}}
+
             <div
+
                 style="
+
                     margin-top:25px;
+
                     padding:24px;
+
                     border:1px solid #DDE7E1;
+
                     border-radius:16px;
+
                     background:#FAFCFB;
+
                 "
+
             >
 
                 <table
+
                     width="100%"
+
                     cellpadding="0"
+
                     cellspacing="0"
+
                 >
 
                     <tr>
@@ -398,11 +650,17 @@ Verified Seller package is now active.
                         <td>
 
                             <div
+
                                 style="
+
                                     color:#17211D;
+
                                     font-size:15px;
+
                                     font-weight:700;
+
                                 "
+
                             >
 
                                 Payment Receipt
@@ -412,18 +670,29 @@ Verified Seller package is now active.
                         </td>
 
 
+
                         <td align="right">
 
                             <span
+
                                 style="
+
                                     display:inline-block;
+
                                     padding:6px 10px;
+
                                     border-radius:999px;
+
                                     background:#DDF8E9;
+
                                     color:#087443;
+
                                     font-size:10px;
+
                                     font-weight:700;
+
                                 "
+
                             >
 
                                 PAID
@@ -438,31 +707,52 @@ Verified Seller package is now active.
 
 
 
+
+
                 <div
+
                     style="
+
                         margin-top:18px;
+
                         color:#0B3D2E;
+
                         font-size:36px;
+
                         font-weight:800;
+
                     "
+
                 >
 
                     ₦{{
+
                         number_format(
+
                             (float) $invoice->amount,
+
                             2
+
                         )
+
                     }}
 
                 </div>
 
 
+
                 <div
+
                     style="
+
                         margin-top:3px;
+
                         color:#718078;
+
                         font-size:12px;
+
                     "
+
                 >
 
                     {{ $packageName }}
@@ -473,40 +763,64 @@ Verified Seller package is now active.
 
 
 
+
+
                 <table
+
                     width="100%"
+
                     cellpadding="0"
+
                     cellspacing="0"
+
                     style="
+
                         margin-top:21px;
+
                         border-top:1px solid #E4EBE7;
+
                     "
+
                 >
+
 
 
                     <tr>
 
                         <td
+
                             style="
+
                                 padding-top:14px;
+
                                 color:#718078;
+
                                 font-size:11px;
+
                             "
+
                         >
 
                             Invoice number
 
                         </td>
+
                         @if($prorationCredit > 0)
 
                             <tr>
 
                                 <td
+
                                     style="
+
                                         padding-top:9px;
+
                                         color:#718078;
+
                                         font-size:11px;
+
                                     "
+
                                 >
 
                                     Full package price
@@ -514,21 +828,33 @@ Verified Seller package is now active.
                                 </td>
 
 
+
                                 <td
+
                                     align="right"
 
                                     style="
+
                                         padding-top:9px;
+
                                         font-size:11px;
+
                                         font-weight:700;
+
                                     "
+
                                 >
 
                                     ₦{{
+
                                         number_format(
+
                                             $packageFullPrice,
+
                                             2
+
                                         )
+
                                     }}
 
                                 </td>
@@ -536,14 +862,21 @@ Verified Seller package is now active.
                             </tr>
 
 
+
                             <tr>
 
                                 <td
+
                                     style="
+
                                         padding-top:9px;
+
                                         color:#067647;
+
                                         font-size:11px;
+
                                     "
+
                                 >
 
                                     Unused current-plan credit
@@ -551,22 +884,35 @@ Verified Seller package is now active.
                                 </td>
 
 
+
                                 <td
+
                                     align="right"
 
                                     style="
+
                                         padding-top:9px;
+
                                         color:#067647;
+
                                         font-size:11px;
+
                                         font-weight:700;
+
                                     "
+
                                 >
 
                                     -₦{{
+
                                         number_format(
+
                                             $prorationCredit,
+
                                             2
+
                                         )
+
                                     }}
 
                                 </td>
@@ -576,12 +922,19 @@ Verified Seller package is now active.
                         @endif
 
                         <td
+
                             align="right"
+
                             style="
+
                                 padding-top:14px;
+
                                 font-size:11px;
+
                                 font-weight:700;
+
                             "
+
                         >
 
                             {{ $invoice->invoice_number }}
@@ -592,16 +945,24 @@ Verified Seller package is now active.
 
 
 
+
+
                     @if($invoice->payment_reference)
 
                         <tr>
 
                             <td
+
                                 style="
+
                                     padding-top:9px;
+
                                     color:#718078;
+
                                     font-size:11px;
+
                                 "
+
                             >
 
                                 Payment reference
@@ -609,13 +970,21 @@ Verified Seller package is now active.
                             </td>
 
 
+
                             <td
+
                                 align="right"
+
                                 style="
+
                                     padding-top:9px;
+
                                     font-size:11px;
+
                                     font-weight:700;
+
                                 "
+
                             >
 
                                 {{ $invoice->payment_reference }}
@@ -628,16 +997,24 @@ Verified Seller package is now active.
 
 
 
+
+
                     @if($invoice->payment_method)
 
                         <tr>
 
                             <td
+
                                 style="
+
                                     padding-top:9px;
+
                                     color:#718078;
+
                                     font-size:11px;
+
                                 "
+
                             >
 
                                 Payment method
@@ -645,23 +1022,39 @@ Verified Seller package is now active.
                             </td>
 
 
+
                             <td
+
                                 align="right"
+
                                 style="
+
                                     padding-top:9px;
+
                                     font-size:11px;
+
                                     font-weight:700;
+
                                 "
+
                             >
 
                                 {{
+
                                     ucwords(
+
                                         str_replace(
+
                                             '_',
+
                                             ' ',
+
                                             $invoice->payment_method
+
                                         )
+
                                     )
+
                                 }}
 
                             </td>
@@ -669,6 +1062,8 @@ Verified Seller package is now active.
                         </tr>
 
                     @endif
+
+
 
 
 
@@ -677,11 +1072,17 @@ Verified Seller package is now active.
                         <tr>
 
                             <td
+
                                 style="
+
                                     padding-top:9px;
+
                                     color:#718078;
+
                                     font-size:11px;
+
                                 "
+
                             >
 
                                 Payment date
@@ -689,21 +1090,35 @@ Verified Seller package is now active.
                             </td>
 
 
+
                             <td
+
                                 align="right"
+
                                 style="
+
                                     padding-top:9px;
+
                                     font-size:11px;
+
                                     font-weight:700;
+
                                 "
+
                             >
 
                                 {{
+
                                     $invoice
+
                                         ->paid_at
+
                                         ->format(
+
                                             'd M Y, h:i A'
+
                                         )
+
                                 }}
 
                             </td>
@@ -714,14 +1129,22 @@ Verified Seller package is now active.
 
 
 
+
+
                     <tr>
 
                         <td
+
                             style="
+
                                 padding-top:9px;
+
                                 color:#718078;
+
                                 font-size:11px;
+
                             "
+
                         >
 
                             Business
@@ -729,13 +1152,21 @@ Verified Seller package is now active.
                         </td>
 
 
+
                         <td
+
                             align="right"
+
                             style="
+
                                 padding-top:9px;
+
                                 font-size:11px;
+
                                 font-weight:700;
+
                             "
+
                         >
 
                             {{ $application->business_name }}
@@ -746,14 +1177,22 @@ Verified Seller package is now active.
 
 
 
+
+
                     <tr>
 
                         <td
+
                             style="
+
                                 padding-top:9px;
+
                                 color:#718078;
+
                                 font-size:11px;
+
                             "
+
                         >
 
                             Package
@@ -761,13 +1200,21 @@ Verified Seller package is now active.
                         </td>
 
 
+
                         <td
+
                             align="right"
+
                             style="
+
                                 padding-top:9px;
+
                                 font-size:11px;
+
                                 font-weight:700;
+
                             "
+
                         >
 
                             {{ $packageName }}
@@ -782,17 +1229,30 @@ Verified Seller package is now active.
 
 
 
+
+
             {{-- ATTACHMENT NOTICE --}}
+
             <div
+
                 style="
+
                     margin-top:18px;
+
                     padding:14px;
+
                     border-radius:12px;
+
                     background:#F5F7F6;
+
                     color:#5A6660;
+
                     font-size:12px;
+
                     line-height:1.7;
+
                 "
+
             >
 
                 <strong style="color:#17211D;">
@@ -807,32 +1267,54 @@ Verified Seller package is now active.
 
 
 
+
+
             {{-- BUTTON --}}
+
             <table
+
                 cellpadding="0"
+
                 cellspacing="0"
+
                 style="margin-top:28px;"
+
             >
 
                 <tr>
 
                     <td
+
                         style="
+
                             border-radius:10px;
+
                             background:#0B3D2E;
+
                         "
+
                     >
 
                         <a
+
                             href="{{ route('seller.products') }}"
+
                             style="
+
                                 display:inline-block;
+
                                 padding:15px 26px;
+
                                 color:#FFFFFF;
+
                                 font-size:13px;
+
                                 font-weight:700;
+
                                 text-decoration:none;
+
                             "
+
                         >
 
                             Start Listing Products →
@@ -847,16 +1329,26 @@ Verified Seller package is now active.
 
 
 
+
+
             <p
+
                 style="
+
                     margin:23px 0 0;
+
                     color:#7A8680;
+
                     font-size:12px;
+
                     line-height:1.7;
+
                 "
+
             >
 
                 Keep this email and the attached
+
                 invoice for your payment records.
 
             </p>
@@ -867,19 +1359,32 @@ Verified Seller package is now active.
 
 
 
+
+
     {{-- FOOTER --}}
+
     <tr>
 
         <td
+
             style="
+
                 padding:22px 38px;
+
                 border-top:1px solid #EDF1EF;
+
                 background:#FBFCFB;
+
                 color:#8A958F;
+
                 font-size:11px;
+
                 line-height:1.7;
+
                 text-align:center;
+
             "
+
         >
 
             Midpoint Verified Seller Program
@@ -889,7 +1394,9 @@ Verified Seller package is now active.
             Receipt sent to
 
             <strong>
+
                 {{ $user->email }}
+
             </strong>
 
             <br>
@@ -901,7 +1408,9 @@ Verified Seller package is now active.
     </tr>
 
 
+
 </table>
+
 
 
 </td>
@@ -909,6 +1418,7 @@ Verified Seller package is now active.
 </tr>
 
 </table>
+
 
 
 </body>

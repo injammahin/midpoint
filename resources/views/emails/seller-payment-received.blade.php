@@ -1,27 +1,76 @@
-<!DOCTYPE html>
+@php
+    /*
+    |--------------------------------------------------------------------------
+    | Uploaded Midpoint logo
+    |--------------------------------------------------------------------------
+    */
+    $configuredLogoPath = trim(
+        (string) config('midpoint.logo_path', '')
+    );
+
+    $relativeLogoPath = ltrim(
+        str_replace('\\', '/', $configuredLogoPath),
+        '/'
+    );
+
+    $logoUrl = null;
+
+    if ($relativeLogoPath !== '') {
+        $absoluteLogoPath = public_path($relativeLogoPath);
+
+        if (
+            is_file($absoluteLogoPath)
+            && is_readable($absoluteLogoPath)
+        ) {
+            /*
+            | Do not use $message->embed() here. Gmail can display an
+            | embedded logo as a separate email attachment.
+            */
+            $logoUrl = asset($relativeLogoPath);
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Email data
+    |--------------------------------------------------------------------------
+    */
+    $sellerName = trim(
+        (string) ($transaction->seller?->name ?? '')
+    ) ?: 'Seller';
+
+    $buyerName = trim(
+        (string) (
+            $transaction->buyer?->name
+            ?: $transaction->buyer_email
+        )
+    ) ?: 'Buyer';
+
+    $securedAmount = (float) (
+        $transaction->paid_amount
+        ?: $transaction->total_amount
+    );
+
+    $transactionUrl = route(
+        'seller.transactions.show',
+        [
+            'secureTransaction' => $transaction->public_token,
+        ]
+    );
+@endphp
+
+<!doctype html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-
+    <meta charset="utf-8">
     <meta
         name="viewport"
-        content="width=device-width, initial-scale=1.0"
+        content="width=device-width, initial-scale=1"
     >
+    <meta name="color-scheme" content="light">
+    <meta name="supported-color-schemes" content="light">
 
-    <meta
-        name="color-scheme"
-        content="light"
-    >
-
-    <meta
-        name="supported-color-schemes"
-        content="light"
-    >
-
-    <title>
-        Payment Received
-    </title>
+    <title>Buyer payment secured</title>
 
     <style>
         html,
@@ -36,10 +85,7 @@
         table,
         td,
         a {
-            font-family:
-                Arial,
-                Helvetica,
-                sans-serif;
+            font-family: Arial, Helvetica, sans-serif;
         }
 
         table,
@@ -47,81 +93,71 @@
             border-collapse: collapse !important;
         }
 
+        img {
+            display: block;
+            border: 0;
+            outline: none;
+            text-decoration: none;
+        }
+
         a {
             text-decoration: none;
         }
 
         @media only screen and (max-width: 620px) {
-
             .email-shell {
                 width: 100% !important;
             }
 
             .mobile-page-padding {
-                padding:
-                    20px 12px !important;
+                padding: 20px 12px !important;
             }
 
             .email-card {
-                border-radius:
-                    14px !important;
+                border-radius: 14px !important;
             }
 
             .email-header {
-                padding:
-                    28px 22px 20px !important;
+                padding: 30px 22px 20px !important;
             }
 
             .email-content {
-                padding:
-                    4px 20px 30px !important;
+                padding: 4px 22px 30px !important;
             }
 
             .email-title {
-                font-size:
-                    24px !important;
-
-                line-height:
-                    31px !important;
+                font-size: 25px !important;
+                line-height: 32px !important;
             }
 
             .email-copy {
-                font-size:
-                    14px !important;
-
-                line-height:
-                    22px !important;
-            }
-
-            .detail-label {
-                width:
-                    35% !important;
-            }
-
-            .detail-cell {
-                padding:
-                    12px 13px !important;
+                font-size: 14px !important;
+                line-height: 22px !important;
             }
 
             .amount-value {
-                font-size:
-                    27px !important;
+                font-size: 27px !important;
+                line-height: 34px !important;
+            }
 
-                line-height:
-                    34px !important;
+            .detail-label,
+            .detail-value {
+                padding: 12px 13px !important;
+                font-size: 11px !important;
+                line-height: 17px !important;
+            }
+
+            .detail-label {
+                width: 38% !important;
             }
 
             .footer-content {
-                padding-right:
-                    15px !important;
-
-                padding-left:
-                    15px !important;
+                padding-right: 14px !important;
+                padding-left: 14px !important;
             }
         }
     </style>
 </head>
-
 
 <body
     style="
@@ -131,11 +167,6 @@
         color: #17251F;
     "
 >
-
-    {{-- =========================================================
-        HIDDEN EMAIL PREVIEW
-    ========================================================== --}}
-
     <div
         style="
             display: none;
@@ -147,46 +178,32 @@
             mso-hide: all;
         "
     >
-        Payment for {{ $transaction->title }}
-        has been successfully verified and secured.
+        Midpoint secured the buyer payment for
+        {{ $transaction->title }}.
     </div>
-
-
-    {{-- =========================================================
-        EMAIL BACKGROUND
-    ========================================================== --}}
 
     <table
         role="presentation"
         width="100%"
-        cellspacing="0"
         cellpadding="0"
+        cellspacing="0"
         border="0"
         style="
             width: 100%;
             background-color: #F2F5F3;
         "
     >
-
         <tr>
-
             <td
                 align="center"
                 class="mobile-page-padding"
-                style="
-                    padding: 42px 16px;
-                "
+                style="padding: 42px 16px;"
             >
-
-                {{-- =================================================
-                    EMAIL WRAPPER
-                ================================================== --}}
-
                 <table
-                    width="600"
                     role="presentation"
-                    cellspacing="0"
+                    width="600"
                     cellpadding="0"
+                    cellspacing="0"
                     border="0"
                     class="email-shell"
                     style="
@@ -194,13 +211,7 @@
                         max-width: 600px;
                     "
                 >
-
-                    {{-- =============================================
-                        MAIN CARD
-                    ============================================== --}}
-
                     <tr>
-
                         <td
                             class="email-card"
                             style="
@@ -208,26 +219,17 @@
                                 border: 1px solid #DFE7E2;
                                 border-radius: 18px;
                                 background-color: #FFFFFF;
-                                box-shadow:
-                                    0 14px 40px
-                                    rgba(11, 61, 46, 0.08);
+                                box-shadow: 0 14px 40px rgba(11, 61, 46, 0.08);
                             "
                         >
-
                             <table
                                 role="presentation"
                                 width="100%"
-                                cellspacing="0"
                                 cellpadding="0"
+                                cellspacing="0"
                                 border="0"
                             >
-
-                                {{-- =================================
-                                    TOP ACCENT
-                                ================================== --}}
-
                                 <tr>
-
                                     <td
                                         height="5"
                                         style="
@@ -239,127 +241,96 @@
                                     >
                                         &nbsp;
                                     </td>
-
                                 </tr>
 
-
-                                {{-- =================================
-                                    BRAND HEADER
-                                ================================== --}}
-
                                 <tr>
-
                                     <td
                                         align="center"
                                         class="email-header"
-                                        style="
-                                            padding:
-                                                32px 40px 22px;
-                                        "
+                                        style="padding: 34px 40px 22px;"
                                     >
-
-                                        <table
-                                            role="presentation"
-                                            cellspacing="0"
-                                            cellpadding="0"
-                                            border="0"
+                                        <a
+                                            href="{{ route('home') }}"
+                                            aria-label="Visit Midpoint"
+                                            style="display: inline-block;"
                                         >
-
-                                            <tr>
-
-                                                <td
-                                                    align="center"
-                                                    width="38"
-                                                    height="38"
+                                            @if($logoUrl)
+                                                <img
+                                                    src="{{ $logoUrl }}"
+                                                    alt="Midpoint"
+                                                    width="190"
                                                     style="
-                                                        width: 38px;
-                                                        height: 38px;
-                                                        border-radius: 11px;
-                                                        background-color: #0B3D2E;
-                                                        color: #FFFFFF;
-                                                        font-size: 18px;
-                                                        font-weight: 700;
-                                                        line-height: 38px;
-                                                        text-align: center;
+                                                        display: block;
+                                                        width: auto;
+                                                        height: auto;
+                                                        max-width: 190px;
+                                                        max-height: 58px;
                                                     "
                                                 >
-                                                    M
-                                                </td>
-
-
-                                                <td
-                                                    style="
-                                                        padding-left: 10px;
-                                                        color: #0B3D2E;
-                                                        font-size: 24px;
-                                                        font-weight: 700;
-                                                        line-height: 30px;
-                                                        vertical-align: middle;
-                                                    "
+                                            @else
+                                                <table
+                                                    role="presentation"
+                                                    cellpadding="0"
+                                                    cellspacing="0"
+                                                    border="0"
                                                 >
-                                                    Mid<span
-                                                        style="
-                                                            color: #7A5AF8;
-                                                        "
-                                                    >Point</span>
-                                                </td>
+                                                    <tr>
+                                                        <td
+                                                            align="center"
+                                                            width="38"
+                                                            height="38"
+                                                            style="
+                                                                width: 38px;
+                                                                height: 38px;
+                                                                border-radius: 11px;
+                                                                background-color: #0B3D2E;
+                                                                color: #FFFFFF;
+                                                                font-size: 18px;
+                                                                font-weight: 700;
+                                                                line-height: 38px;
+                                                                text-align: center;
+                                                            "
+                                                        >
+                                                            M
+                                                        </td>
 
-                                            </tr>
-
-                                        </table>
-
-
-                                        <div
-                                            style="
-                                                margin-top: 10px;
-                                                color: #87938D;
-                                                font-size: 11px;
-                                                line-height: 17px;
-                                            "
-                                        >
-                                            Secure transaction update
-                                        </div>
-
+                                                        <td
+                                                            style="
+                                                                padding-left: 10px;
+                                                                color: #0B3D2E;
+                                                                font-size: 24px;
+                                                                font-weight: 700;
+                                                                line-height: 30px;
+                                                                vertical-align: middle;
+                                                            "
+                                                        >
+                                                            Mid<span style="color: #7A5AF8;">Point</span>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            @endif
+                                        </a>
                                     </td>
-
                                 </tr>
 
-
-                                {{-- =================================
-                                    MAIN CONTENT
-                                ================================== --}}
-
                                 <tr>
-
                                     <td
                                         align="center"
                                         class="email-content"
-                                        style="
-                                            padding:
-                                                4px 48px 40px;
-                                        "
+                                        style="padding: 4px 48px 40px;"
                                     >
-
-                                        {{-- =============================
-                                            STATUS BADGE
-                                        ============================== --}}
-
                                         <table
                                             role="presentation"
-                                            cellspacing="0"
                                             cellpadding="0"
+                                            cellspacing="0"
                                             border="0"
                                         >
-
                                             <tr>
-
                                                 <td
                                                     align="center"
                                                     style="
-                                                        padding:
-                                                            7px 12px;
-                                                        border:
-                                                            1px solid #CDEEDD;
+                                                        padding: 7px 12px;
+                                                        border: 1px solid #CDEEDD;
                                                         border-radius: 999px;
                                                         background-color: #ECFDF3;
                                                         color: #067647;
@@ -371,21 +342,13 @@
                                                 >
                                                     PAYMENT SECURED
                                                 </td>
-
                                             </tr>
-
                                         </table>
-
-
-                                        {{-- =============================
-                                            TITLE
-                                        ============================== --}}
 
                                         <h1
                                             class="email-title"
                                             style="
-                                                margin:
-                                                    18px 0 0;
+                                                margin: 18px 0 0;
                                                 color: #17251F;
                                                 font-size: 28px;
                                                 font-weight: 700;
@@ -393,68 +356,54 @@
                                                 text-align: center;
                                             "
                                         >
-                                            Your buyer has completed payment.
+                                            Your buyer has completed payment
                                         </h1>
-
-
-                                        {{-- =============================
-                                            MESSAGE
-                                        ============================== --}}
 
                                         <p
                                             class="email-copy"
                                             style="
-                                                margin:
-                                                    16px 0 0;
+                                                margin: 16px 0 0;
                                                 color: #58665F;
                                                 font-size: 15px;
                                                 line-height: 24px;
                                                 text-align: center;
                                             "
                                         >
-                                            Midpoint has successfully verified
-                                            the payment for
-
-                                            <strong
-                                                style="
-                                                    color: #26352E;
-                                                "
-                                            >
+                                            Hi
+                                            <strong style="color: #26352E;">
+                                                {{ $sellerName }},
+                                            </strong>
+                                            Midpoint has verified and secured
+                                            <strong style="color: #26352E;">
+                                                {{ $buyerName }}’s
+                                            </strong>
+                                            payment for
+                                            <strong style="color: #26352E;">
                                                 {{ $transaction->title }}
                                             </strong>.
                                         </p>
 
-
-                                        {{-- =============================
-                                            AMOUNT SECURED
-                                        ============================== --}}
-
                                         <table
                                             role="presentation"
                                             width="100%"
-                                            cellspacing="0"
                                             cellpadding="0"
+                                            cellspacing="0"
                                             border="0"
                                             style="
                                                 width: 100%;
                                                 margin-top: 25px;
                                             "
                                         >
-
                                             <tr>
-
                                                 <td
                                                     align="center"
                                                     style="
-                                                        padding:
-                                                            22px 18px;
-                                                        border:
-                                                            1px solid #D5EADD;
+                                                        padding: 22px 18px;
+                                                        border: 1px solid #D5EADD;
                                                         border-radius: 12px;
                                                         background-color: #F2FCF6;
                                                     "
                                                 >
-
                                                     <div
                                                         style="
                                                             color: #68776F;
@@ -467,7 +416,6 @@
                                                         AMOUNT SECURED
                                                     </div>
 
-
                                                     <div
                                                         class="amount-value"
                                                         style="
@@ -478,34 +426,24 @@
                                                             line-height: 38px;
                                                         "
                                                     >
-                                                        ₦{{ number_format((float) ($transaction->paid_amount ?: $transaction->total_amount), 2) }}
+                                                        ₦{{ number_format($securedAmount, 2) }}
                                                     </div>
-
                                                 </td>
-
                                             </tr>
-
                                         </table>
-
-
-                                        {{-- =============================
-                                            TRANSACTION DETAILS HEADING
-                                        ============================== --}}
 
                                         <table
                                             role="presentation"
                                             width="100%"
-                                            cellspacing="0"
                                             cellpadding="0"
+                                            cellspacing="0"
                                             border="0"
                                             style="
                                                 width: 100%;
                                                 margin-top: 26px;
                                             "
                                         >
-
                                             <tr>
-
                                                 <td
                                                     align="left"
                                                     style="
@@ -517,44 +455,30 @@
                                                 >
                                                     Transaction details
                                                 </td>
-
                                             </tr>
-
                                         </table>
-
-
-                                        {{-- =============================
-                                            TRANSACTION DETAILS CARD
-                                        ============================== --}}
 
                                         <table
                                             role="presentation"
                                             width="100%"
-                                            cellspacing="0"
                                             cellpadding="0"
+                                            cellspacing="0"
                                             border="0"
                                             style="
                                                 width: 100%;
                                                 margin-top: 10px;
-                                                border:
-                                                    1px solid #E0E7E3;
+                                                border: 1px solid #E0E7E3;
                                                 border-radius: 11px;
                                                 background-color: #FFFFFF;
                                             "
                                         >
-
-                                            {{-- Transaction --}}
-
                                             <tr>
-
                                                 <td
-                                                    width="35%"
-                                                    class="detail-label detail-cell"
+                                                    width="38%"
+                                                    class="detail-label"
                                                     style="
-                                                        padding:
-                                                            13px 16px;
-                                                        border-bottom:
-                                                            1px solid #E7ECE9;
+                                                        padding: 13px 16px;
+                                                        border-bottom: 1px solid #E7ECE9;
                                                         color: #748078;
                                                         font-size: 12px;
                                                         line-height: 18px;
@@ -563,15 +487,12 @@
                                                     Transaction
                                                 </td>
 
-
                                                 <td
                                                     align="right"
-                                                    class="detail-cell"
+                                                    class="detail-value"
                                                     style="
-                                                        padding:
-                                                            13px 16px;
-                                                        border-bottom:
-                                                            1px solid #E7ECE9;
+                                                        padding: 13px 16px;
+                                                        border-bottom: 1px solid #E7ECE9;
                                                         color: #26352E;
                                                         font-size: 12px;
                                                         font-weight: 700;
@@ -581,22 +502,15 @@
                                                 >
                                                     {{ $transaction->reference }}
                                                 </td>
-
                                             </tr>
 
-
-                                            {{-- Item --}}
-
                                             <tr>
-
                                                 <td
-                                                    width="35%"
-                                                    class="detail-label detail-cell"
+                                                    width="38%"
+                                                    class="detail-label"
                                                     style="
-                                                        padding:
-                                                            13px 16px;
-                                                        border-bottom:
-                                                            1px solid #E7ECE9;
+                                                        padding: 13px 16px;
+                                                        border-bottom: 1px solid #E7ECE9;
                                                         color: #748078;
                                                         font-size: 12px;
                                                         line-height: 18px;
@@ -605,15 +519,12 @@
                                                     Item
                                                 </td>
 
-
                                                 <td
                                                     align="right"
-                                                    class="detail-cell"
+                                                    class="detail-value"
                                                     style="
-                                                        padding:
-                                                            13px 16px;
-                                                        border-bottom:
-                                                            1px solid #E7ECE9;
+                                                        padding: 13px 16px;
+                                                        border-bottom: 1px solid #E7ECE9;
                                                         color: #26352E;
                                                         font-size: 12px;
                                                         font-weight: 700;
@@ -623,20 +534,15 @@
                                                 >
                                                     {{ $transaction->title }}
                                                 </td>
-
                                             </tr>
 
-
-                                            {{-- Buyer --}}
-
                                             <tr>
-
                                                 <td
-                                                    width="35%"
-                                                    class="detail-label detail-cell"
+                                                    width="38%"
+                                                    class="detail-label"
                                                     style="
-                                                        padding:
-                                                            13px 16px;
+                                                        padding: 13px 16px;
+                                                        border-bottom: 1px solid #E7ECE9;
                                                         color: #748078;
                                                         font-size: 12px;
                                                         line-height: 18px;
@@ -645,13 +551,12 @@
                                                     Buyer
                                                 </td>
 
-
                                                 <td
                                                     align="right"
-                                                    class="detail-cell"
+                                                    class="detail-value"
                                                     style="
-                                                        padding:
-                                                            13px 16px;
+                                                        padding: 13px 16px;
+                                                        border-bottom: 1px solid #E7ECE9;
                                                         color: #26352E;
                                                         font-size: 12px;
                                                         font-weight: 700;
@@ -659,47 +564,65 @@
                                                         word-break: break-word;
                                                     "
                                                 >
-                                                    {{ $transaction->buyer?->name ?: $transaction->buyer_email }}
+                                                    {{ $buyerName }}
                                                 </td>
-
                                             </tr>
 
+                                            <tr>
+                                                <td
+                                                    width="38%"
+                                                    class="detail-label"
+                                                    style="
+                                                        padding: 13px 16px;
+                                                        color: #748078;
+                                                        font-size: 12px;
+                                                        line-height: 18px;
+                                                    "
+                                                >
+                                                    Status
+                                                </td>
+
+                                                <td
+                                                    align="right"
+                                                    class="detail-value"
+                                                    style="
+                                                        padding: 13px 16px;
+                                                        color: #067647;
+                                                        font-size: 12px;
+                                                        font-weight: 700;
+                                                        line-height: 18px;
+                                                        word-break: break-word;
+                                                    "
+                                                >
+                                                    {{ $transaction->status_label ?: 'Payment secured' }}
+                                                </td>
+                                            </tr>
                                         </table>
-
-
-                                        {{-- =============================
-                                            PAYMENT NOTICE
-                                        ============================== --}}
 
                                         <table
                                             role="presentation"
                                             width="100%"
-                                            cellspacing="0"
                                             cellpadding="0"
+                                            cellspacing="0"
                                             border="0"
                                             style="
                                                 width: 100%;
                                                 margin-top: 18px;
-                                                border:
-                                                    1px solid #D9E9E0;
+                                                border: 1px solid #D9E9E0;
                                                 border-radius: 10px;
                                                 background-color: #F4FAF7;
                                             "
                                         >
-
                                             <tr>
-
                                                 <td
                                                     align="left"
                                                     style="
-                                                        padding:
-                                                            15px 16px;
+                                                        padding: 15px 16px;
                                                         color: #52645A;
                                                         font-size: 12px;
                                                         line-height: 19px;
                                                     "
                                                 >
-
                                                     <strong
                                                         style="
                                                             display: block;
@@ -711,52 +634,41 @@
                                                         Payment secured
                                                     </strong>
 
-                                                    The buyer's payment is secured.
-                                                    You can now prepare the item
-                                                    for fulfilment. Do not request
-                                                    another payment from the buyer.
-
+                                                    The amount is protected by
+                                                    Midpoint and is not yet an
+                                                    available wallet balance.
+                                                    Prepare the order and follow
+                                                    the transaction status through
+                                                    delivery, inspection, and
+                                                    completion. Do not request a
+                                                    second payment from the buyer.
                                                 </td>
-
                                             </tr>
-
                                         </table>
-
-
-                                        {{-- =============================
-                                            ACTION BUTTON
-                                        ============================== --}}
 
                                         <table
                                             role="presentation"
                                             width="100%"
-                                            cellspacing="0"
                                             cellpadding="0"
+                                            cellspacing="0"
                                             border="0"
                                             style="
                                                 width: 100%;
                                                 margin-top: 25px;
                                             "
                                         >
-
                                             <tr>
-
                                                 <td
                                                     align="center"
                                                     bgcolor="#0B3D2E"
-                                                    style="
-                                                        border-radius: 10px;
-                                                    "
+                                                    style="border-radius: 10px;"
                                                 >
-
                                                     <a
-                                                        href="{{ route('seller.transactions.show', $transaction) }}"
+                                                        href="{{ $transactionUrl }}"
                                                         style="
                                                             display: block;
-                                                            padding:
-                                                                16px 24px;
-                                                            border:
-                                                                1px solid #0B3D2E;
+                                                            padding: 16px 24px;
+                                                            border: 1px solid #0B3D2E;
                                                             border-radius: 10px;
                                                             background-color: #0B3D2E;
                                                             color: #FFFFFF;
@@ -768,39 +680,55 @@
                                                     >
                                                         View transaction
                                                     </a>
-
                                                 </td>
-
                                             </tr>
-
                                         </table>
 
+                                        <p
+                                            style="
+                                                margin: 24px 0 0;
+                                                color: #7B8781;
+                                                font-size: 12px;
+                                                line-height: 19px;
+                                                text-align: center;
+                                            "
+                                        >
+                                            Or copy and paste this link into
+                                            your browser:
+                                        </p>
+
+                                        <p
+                                            style="
+                                                margin: 7px 0 0;
+                                                color: #0E8A5D;
+                                                font-size: 11px;
+                                                line-height: 18px;
+                                                text-align: center;
+                                                word-break: break-all;
+                                            "
+                                        >
+                                            <a
+                                                href="{{ $transactionUrl }}"
+                                                style="
+                                                    color: #0E8A5D;
+                                                    text-decoration: underline;
+                                                "
+                                            >
+                                                {{ $transactionUrl }}
+                                            </a>
+                                        </p>
                                     </td>
-
                                 </tr>
-
                             </table>
-
                         </td>
-
                     </tr>
 
-
-                    {{-- =============================================
-                        FOOTER
-                    ============================================== --}}
-
                     <tr>
-
                         <td
                             align="center"
                             class="footer-content"
-                            style="
-                                padding:
-                                    24px 24px 0;
-                            "
+                            style="padding: 24px 24px 0;"
                         >
-
                             <p
                                 style="
                                     margin: 0;
@@ -810,16 +738,17 @@
                                     text-align: center;
                                 "
                             >
-                                Midpoint secure transaction platform
+                                &copy; {{ date('Y') }}
+                                Midpoint Technologies Ltd.
+                                All rights reserved.
                             </p>
 
                             <p
                                 style="
-                                    margin:
-                                        5px 0 0;
+                                    margin: 5px 0 0;
                                     color: #98A29D;
-                                    font-size: 10px;
-                                    line-height: 17px;
+                                    font-size: 11px;
+                                    line-height: 18px;
                                     text-align: center;
                                 "
                             >
@@ -827,18 +756,59 @@
                                 Sell with confidence.
                             </p>
 
+                            <p
+                                style="
+                                    margin: 12px 0 0;
+                                    color: #A3ACA7;
+                                    font-size: 11px;
+                                    line-height: 18px;
+                                    text-align: center;
+                                "
+                            >
+                                <a
+                                    href="{{ route('privacy-policy') }}"
+                                    style="color: #607068;"
+                                >
+                                    Privacy Policy
+                                </a>
+
+                                <span
+                                    style="
+                                        padding: 0 7px;
+                                        color: #B8C0BC;
+                                    "
+                                >
+                                    &bull;
+                                </span>
+
+                                <a
+                                    href="{{ route('terms-and-conditions') }}"
+                                    style="color: #607068;"
+                                >
+                                    Terms
+                                </a>
+
+                                <span
+                                    style="
+                                        padding: 0 7px;
+                                        color: #B8C0BC;
+                                    "
+                                >
+                                    &bull;
+                                </span>
+
+                                <a
+                                    href="{{ route('support') }}"
+                                    style="color: #607068;"
+                                >
+                                    Support
+                                </a>
+                            </p>
                         </td>
-
                     </tr>
-
                 </table>
-
             </td>
-
         </tr>
-
     </table>
-
 </body>
-
 </html>

@@ -16,7 +16,8 @@
     $buyerName =
         $transaction->buyer?->name
         ?:
-        $transaction->buyer_email;
+        $transaction->buyer_email
+        ?: 'Buyer';
 
 
     $quantity =
