@@ -98,15 +98,15 @@
             </h2>
 
             <p class="legal-text">
-                Sellers pay a Midpoint Service Fee of 5% of the product
-                price, deducted from the payout when funds are released.
-                Nigerian Value Added Tax of 7.5% is applied to the service
-                fee (not to the product price) and is remitted to the
-                Federal Inland Revenue Service. Buyers pay no Midpoint
-                service fee. Delivery is arranged directly between buyer
-                and seller; any delivery amount entered at checkout is held
-                in escrow alongside the product price and released on the
-                same terms.
+                Sellers pay a Midpoint Service Fee of 5% of the full
+                transaction amount held in escrow, consisting of the product
+                subtotal plus any delivery amount. The fee is deducted from
+                the seller payout when funds are released. Nigerian Value
+                Added Tax is applied only to the Midpoint service fee and
+                remitted as applicable. Buyers pay no Midpoint service fee.
+                Delivery is arranged directly between buyer and seller; any
+                delivery amount entered at checkout is held in escrow alongside
+                the product price and released on the same terms.
             </p>
 
 

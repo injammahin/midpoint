@@ -387,11 +387,12 @@
             </h2>
 
             <p class="legal-text">
-                On release to a seller we deduct the 5% Midpoint Service Fee
-                and 7.5% VAT on that fee. No deduction is applied to the
-                delivery amount, which passes through to the seller in full.
-                Buyers are never charged a Midpoint service fee. On a refund,
-                no Midpoint service fee is charged; only the gateway processing
+                On release to a seller we deduct the Midpoint Service Fee
+                from the full transaction amount held in escrow, including
+                both the product subtotal and any delivery amount. VAT is
+                applied only to the Midpoint service fee. Buyers are never
+                charged a Midpoint service fee. On a refund, no Midpoint
+                service fee is charged; only the applicable gateway processing
                 fee described in section 4 is deducted.
             </p>
 

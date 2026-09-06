@@ -30,11 +30,12 @@ class MarketplaceCheckoutPaymentService
 
         protected ProductInventoryService $inventory,
 
-        protected TransactionPaymentCommunicationService $communications
+        protected TransactionPaymentCommunicationService $communications,
+
+        protected SecureTransactionFeeService $fees
 
     ) {
     }
-
 
     /*
     |--------------------------------------------------------------------------
@@ -1300,50 +1301,49 @@ class MarketplaceCheckoutPaymentService
                         |
                         */
 
-                        $productSubtotal =
-                            round(
+                        $feeBreakdown =
+                            $this->fees->calculate(
+
                                 (float)
                                 $lockedIntent
                                     ->subtotal,
-                                2
+
+                                (float)
+                                $lockedIntent
+                                    ->delivery_fee,
+
+                                $paidAmount
                             );
+
+
+                        $serviceFeeRate =
+                            $feeBreakdown[
+                                'service_fee_rate'
+                            ];
+
+
+                        $vatRate =
+                            $feeBreakdown[
+                                'vat_rate'
+                            ];
 
 
                         $serviceFeeAmount =
-                            round(
-                                $productSubtotal
-                                *
-                                (
-                                    $serviceFeeRate
-                                    /
-                                    100
-                                ),
-                                2
-                            );
+                            $feeBreakdown[
+                                'service_fee_amount'
+                            ];
 
 
                         $vatAmount =
-                            round(
-                                $serviceFeeAmount
-                                *
-                                (
-                                    $vatRate
-                                    /
-                                    100
-                                ),
-                                2
-                            );
+                            $feeBreakdown[
+                                'vat_amount'
+                            ];
 
 
                         $sellerNetAmount =
-                            round(
-                                $paidAmount
-                                -
-                                $serviceFeeAmount
-                                -
-                                $vatAmount,
-                                2
-                            );
+                            $feeBreakdown[
+                                'seller_net_amount'
+                            ];
 
 
                         if (

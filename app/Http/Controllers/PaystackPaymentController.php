@@ -22,6 +22,7 @@ use RuntimeException;
 use Throwable;
 use App\Services\SellerWithdrawalService;
 use App\Services\PaystackSellerKycService;
+use App\Services\SecureTransactionFeeService;
 
 class PaystackPaymentController extends Controller
 {
@@ -29,10 +30,13 @@ class PaystackPaymentController extends Controller
 
     protected ProductInventoryService $inventory;
 
+    protected SecureTransactionFeeService $fees;
+
 
     public function __construct(
         TransactionPaymentCommunicationService $communications,
-        ProductInventoryService $inventory
+        ProductInventoryService $inventory,
+        SecureTransactionFeeService $fees
     ) {
 
         $this->communications =
@@ -41,6 +45,10 @@ class PaystackPaymentController extends Controller
 
         $this->inventory =
             $inventory;
+
+
+        $this->fees =
+            $fees;
     }
 
     public function initialize(
@@ -1627,76 +1635,69 @@ $lockedPayment->update([
                 }
 
 
-                $serviceFeeRate =
-                    (float) config(
-                        'secure_transactions.service_fee_percent',
-                        5
-                    );
+               $paidAmount =
+    round(
+        $amountSubunit / 100,
+        2
+    );
 
 
-                $vatRate =
-                    (float) config(
-                        'secure_transactions.fee_vat_percent',
-                        7.5
-                    );
+    /*
+    |--------------------------------------------------------------------------
+    | Midpoint Seller Fee
+    |--------------------------------------------------------------------------
+    |
+    | Service fee is calculated on:
+    |
+    | Product subtotal + Delivery fee
+    |
+    | VAT is calculated only on the Midpoint service fee.
+    |
+    */
+
+    $feeBreakdown =
+        $this->fees->calculate(
+
+            (float)
+            $lockedTransaction
+                ->subtotal,
+
+            (float)
+            $lockedTransaction
+                ->delivery_fee,
+
+            $paidAmount
+        );
 
 
-                if (
-                    $serviceFeeRate < 0
-                    ||
-                    $vatRate < 0
-                ) {
-                    throw new RuntimeException(
-                        'Midpoint transaction fee configuration is invalid.'
-                    );
-                }
+    $serviceFeeRate =
+        $feeBreakdown[
+            'service_fee_rate'
+        ];
 
 
-                $productSubtotal =
-                    round(
-                        (float) $lockedTransaction->subtotal,
-                        2
-                    );
+    $vatRate =
+        $feeBreakdown[
+            'vat_rate'
+        ];
 
 
-                $paidAmount =
-                    round(
-                        $amountSubunit / 100,
-                        2
-                    );
+    $serviceFeeAmount =
+        $feeBreakdown[
+            'service_fee_amount'
+        ];
 
 
-                $serviceFeeAmount =
-                    round(
-                        $productSubtotal
-                        *
-                        (
-                            $serviceFeeRate / 100
-                        ),
-                        2
-                    );
+    $vatAmount =
+        $feeBreakdown[
+            'vat_amount'
+        ];
 
 
-                $vatAmount =
-                    round(
-                        $serviceFeeAmount
-                        *
-                        (
-                            $vatRate / 100
-                        ),
-                        2
-                    );
-
-
-                $sellerNetAmount =
-                    round(
-                        $paidAmount
-                        -
-                        $serviceFeeAmount
-                        -
-                        $vatAmount,
-                        2
-                    );
+    $sellerNetAmount =
+        $feeBreakdown[
+            'seller_net_amount'
+        ];
 
 
                 if (

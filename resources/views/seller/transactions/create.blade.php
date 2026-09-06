@@ -998,9 +998,9 @@
 
                             <i class="fa-solid fa-circle-info"></i>
 
-                            The service fee applies only to the product subtotal.
-                            VAT applies only to the service fee. Your delivery fee is
-                            included in your payout without a Midpoint fee deduction.
+                            The service fee applies to the full transaction amount
+                            (product subtotal + delivery fee). VAT applies only to the
+                            Midpoint service fee.
 
                         </p>
 
@@ -2923,18 +2923,31 @@
 
                     /*
                     |------------------------------------------------------------------
-                    | Match Paystack Seller Fee Algorithm
+                    | Match Server / Paystack Seller Fee Algorithm
                     |------------------------------------------------------------------
                     |
-                    | Service fee: product subtotal only.
-                    | VAT: service fee only.
-                    | Delivery: passes to the seller without a Midpoint fee.
+                    | Service fee:
+                    | Product subtotal + delivery fee.
+                    |
+                    | VAT:
+                    | Service fee only.
+                    |
+                    | This means the Midpoint service fee is charged on the full
+                    | transaction amount paid by the buyer.
                     |
                     */
 
-                    const serviceFee =
+                    const feeBaseAmount =
                         roundMoney(
                             subtotal
+                            +
+                            delivery
+                        );
+
+
+                    const serviceFee =
+                        roundMoney(
+                            feeBaseAmount
                             *
                             (
                                 serviceFeeRate
