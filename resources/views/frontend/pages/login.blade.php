@@ -195,14 +195,50 @@
                             Password
                         </label>
 
-                        <input
-                            id="password"
-                            type="password"
-                            name="password"
-                            placeholder="••••••••"
-                            autocomplete="current-password"
-                            required
-                        >
+                        <div class="relative">
+
+                            <input
+                                id="password"
+                                type="password"
+                                name="password"
+                                placeholder="••••••••"
+                                autocomplete="current-password"
+                                class="!pr-[52px]"
+                                required
+                            >
+
+                            <button
+                                type="button"
+                                id="toggleLoginPassword"
+                                class="
+                                    absolute
+                                    right-[12px]
+                                    top-1/2
+                                    flex
+                                    h-[34px]
+                                    w-[34px]
+                                    -translate-y-1/2
+                                    items-center
+                                    justify-center
+                                    rounded-lg
+                                    text-[#77827C]
+                                    transition
+                                    hover:bg-[#F1F4F2]
+                                    hover:text-[#0B3D2E]
+                                    focus:outline-none
+                                    focus:ring-2
+                                    focus:ring-[#12B76A]/25
+                                "
+                                aria-label="Show password"
+                                aria-pressed="false"
+                            >
+                                <i
+                                    class="fa-regular fa-eye text-[15px]"
+                                    aria-hidden="true"
+                                ></i>
+                            </button>
+
+                        </div>
 
                     </div>
 
@@ -269,41 +305,93 @@
 
 <script>
 
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener(
+    'DOMContentLoaded',
+    function () {
 
-    const form =
-        document.getElementById('login-form');
+        const passwordInput =
+            document.getElementById(
+                'password'
+            );
 
-    form?.addEventListener('submit', function (event) {
 
-        event.preventDefault();
+        const toggleButton =
+            document.getElementById(
+                'toggleLoginPassword'
+            );
 
-        /*
-        |--------------------------------------------------------------------------
-        | Temporary UI behaviour
-        |--------------------------------------------------------------------------
-        |
-        | We will replace this with Laravel authentication when we create
-        | the authentication/user module.
-        |
-        */
 
-        const message =
-            document.getElementById('login-demo-message');
+        if (
+            !passwordInput
+            ||
+            !toggleButton
+        ) {
 
-        message.textContent =
-            'Login form validated successfully. Authentication backend will be connected next.';
+            return;
+        }
 
-        message.classList.remove('text-[#5A6660]');
 
-        message.classList.add(
-            'text-[#0E7A4C]',
-            'font-semibold'
+        toggleButton.addEventListener(
+            'click',
+            function () {
+
+                const isHidden =
+                    passwordInput.type
+                    ===
+                    'password';
+
+
+                passwordInput.type =
+                    isHidden
+                        ? 'text'
+                        : 'password';
+
+
+                const icon =
+                    toggleButton.querySelector(
+                        'i'
+                    );
+
+
+                if (
+                    icon
+                ) {
+
+                    icon.classList.toggle(
+                        'fa-eye',
+                        !isHidden
+                    );
+
+
+                    icon.classList.toggle(
+                        'fa-eye-slash',
+                        isHidden
+                    );
+                }
+
+
+                toggleButton.setAttribute(
+                    'aria-label',
+                    isHidden
+                        ? 'Hide password'
+                        : 'Show password'
+                );
+
+
+                toggleButton.setAttribute(
+                    'aria-pressed',
+                    isHidden
+                        ? 'true'
+                        : 'false'
+                );
+
+
+                passwordInput.focus();
+            }
         );
 
-    });
-
-});
+    }
+);
 
 </script>
 

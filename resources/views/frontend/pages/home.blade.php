@@ -3,7 +3,7 @@
 
 @section(
     'title',
-    'Midpoint — Buy with confidence. Sell with confidence.'
+    'Midpoint - Buy with confidence. Sell with confidence.'
 )
 
 
@@ -1908,6 +1908,155 @@
     }
 
 
+    /*
+    |--------------------------------------------------------------------------
+    | Tablet Hero Fix (641px - 960px)
+    |--------------------------------------------------------------------------
+    |
+    | The hero switches to one column below 961px. The desktop illustration
+    | used to keep its 470px height, leaving a large empty area above the
+    | Buyer → Midpoint → Seller nodes on tablets. Keep the stacked layout,
+    | but compact the illustration and the section spacing for tablet screens.
+    |
+    */
+
+    @media(min-width: 641px) and (max-width: 960px) {
+
+        .Midpoint-hero-inner {
+
+            row-gap:
+                12px !important;
+
+            padding-top:
+                48px !important;
+
+            padding-bottom:
+                50px !important;
+
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Hero Text Area
+        |--------------------------------------------------------------------------
+        */
+
+        .Midpoint-hero-inner > div:first-child {
+
+            width:
+                100%;
+
+            text-align:
+                center;
+
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Heading
+        |--------------------------------------------------------------------------
+        */
+
+        .Midpoint-hero-inner h1 {
+
+            max-width:
+                640px;
+
+            margin-left:
+                auto;
+
+            margin-right:
+                auto;
+
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Description
+        |--------------------------------------------------------------------------
+        */
+
+        .Midpoint-hero-inner > div:first-child > p {
+
+            max-width:
+                590px;
+
+            margin-left:
+                auto;
+
+            margin-right:
+                auto;
+
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Hero Buttons
+        |--------------------------------------------------------------------------
+        */
+
+        .Midpoint-hero-inner > div:first-child > div:nth-of-type(2) {
+
+            justify-content:
+                center;
+
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Statistics
+        |--------------------------------------------------------------------------
+        */
+
+        .Midpoint-hero-inner > div:first-child > div:nth-of-type(3) {
+
+            justify-content:
+                center;
+
+            text-align:
+                center;
+
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Buyer → Midpoint → Seller Illustration
+        |--------------------------------------------------------------------------
+        */
+
+        .mp-platform-visual {
+
+            max-width:
+                720px;
+
+            height:
+                300px;
+
+            margin:
+                -4px auto 0;
+
+        }
+
+
+        .mp-platform-visual::before {
+
+            width:
+                350px;
+
+            height:
+                350px;
+
+        }
+
+    }
+
+
     @media(max-width: 640px) {
 
         .Midpoint-hero::after {
@@ -2207,6 +2356,7 @@
 
         <div
             class="
+                Midpoint-hero-inner
                 relative
                 z-10
                 mx-auto

@@ -272,10 +272,26 @@
                             type="tel"
                             name="phone"
                             value="{{ old('phone') }}"
-                            placeholder="0803 xxx xxxx"
+                            placeholder="0803 123 4567"
                             autocomplete="tel"
+                            inputmode="tel"
+                            maxlength="20"
+                            aria-describedby="phone-help phone-client-error"
                             required
                         >
+
+                        <p
+                            id="phone-help"
+                            class="mt-1.5 text-[11px] leading-[1.5] text-[#7A8680]"
+                        >
+                          
+                        </p>
+
+                        <p
+                            id="phone-client-error"
+                            class="mt-1.5 hidden text-[11px] font-semibold text-red-600"
+                            role="alert"
+                        ></p>
 
                     </div>
 
@@ -313,15 +329,30 @@
                             Password
                         </label>
 
-                        <input
-                            id="register_password"
-                            type="password"
-                            name="password"
-                            placeholder="Minimum 8 characters"
-                            minlength="8"
-                            autocomplete="new-password"
-                            required
-                        >
+                        <div class="relative">
+
+                            <input
+                                id="register_password"
+                                type="password"
+                                name="password"
+                                placeholder="Minimum 8 characters"
+                                minlength="8"
+                                autocomplete="new-password"
+                                class="!pr-[48px]"
+                                required
+                            >
+
+                            <button
+                                type="button"
+                                class="password-toggle absolute right-[14px] top-1/2 flex h-[34px] w-[34px] -translate-y-1/2 items-center justify-center rounded-lg text-[#77827C] transition hover:bg-[#F1F4F2] hover:text-[#0B3D2E] focus:outline-none focus:ring-2 focus:ring-[#12B76A]/25"
+                                data-target="register_password"
+                                aria-label="Show password"
+                                aria-pressed="false"
+                            >
+                                <i class="fa-regular fa-eye text-[15px]"></i>
+                            </button>
+
+                        </div>
 
                     </div>
 
@@ -336,15 +367,30 @@
                             Confirm password
                         </label>
 
-                        <input
-                            id="password_confirmation"
-                            type="password"
-                            name="password_confirmation"
-                            placeholder="Re-enter your password"
-                            minlength="8"
-                            autocomplete="new-password"
-                            required
-                        >
+                        <div class="relative">
+
+                            <input
+                                id="password_confirmation"
+                                type="password"
+                                name="password_confirmation"
+                                placeholder="Re-enter your password"
+                                minlength="8"
+                                autocomplete="new-password"
+                                class="!pr-[48px]"
+                                required
+                            >
+
+                            <button
+                                type="button"
+                                class="password-toggle absolute right-[14px] top-1/2 flex h-[34px] w-[34px] -translate-y-1/2 items-center justify-center rounded-lg text-[#77827C] transition hover:bg-[#F1F4F2] hover:text-[#0B3D2E] focus:outline-none focus:ring-2 focus:ring-[#12B76A]/25"
+                                data-target="password_confirmation"
+                                aria-label="Show confirm password"
+                                aria-pressed="false"
+                            >
+                                <i class="fa-regular fa-eye text-[15px]"></i>
+                            </button>
+
+                        </div>
 
                     </div>
 
@@ -419,6 +465,12 @@ document.addEventListener(
     'DOMContentLoaded',
     function () {
 
+        /*
+        |--------------------------------------------------------------------------
+        | Preferred Role Selector
+        |--------------------------------------------------------------------------
+        */
+
         const roleButtons =
             document.querySelectorAll(
                 '.account-role-btn'
@@ -461,6 +513,375 @@ document.addEventListener(
 
             }
         );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Nigerian Phone Validation
+        |--------------------------------------------------------------------------
+        | Accepted examples:
+        | 0803 123 4567
+        | 08031234567
+        | +234 803 123 4567
+        | 2348031234567
+        |
+        | The server remains the authoritative validator. This browser validation
+        | exists only to give the user immediate feedback before submission.
+        |--------------------------------------------------------------------------
+        */
+
+        const registerForm =
+            document.getElementById(
+                'register-form'
+            );
+
+        const phoneInput =
+            document.getElementById(
+                'phone'
+            );
+
+        const phoneError =
+            document.getElementById(
+                'phone-client-error'
+            );
+
+
+        function normalizeNigerianPhone(
+            value
+        ) {
+
+            const rawPhone =
+                String(
+                    value || ''
+                )
+                    .trim();
+
+
+            if (
+                !/^\+?[0-9\s().-]+$/.test(
+                    rawPhone
+                )
+            ) {
+
+                return null;
+            }
+
+
+            const digits =
+                rawPhone.replace(
+                    /\D/g,
+                    ''
+                );
+
+
+            let nationalNumber =
+                '';
+
+
+            if (
+                digits.length === 11
+                &&
+                digits.startsWith(
+                    '0'
+                )
+            ) {
+
+                nationalNumber =
+                    digits.slice(
+                        1
+                    );
+
+            } else if (
+                digits.length === 13
+                &&
+                digits.startsWith(
+                    '234'
+                )
+            ) {
+
+                nationalNumber =
+                    digits.slice(
+                        3
+                    );
+
+            }
+
+
+            if (
+                !/^[789]\d{9}$/.test(
+                    nationalNumber
+                )
+            ) {
+
+                return null;
+            }
+
+
+            return '+234' + nationalNumber;
+        }
+
+
+        function formatNigerianPhone(
+            normalizedPhone
+        ) {
+
+            if (
+                !normalizedPhone
+                ||
+                !/^\+234[789]\d{9}$/.test(
+                    normalizedPhone
+                )
+            ) {
+
+                return normalizedPhone || '';
+            }
+
+
+            const nationalNumber =
+                normalizedPhone.slice(
+                    4
+                );
+
+
+            return '+234 '
+                + nationalNumber.slice(0, 3)
+                + ' '
+                + nationalNumber.slice(3, 6)
+                + ' '
+                + nationalNumber.slice(6);
+        }
+
+
+        function showPhoneError(
+            message
+        ) {
+
+            if (
+                !phoneInput
+            ) {
+
+                return;
+            }
+
+
+            phoneInput.setCustomValidity(
+                message
+            );
+
+
+            if (
+                phoneError
+            ) {
+
+                phoneError.textContent =
+                    message;
+
+                phoneError.classList.toggle(
+                    'hidden',
+                    message === ''
+                );
+            }
+        }
+
+
+        function validatePhone() {
+
+            if (
+                !phoneInput
+            ) {
+
+                return true;
+            }
+
+
+            const normalizedPhone =
+                normalizeNigerianPhone(
+                    phoneInput.value
+                );
+
+
+            if (
+                !normalizedPhone
+            ) {
+
+                showPhoneError(
+                    'Enter a valid Nigerian mobile number, for example 0803 123 4567 or +234 803 123 4567.'
+                );
+
+                return false;
+            }
+
+
+            showPhoneError(
+                ''
+            );
+
+
+            return true;
+        }
+
+
+        if (
+            phoneInput
+        ) {
+
+            phoneInput.addEventListener(
+                'input',
+                function () {
+
+                    showPhoneError(
+                        ''
+                    );
+
+                }
+            );
+
+
+            phoneInput.addEventListener(
+                'blur',
+                function () {
+
+                    const normalizedPhone =
+                        normalizeNigerianPhone(
+                            phoneInput.value
+                        );
+
+
+                    if (
+                        normalizedPhone
+                    ) {
+
+                        phoneInput.value =
+                            formatNigerianPhone(
+                                normalizedPhone
+                            );
+
+                        showPhoneError(
+                            ''
+                        );
+
+                    } else if (
+                        phoneInput.value.trim() !== ''
+                    ) {
+
+                        validatePhone();
+                    }
+
+                }
+            );
+        }
+
+
+        if (
+            registerForm
+        ) {
+
+            registerForm.addEventListener(
+                'submit',
+                function (event) {
+
+                    if (
+                        !validatePhone()
+                    ) {
+
+                        event.preventDefault();
+
+                        phoneInput.focus();
+
+                        return;
+                    }
+
+                }
+            );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Password Visibility Toggles
+        |--------------------------------------------------------------------------
+        */
+
+        document
+            .querySelectorAll(
+                '.password-toggle'
+            )
+            .forEach(
+                function (toggleButton) {
+
+                    toggleButton.addEventListener(
+                        'click',
+                        function () {
+
+                            const inputId =
+                                toggleButton.dataset.target;
+
+                            const input =
+                                document.getElementById(
+                                    inputId
+                                );
+
+
+                            if (
+                                !input
+                            ) {
+
+                                return;
+                            }
+
+
+                            const showingPassword =
+                                input.type === 'text';
+
+
+                            input.type =
+                                showingPassword
+                                    ? 'password'
+                                    : 'text';
+
+
+                            toggleButton.setAttribute(
+                                'aria-pressed',
+                                showingPassword
+                                    ? 'false'
+                                    : 'true'
+                            );
+
+
+                            toggleButton.setAttribute(
+                                'aria-label',
+                                showingPassword
+                                    ? 'Show password'
+                                    : 'Hide password'
+                            );
+
+
+                            const icon =
+                                toggleButton.querySelector(
+                                    'i'
+                                );
+
+
+                            if (
+                                icon
+                            ) {
+
+                                icon.classList.toggle(
+                                    'fa-eye',
+                                    showingPassword
+                                );
+
+                                icon.classList.toggle(
+                                    'fa-eye-slash',
+                                    !showingPassword
+                                );
+                            }
+
+                        }
+                    );
+
+                }
+            );
 
     }
 );

@@ -72,7 +72,7 @@
     >
 
     <title>
-        @yield('title', 'Midpoint — Buy with confidence. Sell with confidence.')
+        @yield('title', 'Midpoint - Buy with confidence. Sell with confidence.')
     </title>
 
     <meta
@@ -101,7 +101,7 @@
         'resources/css/app.css',
         'resources/js/app.js'
     ])
-
+@include('shared.favicon')
     @stack('styles')
 </head>
 

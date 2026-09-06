@@ -55,83 +55,6 @@
                                flex flex-col gap-4"
                     >
 
-                        {{-- Office --}}
-                        <div class="flex items-start gap-[14px]">
-
-                            <div
-                                class="grid h-11 w-11
-                                       shrink-0 place-items-center
-                                       rounded-[13px]
-                                       bg-[#E8F7EF]
-                                       text-[20px]"
-                            >
-                                📍
-                            </div>
-
-                            <div>
-
-                                <h2
-                                    class="font-['Bricolage_Grotesque']
-                                           text-[16px]
-                                           font-bold"
-                                >
-                                    Head office
-                                </h2>
-
-                                <div
-                                    class="text-[13px]
-                                           leading-[1.6]
-                                           text-[#5A6660]"
-                                >
-                                    14b Admiralty Way, Lekki Phase 1, Lagos
-                                </div>
-
-                            </div>
-
-                        </div>
-
-
-                        {{-- Phone --}}
-                        <div class="flex items-start gap-[14px]">
-
-                            <div
-                                class="grid h-11 w-11
-                                       shrink-0 place-items-center
-                                       rounded-[13px]
-                                       bg-[#F1EDFE]
-                                       text-[20px]"
-                            >
-                                📞
-                            </div>
-
-                            <div>
-
-                                <h2
-                                    class="font-['Bricolage_Grotesque']
-                                           text-[16px]
-                                           font-bold"
-                                >
-                                    Phone / WhatsApp
-                                </h2>
-
-                                <div
-                                    class="text-[13px]
-                                           leading-[1.6]
-                                           text-[#5A6660]"
-                                >
-                                    <a
-                                        href="tel:+2349012345678"
-                                        class="transition hover:text-[#12B76A]"
-                                    >
-                                        +234 901 234 5678
-                                    </a>
-
-                                    · Mon–Sat, 8am–8pm
-                                </div>
-
-                            </div>
-
-                        </div>
 
 
                         {{-- Email --}}
@@ -163,17 +86,6 @@
                                            leading-[1.6]
                                            text-[#5A6660]"
                                 >
-
-                                    <a
-                                        href="mailto:hello@Midpoint.ng"
-                                        class="transition hover:text-[#12B76A]"
-                                    >
-                                        hello@Midpoint.ng
-                                    </a>
-
-                                    <span class="mx-1">
-                                        ·
-                                    </span>
 
                                     <a
                                         href="mailto:support@Midpoint.ng"

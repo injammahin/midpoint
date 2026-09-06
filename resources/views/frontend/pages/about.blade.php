@@ -157,7 +157,7 @@
         <div
             class="
                 mx-auto
-                max-w-[860px]
+                max-w-[1160px]
             "
         >
 

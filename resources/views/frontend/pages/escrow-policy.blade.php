@@ -35,28 +35,6 @@
             </p>
 
 
-            <div
-                class="mp-card
-                       mb-[26px]
-                       !border-[#F79009]
-                       !bg-[#FEF4E6]
-                       p-4"
-            >
-
-                <div
-                    class="text-[13px]
-                           leading-[1.6]
-                           text-[#B54708]"
-                >
-                    <strong>
-                        Prototype notice.
-                    </strong>
-
-                    Illustrative content for design purposes only.
-                    Requires legal and regulatory review before launch.
-                </div>
-
-            </div>
 
 
             {{-- 1 --}}

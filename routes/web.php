@@ -76,7 +76,7 @@ use App\Http\Controllers\Buyer\BuyerTransactionActionController;
 use App\Http\Controllers\Buyer\BuyerTransactionDisputeController;
 use App\Http\Controllers\Buyer\BuyerProfileSettingsController;
 use App\Http\Controllers\Buyer\ProductCheckoutController;
-
+use App\Http\Controllers\Buyer\BuyerSellerInviteController;
 /*
 |--------------------------------------------------------------------------
 | Admin Controllers
@@ -1329,26 +1329,32 @@ Route::post(
             )->name('notifications.open');
 
 
-            /*
-            |--------------------------------------------------------------------------
-            | Seller Invite
-            |--------------------------------------------------------------------------
-            */
+        /*
+        |--------------------------------------------------------------------------
+        | Seller Invite
+        |--------------------------------------------------------------------------
+        */
 
-            Route::view(
-                '/seller-invite',
-                'account.coming-soon',
-                [
-                    'dashboardRole' =>
-                        'buyer',
+        Route::get(
+            '/seller-invite',
+            [
+                BuyerSellerInviteController::class,
+                'create',
+            ]
+        )->name('seller-invite');
 
-                    'pageTitle' =>
-                        'Open seller invite',
 
-                    'pageIcon' =>
-                        'fa-link',
-                ]
-            )->name('seller-invite');
+        Route::post(
+            '/seller-invite',
+            [
+                BuyerSellerInviteController::class,
+                'open',
+            ]
+        )
+            ->middleware(
+                'throttle:20,1'
+            )
+            ->name('seller-invite.open');
 
 
             /*

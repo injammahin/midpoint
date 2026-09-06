@@ -26,6 +26,7 @@
             'description' => 'When money is held, released, and how sellers get paid.',
             'background' => '#E8F7EF',
             'keywords' => 'payment payments payout payouts money escrow release seller paid',
+            'href' => route('escrow-policy'),
         ],
 
         [
@@ -34,6 +35,7 @@
             'description' => 'How sellers arrange delivery and mark items dispatched.',
             'background' => '#F1EDFE',
             'keywords' => 'delivery dispatch courier rider shipping item dispatched',
+            'href' => route('how-it-works'),
         ],
 
         [
@@ -42,14 +44,16 @@
             'description' => 'Opening a dispute, evidence, and how resolutions work.',
             'background' => '#FEF4E6',
             'keywords' => 'dispute refund evidence resolution problem return',
+            'href' => route('escrow-policy'),
         ],
 
         [
             'icon' => '⏱️',
             'title' => 'Inspection period',
-            'description' => 'Your 8-hour window and auto-release explained.',
+            'description' => 'Your 8-hour inspection window and buyer acceptance explained.',
             'background' => '#E8F7EF',
-            'keywords' => 'inspection 8 hour window auto release timer',
+            'keywords' => 'inspection 8 hour window buyer acceptance release timer',
+            'href' => route('escrow-policy'),
         ],
 
         [
@@ -58,6 +62,7 @@
             'description' => 'Getting the verified badge and improving trust score.',
             'background' => '#F1EDFE',
             'keywords' => 'business verification verified badge trust seller',
+            'href' => route('verified-sellers'),
         ],
 
         [
@@ -66,12 +71,13 @@
             'description' => 'Login issues, password resets and account safety.',
             'background' => '#FDECEC',
             'keywords' => 'account security login password reset 2fa safety',
+            'href' => route('faqs'),
         ],
 
         [
             'icon' => '⚖️',
             'title' => 'Legal & policies',
-            'description' => 'Terms, Privacy Policy, Escrow Policy and auto-release rules.',
+            'description' => 'Terms, Privacy Policy, Escrow Policy and transaction rules.',
             'background' => '#E8F7EF',
             'keywords' => 'legal terms privacy escrow policy rules',
             'href' => route('terms-and-conditions'),
@@ -83,6 +89,7 @@
             'description' => 'BVN checks, name matching and payout eligibility.',
             'background' => '#F1EDFE',
             'keywords' => 'kyc identity verification bvn name matching payout bank',
+            'href' => route('verified-sellers'),
         ],
 
     ];
@@ -180,52 +187,35 @@
 
                 @foreach ($supportItems as $item)
 
-                    @if (!empty($item['href']))
-
-                        <a
-                            href="{{ $item['href'] }}"
-                            class="support-card
-                                   mp-card
-                                   block
-                                   cursor-pointer
-                                   p-[22px]
-                                   transition
-                                   hover:-translate-y-[2px]"
-                            data-search="{{
-                                strtolower(
-                                    $item['title']
-                                    .' '.
-                                    $item['description']
-                                    .' '.
-                                    $item['keywords']
-                                )
-                            }}"
-                        >
-
-                    @else
-
-                        <button
-                            type="button"
-                            class="support-card
-                                   mp-card
-                                   cursor-pointer
-                                   p-[22px]
-                                   text-left
-                                   transition
-                                   hover:-translate-y-[2px]"
-                            data-search="{{
-                                strtolower(
-                                    $item['title']
-                                    .' '.
-                                    $item['description']
-                                    .' '.
-                                    $item['keywords']
-                                )
-                            }}"
-                        >
-
-                    @endif
-
+                    <a
+                        href="{{ $item['href'] }}"
+                        aria-label="Open {{ $item['title'] }} help"
+                        class="support-card
+                               group
+                               mp-card
+                               relative
+                               block
+                               cursor-pointer
+                               p-[22px]
+                               no-underline
+                               transition
+                               duration-200
+                               hover:-translate-y-[2px]
+                               hover:border-[#B9DDCA]
+                               hover:shadow-[0_14px_32px_rgba(11,61,46,.09)]
+                               focus:outline-none
+                               focus:ring-2
+                               focus:ring-[#12B76A]/25"
+                        data-search="{{
+                            strtolower(
+                                $item['title']
+                                .' '.
+                                $item['description']
+                                .' '.
+                                $item['keywords']
+                            )
+                        }}"
+                    >
 
                         <div
                             class="grid
@@ -246,9 +236,11 @@
                         <h2
                             class="mb-1
                                    mt-3
+                                   pr-8
                                    font-['Bricolage_Grotesque']
                                    text-[16px]
-                                   font-bold"
+                                   font-bold
+                                   text-[#101915]"
                         >
                             {{ $item['title'] }}
                         </h2>
@@ -263,15 +255,28 @@
                         </p>
 
 
-                    @if (!empty($item['href']))
+                        <span
+                            class="absolute
+                                   right-[18px]
+                                   top-[20px]
+                                   grid
+                                   h-8
+                                   w-8
+                                   place-items-center
+                                   rounded-full
+                                   bg-[#F3F7F5]
+                                   text-[11px]
+                                   text-[#0E7A4C]
+                                   transition
+                                   duration-200
+                                   group-hover:translate-x-[2px]
+                                   group-hover:bg-[#E8F7EF]"
+                            aria-hidden="true"
+                        >
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </span>
 
-                        </a>
-
-                    @else
-
-                        </button>
-
-                    @endif
+                    </a>
 
                 @endforeach
 

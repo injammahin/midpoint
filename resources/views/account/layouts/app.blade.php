@@ -16,7 +16,7 @@
         content="{{ csrf_token() }}"
     >
 
-
+@include('shared.favicon')
     <title>
         @yield('title', 'Dashboard') | Midpoint
     </title>

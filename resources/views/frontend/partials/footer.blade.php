@@ -50,100 +50,217 @@
                     class="mt-5 flex flex-wrap gap-[10px]"
                 >
 
-                    <a
-                        href="javascript:void(0)"
-                        class="inline-flex items-center gap-[9px]
-                               rounded-xl
-                               border border-[#2E3833]
-                               bg-[#1A211D]
-                               px-[14px] py-2
-                               transition duration-150
-                               hover:-translate-y-px
-                               hover:border-[#7EF0B6]
-                               hover:bg-[#202823]"
+                    {{-- =========================================================
+                        APP STORE - COMING SOON
+                    ========================================================== --}}
+
+                    <div
+                        class="group relative"
                     >
 
-                        <span
-                            class="text-[20px]
-                                   leading-none
-                                   text-[#7EF0B6]"
+                        <button
+                            type="button"
+                            class="inline-flex items-center gap-[9px]
+                                rounded-xl
+                                border border-[#2E3833]
+                                bg-[#1A211D]
+                                px-[14px] py-2
+                                transition duration-150
+                                hover:-translate-y-px
+                                hover:border-[#7EF0B6]
+                                hover:bg-[#202823]
+                                focus:outline-none"
                         >
-                            &#63743;
-                        </span>
 
-                        <span>
-
-                            <small
-                                class="block
-                                       text-[9.5px]
-                                       leading-[1.3]
-                                       tracking-[0.04em]
-                                       text-[#8E9B94]"
+                            <span
+                                class="text-[20px]
+                                    leading-none
+                                    text-[#7EF0B6]"
                             >
-                                Download on the
-                            </small>
-
-                            <strong
-                                class="block
-                                       font-['Bricolage_Grotesque']
-                                       text-[14px]
-                                       leading-[1.2]
-                                       text-white"
-                            >
-                                App Store
-                            </strong>
-
-                        </span>
-
-                    </a>
+                                &#63743;
+                            </span>
 
 
-                    <a
-                        href="javascript:void(0)"
-                        class="inline-flex items-center gap-[9px]
-                               rounded-xl
-                               border border-[#2E3833]
-                               bg-[#1A211D]
-                               px-[14px] py-2
-                               transition duration-150
-                               hover:-translate-y-px
-                               hover:border-[#7EF0B6]
-                               hover:bg-[#202823]"
+                            <span>
+
+                                <small
+                                    class="block
+                                        text-[9.5px]
+                                        leading-[1.3]
+                                        tracking-[0.04em]
+                                        text-[#8E9B94]"
+                                >
+                                    Download on the
+                                </small>
+
+
+                                <strong
+                                    class="block
+                                        font-['Bricolage_Grotesque']
+                                        text-[14px]
+                                        leading-[1.2]
+                                        text-white"
+                                >
+                                    App Store
+                                </strong>
+
+                            </span>
+
+                        </button>
+
+
+                        {{-- Tooltip --}}
+
+                        <div
+                            role="tooltip"
+                            class="pointer-events-none
+                                absolute
+                                bottom-[calc(100%+10px)]
+                                left-1/2
+                                z-50
+                                -translate-x-1/2
+                                translate-y-[4px]
+                                whitespace-nowrap
+                                rounded-lg
+                                border border-[#2D3A33]
+                                bg-[#101713]
+                                px-3 py-1.5
+                                text-[11px]
+                                font-semibold
+                                text-white
+                                opacity-0
+                                shadow-[0_10px_30px_rgba(0,0,0,0.35)]
+                                transition-all
+                                duration-200
+                                group-hover:translate-y-0
+                                group-hover:opacity-100
+                                group-focus-within:translate-y-0
+                                group-focus-within:opacity-100"
+                        >
+
+                            Coming soon
+
+
+                            <span
+                                class="absolute
+                                    left-1/2
+                                    top-full
+                                    -translate-x-1/2
+                                    border-[5px]
+                                    border-transparent
+                                    border-t-[#101713]"
+                            ></span>
+
+                        </div>
+
+                    </div>
+
+
+
+                    {{-- =========================================================
+                        GOOGLE PLAY - COMING SOON
+                    ========================================================== --}}
+
+                    <div
+                        class="group relative"
                     >
 
-                        <span
-                            class="text-[18px]
-                                   leading-none
-                                   text-[#7EF0B6]"
+                        <button
+                            type="button"
+                            class="inline-flex items-center gap-[9px]
+                                rounded-xl
+                                border border-[#2E3833]
+                                bg-[#1A211D]
+                                px-[14px] py-2
+                                transition duration-150
+                                hover:-translate-y-px
+                                hover:border-[#7EF0B6]
+                                hover:bg-[#202823]
+                                focus:outline-none"
                         >
-                            ▶
-                        </span>
 
-                        <span>
-
-                            <small
-                                class="block
-                                       text-[9.5px]
-                                       leading-[1.3]
-                                       tracking-[0.04em]
-                                       text-[#8E9B94]"
+                            <span
+                                class="text-[18px]
+                                    leading-none
+                                    text-[#7EF0B6]"
                             >
-                                Get it on
-                            </small>
+                                ▶
+                            </span>
 
-                            <strong
-                                class="block
-                                       font-['Bricolage_Grotesque']
-                                       text-[14px]
-                                       leading-[1.2]
-                                       text-white"
-                            >
-                                Google Play
-                            </strong>
 
-                        </span>
+                            <span>
 
-                    </a>
+                                <small
+                                    class="block
+                                        text-[9.5px]
+                                        leading-[1.3]
+                                        tracking-[0.04em]
+                                        text-[#8E9B94]"
+                                >
+                                    Get it on
+                                </small>
+
+
+                                <strong
+                                    class="block
+                                        font-['Bricolage_Grotesque']
+                                        text-[14px]
+                                        leading-[1.2]
+                                        text-white"
+                                >
+                                    Google Play
+                                </strong>
+
+                            </span>
+
+                        </button>
+
+
+                        {{-- Tooltip --}}
+
+                        <div
+                            role="tooltip"
+                            class="pointer-events-none
+                                absolute
+                                bottom-[calc(100%+10px)]
+                                left-1/2
+                                z-50
+                                -translate-x-1/2
+                                translate-y-[4px]
+                                whitespace-nowrap
+                                rounded-lg
+                                border border-[#2D3A33]
+                                bg-[#101713]
+                                px-3 py-1.5
+                                text-[11px]
+                                font-semibold
+                                text-white
+                                opacity-0
+                                shadow-[0_10px_30px_rgba(0,0,0,0.35)]
+                                transition-all
+                                duration-200
+                                group-hover:translate-y-0
+                                group-hover:opacity-100
+                                group-focus-within:translate-y-0
+                                group-focus-within:opacity-100"
+                        >
+
+                            Coming soon
+
+
+                            <span
+                                class="absolute
+                                    left-1/2
+                                    top-full
+                                    -translate-x-1/2
+                                    border-[5px]
+                                    border-transparent
+                                    border-t-[#101713]"
+                            ></span>
+
+                        </div>
+
+                    </div>
 
                 </div>
 
