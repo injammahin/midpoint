@@ -23,6 +23,7 @@ use Throwable;
 use App\Services\SellerWithdrawalService;
 use App\Services\PaystackSellerKycService;
 use App\Services\SecureTransactionFeeService;
+use App\Services\DisputeResolutionService;
 
 class PaystackPaymentController extends Controller
 {
@@ -622,7 +623,8 @@ class PaystackPaymentController extends Controller
         PaystackService $paystack,
         TransactionLifecycleService $lifecycle,
         SellerInvoicePaymentService $sellerInvoicePayments,
-        SellerWithdrawalService $sellerWithdrawals
+        SellerWithdrawalService $sellerWithdrawals,
+        DisputeResolutionService $disputeResolutions
     ) {
         $rawPayload =
             $request->getContent();
@@ -731,6 +733,82 @@ class PaystackPaymentController extends Controller
                 );
             }
         }
+        /*
+        |--------------------------------------------------------------------------
+        | Refund Events
+        |--------------------------------------------------------------------------
+        |
+        | Refund creation is asynchronous. Never mark a refund resolved from the
+        | browser request alone; Paystack webhook events are the source of truth.
+        |
+        */
+
+        if (
+            in_array(
+                $eventName,
+                [
+                    'refund.pending',
+                    'refund.processing',
+                    'refund.needs-attention',
+                    'refund.processed',
+                    'refund.failed',
+                ],
+                true
+            )
+        ) {
+
+            try {
+
+                $disputeResolutions
+                    ->handlePaystackWebhook(
+                        $eventName,
+                        $event['data']
+                        ??
+                        []
+                    );
+
+
+                return response(
+                    'OK',
+                    200
+                );
+
+            } catch (
+                Throwable $exception
+            ) {
+
+                Log::error(
+                    'Paystack dispute refund webhook processing failed.',
+                    [
+                        'event' =>
+                            $eventName,
+
+                        'transaction_reference' =>
+                            data_get(
+                                $event,
+                                'data.transaction_reference'
+                            ),
+
+                        'error' =>
+                            $exception->getMessage(),
+                    ]
+                );
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Non-200 Lets Paystack Retry
+                |--------------------------------------------------------------------------
+                */
+
+                return response(
+                    'Refund webhook processing failed',
+                    500
+                );
+            }
+        }
+
+
         /*
         |--------------------------------------------------------------------------
         | Seller Payout Events

@@ -6,51 +6,27 @@ use RuntimeException;
 
 class SecureTransactionFeeService
 {
-    /*
-    |--------------------------------------------------------------------------
-    | Calculate Secure Transaction Seller Charges
-    |--------------------------------------------------------------------------
-    |
-    | Midpoint's service fee is charged on the full transaction amount held
-    | in escrow:
-    |
-    |     product subtotal + delivery fee
-    |
-    | VAT is then calculated only on the Midpoint service fee.
-    |
-    */
-
     public function calculate(
         float $subtotal,
         float $deliveryFee,
         ?float $paidAmount = null
     ): array {
 
-        /*
-        |--------------------------------------------------------------------------
-        | Fee Configuration
-        |--------------------------------------------------------------------------
-        */
-
         $serviceFeeRate =
-            (float) config(
+            (float)
+            config(
                 'secure_transactions.service_fee_percent',
                 5
             );
 
 
         $vatRate =
-            (float) config(
+            (float)
+            config(
                 'secure_transactions.fee_vat_percent',
                 7.5
             );
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Validate Configuration
-        |--------------------------------------------------------------------------
-        */
 
         if (
             $serviceFeeRate < 0
@@ -63,12 +39,6 @@ class SecureTransactionFeeService
             );
         }
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Normalize Money
-        |--------------------------------------------------------------------------
-        */
 
         $subtotal =
             round(
@@ -90,19 +60,6 @@ class SecureTransactionFeeService
             );
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | Fee Base
-        |--------------------------------------------------------------------------
-        |
-        | IMPORTANT:
-        |
-        | The Midpoint service fee is calculated from:
-        |
-        | Product subtotal + Delivery fee
-        |
-        */
-
         $feeBaseAmount =
             round(
                 $subtotal
@@ -112,38 +69,16 @@ class SecureTransactionFeeService
             );
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | Actual Paid Amount
-        |--------------------------------------------------------------------------
-        |
-        | Normally this is exactly the same as the fee base amount.
-        |
-        | We still use the Paystack verified paid amount for the final seller
-        | payout so that the financial record is based on the verified payment.
-        |
-        */
-
         $paidAmount =
             $paidAmount === null
 
-                ?
+                ? $feeBaseAmount
 
-                $feeBaseAmount
-
-                :
-
-                round(
+                : round(
                     $paidAmount,
                     2
                 );
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Midpoint Service Fee
-        |--------------------------------------------------------------------------
-        */
 
         $serviceFeeAmount =
             round(
@@ -158,15 +93,6 @@ class SecureTransactionFeeService
             );
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | VAT
-        |--------------------------------------------------------------------------
-        |
-        | VAT is ONLY on the Midpoint service fee.
-        |
-        */
-
         $vatAmount =
             round(
                 $serviceFeeAmount
@@ -180,12 +106,6 @@ class SecureTransactionFeeService
             );
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | Seller Net Amount
-        |--------------------------------------------------------------------------
-        */
-
         $sellerNetAmount =
             round(
                 $paidAmount
@@ -197,12 +117,6 @@ class SecureTransactionFeeService
             );
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | Safety Check
-        |--------------------------------------------------------------------------
-        */
-
         if (
             $sellerNetAmount < 0
         ) {
@@ -213,33 +127,22 @@ class SecureTransactionFeeService
         }
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | Result
-        |--------------------------------------------------------------------------
-        */
-
         return [
 
             'fee_base_amount' =>
                 $feeBaseAmount,
 
-
             'service_fee_rate' =>
                 $serviceFeeRate,
-
 
             'vat_rate' =>
                 $vatRate,
 
-
             'service_fee_amount' =>
                 $serviceFeeAmount,
 
-
             'vat_amount' =>
                 $vatAmount,
-
 
             'seller_net_amount' =>
                 $sellerNetAmount,

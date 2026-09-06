@@ -27,6 +27,7 @@ use App\Http\Controllers\ContentPageController;
 use App\Http\Controllers\PaystackTransferApprovalController;
 use App\Http\Controllers\SellerSubscriptionRenewalController;
 use App\Http\Controllers\SellerPackageWalletPaymentController;
+use App\Http\Controllers\DisputeRoomController;
 
 
 
@@ -633,6 +634,72 @@ Route::middleware([
             'attachment',
         ]
     )->name('support.chat.attachments.show');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Transaction Dispute Resolution Room
+    |--------------------------------------------------------------------------
+    |
+    | Buyer / Seller / Admin can open the same dispute room.
+    | Admin users are redirected to the admin dispute case page.
+    |
+    */
+
+    Route::get(
+        '/dispute-room/{dispute}',
+        [
+            DisputeRoomController::class,
+            'show',
+        ]
+    )->name(
+        'dispute-room.show'
+    );
+
+
+    Route::get(
+        '/dispute-room/{dispute}/messages',
+        [
+            DisputeRoomController::class,
+            'messages',
+        ]
+    )
+        ->middleware(
+            'throttle:120,1'
+        )
+        ->name(
+            'dispute-room.messages.index'
+        );
+
+
+    Route::post(
+        '/dispute-room/{dispute}/messages',
+        [
+            DisputeRoomController::class,
+            'send',
+        ]
+    )
+        ->middleware(
+            'throttle:30,1'
+        )
+        ->name(
+            'dispute-room.messages.send'
+        );
+
+
+    Route::get(
+        '/dispute-room/{dispute}/messages/{message}/attachments/{index}',
+        [
+            DisputeRoomController::class,
+            'download',
+        ]
+    )
+        ->whereNumber(
+            'index'
+        )
+        ->name(
+            'dispute-room.attachments.download'
+        );
 
 });
 
@@ -1794,6 +1861,72 @@ Route::prefix(
                         'updateStatus',
                     ]
                 )->name('status.update');
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Activate Dispute Resolution Room
+                |--------------------------------------------------------------------------
+                */
+
+                Route::post(
+                    '/{dispute}/room/activate',
+                    [
+                        AdminDisputeController::class,
+                        'activateRoom',
+                    ]
+                )->name(
+                    'room.activate'
+                );
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Final Dispute Resolution
+                |--------------------------------------------------------------------------
+                |
+                | Supports:
+                | - Full buyer refund through Paystack
+                | - Partial buyer refund + seller settlement
+                | - Release seller entitlement
+                | - Resume normal protected transaction
+                |
+                */
+
+                Route::post(
+                    '/{dispute}/resolve',
+                    [
+                        AdminDisputeController::class,
+                        'resolve',
+                    ]
+                )
+                    ->middleware(
+                        'throttle:10,1'
+                    )
+                    ->name(
+                        'resolve'
+                    );
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Paystack Refund Synchronization
+                |--------------------------------------------------------------------------
+                */
+
+                Route::post(
+                    '/{dispute}/refund/sync',
+                    [
+                        AdminDisputeController::class,
+                        'syncRefund',
+                    ]
+                )
+                    ->middleware(
+                        'throttle:20,1'
+                    )
+                    ->name(
+                        'refund.sync'
+                    );
 
             });
 

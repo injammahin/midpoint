@@ -1,350 +1,142 @@
 @extends('admin.layouts.app')
 
 
-@section('title', 'Dispute ' . $transaction->reference)
-
-
-@section('page-title', 'Dispute Review')
-
+@section(
+    'title',
+    'Dispute #'
+    .
+    $dispute->id
+    .
+    ' | Midpoint Admin'
+)
 
 
 @section('content')
 
 @php
 
-    /*
-    |--------------------------------------------------------------------------
-    | Reason
-    |--------------------------------------------------------------------------
-    */
-
-    $reason =
-        match($dispute->reason) {
-
-            'not_received' =>
-                'Item Not Received',
-
-            'not_as_described' =>
-                'Item Not As Described',
-
-            'damaged' =>
-                'Item Arrived Damaged',
-
-            'wrong_item' =>
-                'Wrong Item Received',
-
-            'missing_parts' =>
-                'Missing Parts / Items',
-
-            default =>
-                'Other Issue',
-        };
+    $paidAmount =
+        round(
+            (float)
+            (
+                $transaction->paid_amount
+                ?:
+                $transaction->total_amount
+            ),
+            2
+        );
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Desired Outcome
-    |--------------------------------------------------------------------------
-    */
-
-    $outcome =
-        match($dispute->desired_outcome) {
-
-            'full_refund' =>
-                'Full Refund',
-
-            'partial_refund' =>
-                'Partial Refund',
-
-            'replacement' =>
-                'Replacement',
-
-            default =>
-                ucwords(
-                    str_replace(
-                        '_',
-                        ' ',
-                        (string) $dispute->desired_outcome
-                    )
-                ),
-        };
+    $serviceFeeRate =
+        (float)
+        config(
+            'secure_transactions.service_fee_percent',
+            5
+        );
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Status Class
-    |--------------------------------------------------------------------------
-    */
-
-    $workflowStatusClass =
-        match($dispute->status) {
-
-            'open' =>
-                'red',
-
-            'under_review' =>
-                'blue',
-
-            'awaiting_buyer' =>
-                'yellow',
-
-            'awaiting_seller' =>
-                'purple',
-
-            'resolved' =>
-                'green',
-
-            default =>
-                'gray',
-        };
+    $vatRate =
+        (float)
+        config(
+            'secure_transactions.fee_vat_percent',
+            7.5
+        );
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Status Icon
-    |--------------------------------------------------------------------------
-    */
+    $successfulPayment =
+        $transaction->successfulPayment;
 
-    $workflowStatusIcon =
-        match($dispute->status) {
 
-            'open' =>
-                'fa-circle-exclamation',
-
-            'under_review' =>
-                'fa-magnifying-glass',
-
-            'awaiting_buyer' =>
-                'fa-user-clock',
-
-            'awaiting_seller' =>
-                'fa-store',
-
-            'resolved' =>
-                'fa-circle-check',
-
-            default =>
-                'fa-circle',
-        };
+    $refundStatus =
+        $dispute->paystack_refund_status
+        ?:
+        null;
 
 @endphp
 
 
+<div class="adp-page">
 
-<div class="txn-admin-page">
+    {{-- =========================================================
+        HEADER
+    ========================================================== --}}
 
-
-    {{-- =====================================================
-        SUCCESS
-    ====================================================== --}}
-
-    @if(session('success'))
-
-        <div class="dispute-success-alert">
-
-            <i class="fa-solid fa-circle-check"></i>
-
-
-            <div>
-
-                <strong>
-                    Success
-                </strong>
-
-
-                <span>
-                    {{ session('success') }}
-                </span>
-
-            </div>
-
-        </div>
-
-    @endif
-
-
-
-    {{-- =====================================================
-        ERROR
-    ====================================================== --}}
-
-    @if(session('error'))
-
-        <div class="dispute-error-alert">
-
-            <i class="fa-solid fa-circle-exclamation"></i>
-
-
-            <div>
-
-                <strong>
-                    Unable to update dispute
-                </strong>
-
-
-                <span>
-                    {{ session('error') }}
-                </span>
-
-            </div>
-
-        </div>
-
-    @endif
-
-
-
-    {{-- =====================================================
-        VALIDATION
-    ====================================================== --}}
-
-    @if($errors->any())
-
-        <div class="dispute-error-alert">
-
-            <i class="fa-solid fa-circle-exclamation"></i>
-
-
-            <div>
-
-                <strong>
-                    Please check the form
-                </strong>
-
-
-                @foreach($errors->all() as $error)
-
-                    <span>
-                        • {{ $error }}
-                    </span>
-
-                @endforeach
-
-            </div>
-
-        </div>
-
-    @endif
-
-
-
-    {{-- =====================================================
-        HEADING
-    ====================================================== --}}
-
-    <div class="txn-admin-heading">
+    <div class="adp-header">
 
         <div>
 
-            <div
-                class="
-                    dispute-heading-status
-                    txn-badge
-                    {{ $workflowStatusClass }}
-                "
-            >
-
-                <i
-                    class="
-                        fa-solid
-                        {{ $workflowStatusIcon }}
-                    "
-                ></i>
-
-
-                {{
-                    $dispute->status_label
-                    ??
-                    ucwords(
-                        str_replace(
-                            '_',
-                            ' ',
-                            $dispute->status
-                        )
-                    )
-                }}
-
+            <div class="adp-eyebrow">
+                Transaction dispute
             </div>
 
 
-            <h2>
-                Dispute: {{ $transaction->reference }}
-            </h2>
+            <h1>
+
+                Dispute #{{ $dispute->id }}
+
+            </h1>
 
 
             <p>
 
-                Opened
+                {{ $transaction->reference }}
+
+                ·
 
                 {{
-                    $dispute->opened_at
-                        ? $dispute
-                            ->opened_at
-                            ->format(
-                                'd M Y, h:i A'
-                            )
-                        : '-'
+                    $transaction->title
+                    ?:
+                    'Secure transaction'
                 }}
-
-                @if($dispute->resolved_at)
-
-                    · Resolved
-
-                    {{
-                        $dispute
-                            ->resolved_at
-                            ->format(
-                                'd M Y, h:i A'
-                            )
-                    }}
-
-                @endif
 
             </p>
 
         </div>
 
 
-        <div
-            style="
-                display:
-                    flex;
-
-                gap:
-                    8px;
-
-                flex-wrap:
-                    wrap;
-            "
-        >
-
-            <a
-                href="{{
-                    route(
-                        'admin.transactions.show',
-                        $transaction
-                    )
-                }}"
-                class="txn-action-btn"
-            >
-
-                <i class="fa-solid fa-money-bill-transfer"></i>
-
-                Transaction
-
-            </a>
-
+        <div class="adp-header-actions">
 
             <a
                 href="{{ route('admin.disputes.index') }}"
-                class="txn-action-btn"
+                class="adp-button secondary"
             >
 
                 <i class="fa-solid fa-arrow-left"></i>
 
-                All Disputes
+                All disputes
 
             </a>
+
+
+            @if (!$dispute->isRoomActive() && !$dispute->isResolved())
+
+                <form
+                    method="POST"
+                    action="{{
+                        route(
+                            'admin.disputes.room.activate',
+                            $dispute
+                        )
+                    }}"
+                >
+
+                    @csrf
+
+
+                    <button
+                        type="submit"
+                        class="adp-button primary"
+                    >
+
+                        <i class="fa-solid fa-comments"></i>
+
+                        Activate resolution room
+
+                    </button>
+
+                </form>
+
+            @endif
 
         </div>
 
@@ -352,64 +144,43 @@
 
 
 
-    {{-- =====================================================
-        PAYOUT WARNING
-    ====================================================== --}}
+    {{-- =========================================================
+        FLASH
+    ========================================================== --}}
 
-    @if(
-        $dispute->status
-        !==
-        \App\Models\TransactionDispute::STATUS_RESOLVED
-    )
+    @if (session('success'))
 
-        <div class="txn-dispute-alert">
-
-            <strong>
-
-                <i class="fa-solid fa-lock"></i>
-
-                Seller payout is paused
-
-            </strong>
-
-
-            <p>
-
-                This transaction is currently disputed.
-
-                Midpoint should review the buyer's claim,
-                transaction details and evidence before
-                any refund, payout or settlement action.
-
-            </p>
-
-        </div>
-
-
-    @else
-
-        <div class="dispute-resolved-alert">
+        <div class="adp-alert success">
 
             <i class="fa-solid fa-circle-check"></i>
 
+            {{ session('success') }}
 
-            <div>
+        </div>
 
-                <strong>
-                    Dispute review completed
-                </strong>
+    @endif
 
 
-                <span>
+    @if (session('error'))
 
-                    This dispute has been marked as resolved.
+        <div class="adp-alert error">
 
-                    Financial settlement should still follow
-                    the approved refund or seller-payout workflow.
+            <i class="fa-solid fa-circle-exclamation"></i>
 
-                </span>
+            {{ session('error') }}
 
-            </div>
+        </div>
+
+    @endif
+
+
+    @if ($errors->any())
+
+        <div class="adp-alert error">
+
+            <i class="fa-solid fa-circle-exclamation"></i>
+
+            {{ $errors->first() }}
 
         </div>
 
@@ -417,2387 +188,1403 @@
 
 
 
-    {{-- =====================================================
-        WORKFLOW
-    ====================================================== --}}
+    {{-- =========================================================
+        TOP METRICS
+    ========================================================== --}}
 
-    <div class="admin-card txn-detail-card dispute-workflow-card">
+    <div class="adp-metrics">
 
-        <div class="dispute-workflow-header">
+        <div>
 
-            <div>
-
-                <h3>
-                    Dispute Workflow
-                </h3>
-
-
-                <p>
-
-                    Update the review status.
-
-                    Midpoint will automatically email the
-                    appropriate buyer or seller for each stage.
-
-                </p>
-
-            </div>
-
-
-            <span
-                class="
-                    txn-badge
-                    {{ $workflowStatusClass }}
-                "
-            >
-
-                <i
-                    class="
-                        fa-solid
-                        {{ $workflowStatusIcon }}
-                    "
-                ></i>
-
-
-                {{
-                    $dispute->status_label
-                    ??
-                    ucwords(
-                        str_replace(
-                            '_',
-                            ' ',
-                            $dispute->status
-                        )
-                    )
-                }}
-
+            <span>
+                Buyer paid
             </span>
+
+            <strong>
+                ₦{{ number_format($paidAmount, 2) }}
+            </strong>
 
         </div>
 
 
+        <div>
 
-        {{-- =================================================
-            OPEN
-        ================================================== --}}
+            <span>
+                Seller net before dispute
+            </span>
 
-        @if(
-            $dispute->status
-            ===
-            \App\Models\TransactionDispute::STATUS_OPEN
-        )
+            <strong>
+                ₦{{
+                    number_format(
+                        (float)
+                        $transaction->seller_net_amount,
+                        2
+                    )
+                }}
+            </strong>
 
-            <div class="dispute-workflow-info warning">
-
-                <i class="fa-solid fa-circle-exclamation"></i>
-
-
-                <div>
-
-                    <strong>
-                        New dispute requires initial review
-                    </strong>
+        </div>
 
 
-                    <span>
+        <div>
 
-                        This dispute is currently counted as a
-                        new dispute in the admin sidebar.
+            <span>
+                Dispute
+            </span>
 
-                        Mark it Under Review to acknowledge the
-                        case and remove the red new-dispute badge.
+            <strong>
+                {{ $dispute->status_label }}
+            </strong>
 
-                        The buyer will receive an email.
+        </div>
+
+
+        <div>
+
+            <span>
+                Seller payout
+            </span>
+
+            <strong class="locked">
+                Locked
+            </strong>
+
+        </div>
+
+    </div>
+
+
+
+    <div class="adp-layout">
+
+        {{-- =====================================================
+            MAIN
+        ====================================================== --}}
+
+        <main class="adp-main">
+
+            {{-- =================================================
+                DISPUTE INFORMATION
+            ================================================== --}}
+
+            <section class="adp-card">
+
+                <div class="adp-card-head">
+
+                    <div>
+
+                        <h2>
+                            Dispute information
+                        </h2>
+
+                        <p>
+                            Original buyer complaint and submitted evidence.
+                        </p>
+
+                    </div>
+
+
+                    <span class="adp-status-badge">
+
+                        {{ $dispute->status_label }}
 
                     </span>
 
                 </div>
 
-            </div>
 
+                <div class="adp-parties">
 
+                    <div>
 
-            <form
-                method="POST"
-                action="{{
-                    route(
-                        'admin.disputes.status.update',
-                        $dispute
-                    )
-                }}"
-            >
+                        <span>
+                            Buyer
+                        </span>
 
-                @csrf
-
-                @method('PATCH')
-
-
-                <input
-                    type="hidden"
-                    name="status"
-                    value="under_review"
-                >
-
-
-                <div class="dispute-form-field">
-
-                    <label for="review-note">
-
-                        Initial message
+                        <strong>
+                            {{ $dispute->buyer?->name ?: 'Buyer' }}
+                        </strong>
 
                         <small>
-                            Optional
+                            {{ $dispute->buyer?->email }}
                         </small>
 
-                    </label>
+                    </div>
 
 
-                    <textarea
-                        id="review-note"
-                        name="note"
-                        rows="4"
-                        placeholder="Optional message to the buyer about the review..."
-                    >{{ old('note') }}</textarea>
+                    <div>
+
+                        <span>
+                            Seller
+                        </span>
+
+                        <strong>
+                            {{ $dispute->seller?->name ?: 'Seller' }}
+                        </strong>
+
+                        <small>
+                            {{ $dispute->seller?->email }}
+                        </small>
+
+                    </div>
+
+                </div>
 
 
-                    <span class="dispute-field-help">
+                <div class="adp-detail-grid">
 
-                        The buyer will receive an
-                        "Under Review" email after this action.
+                    <div>
 
-                    </span>
+                        <span>
+                            Reason
+                        </span>
+
+                        <strong>
+
+                            {{
+                                ucwords(
+                                    str_replace(
+                                        '_',
+                                        ' ',
+                                        $dispute->reason
+                                    )
+                                )
+                            }}
+
+                        </strong>
+
+                    </div>
+
+
+                    <div>
+
+                        <span>
+                            Desired outcome
+                        </span>
+
+                        <strong>
+
+                            {{
+                                ucwords(
+                                    str_replace(
+                                        '_',
+                                        ' ',
+                                        $dispute->desired_outcome
+                                    )
+                                )
+                            }}
+
+                        </strong>
+
+                    </div>
+
+
+                    <div>
+
+                        <span>
+                            Opened
+                        </span>
+
+                        <strong>
+
+                            {{
+                                optional(
+                                    $dispute->opened_at
+                                )->format(
+                                    'd M Y, h:i A'
+                                )
+                            }}
+
+                        </strong>
+
+                    </div>
+
+
+                    <div>
+
+                        <span>
+                            Paystack reference
+                        </span>
+
+                        <strong>
+
+                            {{
+                                $successfulPayment?->reference
+                                ?:
+                                $transaction->paystack_reference
+                                ?:
+                                '—'
+                            }}
+
+                        </strong>
+
+                    </div>
 
                 </div>
 
 
-                <button
-                    type="submit"
-                    class="dispute-primary-button"
-                >
+                <div class="adp-description">
 
-                    <i class="fa-solid fa-magnifying-glass"></i>
-
-                    Mark Under Review
-
-                </button>
-
-            </form>
-
-
-
-        {{-- =================================================
-            RESOLVED
-        ================================================== --}}
-
-        @elseif(
-            $dispute->status
-            ===
-            \App\Models\TransactionDispute::STATUS_RESOLVED
-        )
-
-            <div class="dispute-workflow-info success">
-
-                <i class="fa-solid fa-circle-check"></i>
-
-
-                <div>
-
-                    <strong>
-                        Dispute review resolved
-                    </strong>
-
-
-                    <span>
-
-                        Both buyer and seller have been
-                        notified that Midpoint completed
-                        its dispute review.
-
-                    </span>
+                    {!!
+                        nl2br(
+                            e(
+                                $dispute->description
+                            )
+                        )
+                    !!}
 
                 </div>
 
-            </div>
 
-
-            @if($dispute->admin_note)
-
-                <div class="dispute-resolution-note">
-
-                    <span>
-                        Resolution note
-                    </span>
-
-
-                    <strong>
-                        {{ $dispute->admin_note }}
-                    </strong>
-
-                </div>
-
-            @endif
-
-
-
-        {{-- =================================================
-            ACTIVE WORKFLOW
-        ================================================== --}}
-
-        @else
-
-            <form
-                method="POST"
-                action="{{
-                    route(
-                        'admin.disputes.status.update',
-                        $dispute
+                @if (
+                    is_array(
+                        $dispute->evidence
                     )
-                }}"
-            >
+                    &&
+                    count(
+                        $dispute->evidence
+                    )
+                )
 
-                @csrf
+                    <div class="adp-evidence">
 
-                @method('PATCH')
+                        <h3>
+                            Initial evidence
+                        </h3>
 
 
-                <div class="dispute-workflow-form">
+                        <div>
+
+                            @foreach ($dispute->evidence as $evidence)
+
+                                <a
+                                    href="{{
+                                        asset(
+                                            'storage/'
+                                            .
+                                            ltrim(
+                                                $evidence,
+                                                '/'
+                                            )
+                                        )
+                                    }}"
+                                    target="_blank"
+                                    rel="noopener"
+                                >
+
+                                    <i class="fa-solid fa-paperclip"></i>
+
+                                    {{
+                                        basename(
+                                            $evidence
+                                        )
+                                    }}
+
+                                </a>
+
+                            @endforeach
+
+                        </div>
+
+                    </div>
+
+                @endif
+
+            </section>
 
 
-                    {{-- =========================================
-                        STATUS
-                    ========================================== --}}
 
-                    <div class="dispute-form-field">
+            {{-- =================================================
+                RESOLUTION ROOM
+            ================================================== --}}
 
-                        <label for="dispute-status">
-                            Next Status
+            @include(
+                'shared.disputes.room-panel',
+                [
+                    'dispute' =>
+                        $dispute,
+
+                    'messages' =>
+                        $messages,
+
+                    'roomRole' =>
+                        'admin',
+
+                    'adminMode' =>
+                        true,
+                ]
+            )
+
+        </main>
+
+
+
+        {{-- =====================================================
+            SIDEBAR
+        ====================================================== --}}
+
+        <aside class="adp-sidebar">
+
+            {{-- =================================================
+                WORKFLOW
+            ================================================== --}}
+
+            @if (!$dispute->isResolved())
+
+                <section class="adp-card">
+
+                    <div class="adp-card-head compact">
+
+                        <div>
+
+                            <h2>
+                                Case workflow
+                            </h2>
+
+                            <p>
+                                Request action without making a financial decision.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <form
+                        method="POST"
+                        action="{{
+                            route(
+                                'admin.disputes.status.update',
+                                $dispute
+                            )
+                        }}"
+                        class="adp-form"
+                    >
+
+                        @csrf
+                        @method('PATCH')
+
+
+                        <label for="status">
+                            Status
                         </label>
 
 
                         <select
-                            id="dispute-status"
+                            id="status"
                             name="status"
                             required
                         >
 
-                            <option value="">
-                                Select next action
+                            <option value="under_review">
+                                Under review
                             </option>
 
+                            <option value="awaiting_buyer">
+                                Awaiting buyer
+                            </option>
 
-                            {{-- BACK TO REVIEW --}}
-                            @if(
-                                in_array(
-                                    $dispute->status,
-                                    [
-                                        \App\Models\TransactionDispute::STATUS_AWAITING_BUYER,
-                                        \App\Models\TransactionDispute::STATUS_AWAITING_SELLER,
-                                    ],
-                                    true
-                                )
-                            )
-
-                                <option
-                                    value="under_review"
-                                    {{
-                                        old('status')
-                                        ===
-                                        'under_review'
-                                            ? 'selected'
-                                            : ''
-                                    }}
-                                >
-
-                                    Back to Under Review
-
-                                </option>
-
-                            @endif
-
-
-
-                            {{-- AWAITING BUYER --}}
-                            @if(
-                                $dispute->status
-                                !==
-                                \App\Models\TransactionDispute::STATUS_AWAITING_BUYER
-                            )
-
-                                <option
-                                    value="awaiting_buyer"
-                                    {{
-                                        old('status')
-                                        ===
-                                        'awaiting_buyer'
-                                            ? 'selected'
-                                            : ''
-                                    }}
-                                >
-
-                                    Awaiting Buyer
-
-                                </option>
-
-                            @endif
-
-
-
-                            {{-- AWAITING SELLER --}}
-                            @if(
-                                $dispute->status
-                                !==
-                                \App\Models\TransactionDispute::STATUS_AWAITING_SELLER
-                            )
-
-                                <option
-                                    value="awaiting_seller"
-                                    {{
-                                        old('status')
-                                        ===
-                                        'awaiting_seller'
-                                            ? 'selected'
-                                            : ''
-                                    }}
-                                >
-
-                                    Awaiting Seller
-
-                                </option>
-
-                            @endif
-
-
-
-                            {{-- RESOLVED --}}
-                            <option
-                                value="resolved"
-                                {{
-                                    old('status')
-                                    ===
-                                    'resolved'
-                                        ? 'selected'
-                                        : ''
-                                }}
-                            >
-
-                                Resolve Dispute Review
-
+                            <option value="awaiting_seller">
+                                Awaiting seller
                             </option>
 
                         </select>
 
 
-                        <span class="dispute-field-help">
-
-                            Awaiting Buyer emails the buyer.
-
-                            Awaiting Seller emails the seller.
-
-                            Resolved emails both parties.
-
-                        </span>
-
-                    </div>
-
-
-
-                    {{-- =========================================
-                        NOTE
-                    ========================================== --}}
-
-                    <div class="dispute-form-field">
-
-                        <label for="dispute-note">
-
-                            Message / Admin Note
-
+                        <label for="note">
+                            Workflow note
                         </label>
 
 
                         <textarea
-                            id="dispute-note"
+                            id="note"
                             name="note"
-                            rows="5"
-                            placeholder="Explain what information is required or how the dispute was resolved..."
-                        >{{ old('note') }}</textarea>
+                            rows="4"
+                            maxlength="5000"
+                            placeholder="Explain what information or action is required..."
+                        ></textarea>
 
 
-                        <span class="dispute-field-help">
+                        <button
+                            type="submit"
+                            class="adp-button dark full"
+                        >
 
-                            Required when waiting for the buyer,
-                            waiting for the seller, or resolving the case.
+                            Update workflow
 
-                            This message can be included in the email.
+                        </button>
 
-                        </span>
+                    </form>
 
-                    </div>
+                </section>
 
-                </div>
-
-
-
-                {{-- =============================================
-                    EMAIL PREVIEW INFO
-                ============================================== --}}
-
-                <div
-                    id="dispute-email-preview"
-                    class="dispute-email-preview"
-                >
-
-                    <i class="fa-solid fa-envelope"></i>
+            @endif
 
 
-                    <div>
 
-                        <strong id="dispute-email-preview-title">
+            {{-- =================================================
+                PAYSTACK REFUND STATE
+            ================================================== --}}
 
-                            Select a status
+            @if ($dispute->hasRefundResolution())
 
-                        </strong>
+                <section class="adp-card">
 
+                    <div class="adp-card-head compact">
 
-                        <span id="dispute-email-preview-text">
+                        <div>
 
-                            The notification recipient will
-                            appear here.
+                            <h2>
+                                Paystack refund
+                            </h2>
 
-                        </span>
+                            <p>
+                                Gateway refund state for this dispute decision.
+                            </p>
+
+                        </div>
 
                     </div>
 
-                </div>
 
+                    <div class="adp-refund-summary">
 
-
-                <button
-                    type="submit"
-                    class="dispute-primary-button"
-                >
-
-                    <i class="fa-solid fa-floppy-disk"></i>
-
-                    Update Dispute Status
-
-                </button>
-
-            </form>
-
-        @endif
-
-    </div>
-
-
-
-    {{-- =====================================================
-        MAIN DETAILS
-    ====================================================== --}}
-
-    <div class="txn-detail-grid">
-
-
-        {{-- =================================================
-            LEFT
-        ================================================== --}}
-
-        <div class="txn-detail-stack">
-
-
-            {{-- =============================================
-                DISPUTE REQUEST
-            ============================================== --}}
-
-            <div class="admin-card txn-detail-card">
-
-                <h3>
-                    Buyer Dispute Request
-                </h3>
-
-
-                <div class="txn-detail-row">
-
-                    <span>
-                        Reason
-                    </span>
-
-
-                    <span class="txn-badge red">
-
-                        {{ $reason }}
-
-                    </span>
-
-                </div>
-
-
-                <div class="txn-detail-row">
-
-                    <span>
-                        Desired outcome
-                    </span>
-
-
-                    <strong>
-                        {{ $outcome }}
-                    </strong>
-
-                </div>
-
-
-                <div class="txn-detail-row">
-
-                    <span>
-                        Current workflow
-                    </span>
-
-
-                    <span
-                        class="
-                            txn-badge
-                            {{ $workflowStatusClass }}
-                        "
-                    >
-
-                        {{
-                            $dispute->status_label
-                            ??
-                            ucwords(
-                                str_replace(
-                                    '_',
-                                    ' ',
-                                    $dispute->status
-                                )
-                            )
-                        }}
-
-                    </span>
-
-                </div>
-
-
-
-                {{-- EXPLANATION --}}
-                <div class="dispute-explanation-box">
-
-                    <span>
-                        Buyer's explanation
-                    </span>
-
-
-                    <div>
-                        {{ $dispute->description }}
-                    </div>
-
-                </div>
-
-            </div>
-
-
-
-            {{-- =============================================
-                EVIDENCE
-            ============================================== --}}
-
-            <div class="admin-card txn-detail-card">
-
-                <h3>
-                    Buyer Evidence
-                </h3>
-
-
-                @if(
-                    is_array($dispute->evidence)
-                    &&
-                    count($dispute->evidence) > 0
-                )
-
-                    <div class="dispute-evidence-grid">
-
-                        @foreach($dispute->evidence as $evidence)
-
-                            @php
-
-                                $extension =
-                                    strtolower(
-                                        pathinfo(
-                                            $evidence,
-                                            PATHINFO_EXTENSION
-                                        )
-                                    );
-
-
-                                $fileUrl =
-                                    asset(
-                                        'storage/'
-                                        .
-                                        ltrim(
-                                            $evidence,
-                                            '/'
-                                        )
-                                    );
-
-
-                                $isImage =
-                                    in_array(
-                                        $extension,
-                                        [
-                                            'jpg',
-                                            'jpeg',
-                                            'png',
-                                            'webp',
-                                        ],
-                                        true
-                                    );
-
-
-                                $isVideo =
-                                    in_array(
-                                        $extension,
-                                        [
-                                            'mp4',
-                                            'mov',
-                                        ],
-                                        true
-                                    );
-
-                            @endphp
-
-
-                            <div class="dispute-evidence-item">
-
-                                @if($isImage)
-
-                                    <a
-                                        href="{{ $fileUrl }}"
-                                        target="_blank"
-                                        rel="noopener"
-                                    >
-
-                                        <img
-                                            src="{{ $fileUrl }}"
-                                            alt="Dispute evidence"
-                                        >
-
-                                    </a>
-
-
-                                @elseif($isVideo)
-
-                                    <a
-                                        href="{{ $fileUrl }}"
-                                        target="_blank"
-                                        rel="noopener"
-                                        class="dispute-evidence-file"
-                                    >
-
-                                        <i class="fa-solid fa-video"></i>
-
-                                        Open Video Evidence
-
-                                    </a>
-
-
-                                @else
-
-                                    <a
-                                        href="{{ $fileUrl }}"
-                                        target="_blank"
-                                        rel="noopener"
-                                        class="dispute-evidence-file"
-                                    >
-
-                                        <i class="fa-solid fa-file"></i>
-
-                                        Open Evidence File
-
-                                    </a>
-
-                                @endif
-
-                            </div>
-
-                        @endforeach
-
-                    </div>
-
-
-                @else
-
-                    <div class="txn-empty">
-
-                        <i class="fa-regular fa-file"></i>
-
-
-                        <strong>
-                            No evidence uploaded
-                        </strong>
-
-
-                        <span>
-
-                            The buyer did not attach
-                            evidence to this dispute.
-
-                        </span>
-
-                    </div>
-
-                @endif
-
-            </div>
-
-
-
-            {{-- =============================================
-                RETURN INFORMATION
-            ============================================== --}}
-
-            @if(
-                $dispute->return_method
-                ||
-                $dispute->return_proof_path
-            )
-
-                <div class="admin-card txn-detail-card">
-
-                    <h3>
-                        Return Information
-                    </h3>
-
-
-                    @if($dispute->return_method)
-
-                        <div class="txn-detail-row">
+                        <div>
 
                             <span>
-                                Return method
+                                Refund amount
                             </span>
 
-
                             <strong>
-                                {{ $dispute->return_method }}
+                                ₦{{
+                                    number_format(
+                                        (float)
+                                        $dispute->refund_amount,
+                                        2
+                                    )
+                                }}
                             </strong>
 
                         </div>
 
-                    @endif
 
-
-
-                    @if($dispute->return_proof_path)
-
-                        <div class="txn-detail-row">
+                        <div>
 
                             <span>
-                                Return proof
+                                Paystack status
                             </span>
 
+                            <strong>
 
-                            <a
-                                href="{{
-                                    asset(
-                                        'storage/'
-                                        .
-                                        ltrim(
-                                            $dispute->return_proof_path,
-                                            '/'
+                                {{
+                                    $refundStatus
+                                        ? ucwords(
+                                            str_replace(
+                                                [
+                                                    '_',
+                                                    '-',
+                                                ],
+                                                ' ',
+                                                $refundStatus
+                                            )
                                         )
+                                        : 'Waiting'
+                                }}
+
+                            </strong>
+
+                        </div>
+
+
+                        <div>
+
+                            <span>
+                                Refund ID
+                            </span>
+
+                            <strong>
+                                {{ $dispute->paystack_refund_id ?: '—' }}
+                            </strong>
+
+                        </div>
+
+
+                        <div>
+
+                            <span>
+                                Expected
+                            </span>
+
+                            <strong>
+
+                                {{
+                                    optional(
+                                        $dispute->refund_expected_at
+                                    )->format(
+                                        'd M Y'
                                     )
-                                }}"
-                                target="_blank"
-                                rel="noopener"
-                                class="txn-action-btn"
-                            >
+                                    ?:
+                                    '—'
+                                }}
 
-                                <i class="fa-solid fa-paperclip"></i>
+                            </strong>
 
-                                Open Proof
+                        </div>
 
-                            </a>
+                    </div>
+
+
+                    @if ($dispute->refund_error)
+
+                        <div class="adp-refund-error">
+
+                            {{ $dispute->refund_error }}
 
                         </div>
 
                     @endif
 
-                </div>
 
-            @endif
-
-
-
-            {{-- =============================================
-                STATUS HISTORY
-            ============================================== --}}
-
-            <div class="admin-card txn-detail-card">
-
-                <h3>
-                    Dispute Status History
-                </h3>
-
-
-                @if(
-                    isset($dispute->statusHistories)
-                    &&
-                    $dispute
-                        ->statusHistories
-                        ->isNotEmpty()
-                )
-
-                    <div class="dispute-history-list">
-
-                        @foreach($dispute->statusHistories as $history)
-
-                            @php
-
-                                $historyClass =
-                                    match($history->to_status) {
-
-                                        'under_review' =>
-                                            'blue',
-
-                                        'awaiting_buyer' =>
-                                            'yellow',
-
-                                        'awaiting_seller' =>
-                                            'purple',
-
-                                        'resolved' =>
-                                            'green',
-
-                                        default =>
-                                            'gray',
-                                    };
-
-                            @endphp
-
-
-                            <div class="dispute-history-item">
-
-                                <div
-                                    class="
-                                        dispute-history-icon
-                                        {{ $historyClass }}
-                                    "
-                                >
-
-                                    <i class="fa-solid fa-clock-rotate-left"></i>
-
-                                </div>
-
-
-                                <div class="dispute-history-content">
-
-                                    <div class="dispute-history-title">
-
-                                        @if($history->from_status)
-
-                                            {{
-                                                ucwords(
-                                                    str_replace(
-                                                        '_',
-                                                        ' ',
-                                                        $history->from_status
-                                                    )
-                                                )
-                                            }}
-
-                                        @else
-
-                                            Created
-
-                                        @endif
-
-
-                                        <i class="fa-solid fa-arrow-right"></i>
-
-
-                                        {{
-                                            ucwords(
-                                                str_replace(
-                                                    '_',
-                                                    ' ',
-                                                    $history->to_status
-                                                )
-                                            )
-                                        }}
-
-                                    </div>
-
-
-                                    <div class="dispute-history-meta">
-
-                                        By
-
-                                        <strong>
-
-                                            {{
-                                                $history
-                                                    ->admin
-                                                    ?->name
-                                                ??
-                                                'Administrator'
-                                            }}
-
-                                        </strong>
-
-
-                                        <span>·</span>
-
-
-                                        {{
-                                            $history
-                                                ->created_at
-                                                ->format(
-                                                    'd M Y, h:i A'
-                                                )
-                                        }}
-
-                                    </div>
-
-
-                                    @if($history->note)
-
-                                        <div class="dispute-history-note">
-
-                                            {{ $history->note }}
-
-                                        </div>
-
-                                    @endif
-
-                                </div>
-
-                            </div>
-
-                        @endforeach
-
-                    </div>
-
-
-                @else
-
-                    <div class="dispute-history-empty">
-
-                        <i class="fa-solid fa-clock-rotate-left"></i>
-
-
-                        <span>
-
-                            No administrator status changes
-                            have been recorded yet.
-
-                        </span>
-
-                    </div>
-
-                @endif
-
-            </div>
-
-        </div>
-
-
-
-        {{-- =================================================
-            RIGHT
-        ================================================== --}}
-
-        <div class="txn-detail-stack">
-
-
-            {{-- =============================================
-                TRANSACTION
-            ============================================== --}}
-
-            <div class="admin-card txn-detail-card">
-
-                <h3>
-                    Transaction
-                </h3>
-
-
-                <div class="txn-detail-row">
-
-                    <span>
-                        Reference
-                    </span>
-
-
-                    <strong>
-                        {{ $transaction->reference }}
-                    </strong>
-
-                </div>
-
-
-                <div class="txn-detail-row">
-
-                    <span>
-                        Item
-                    </span>
-
-
-                    <strong>
-                        {{ $transaction->title }}
-                    </strong>
-
-                </div>
-
-
-                <div class="txn-detail-row">
-
-                    <span>
-                        Amount
-                    </span>
-
-
-                    <strong
-                        style="
-                            color:
-                                #087443;
-
-                            font-size:
-                                15px;
-                        "
-                    >
-
-                        ₦{{
-                            number_format(
-                                (float) $transaction->total_amount,
-                                2
-                            )
-                        }}
-
-                    </strong>
-
-                </div>
-
-
-                <div class="txn-detail-row">
-
-                    <span>
-                        Payment
-                    </span>
-
-
-                    <span class="txn-badge green">
-
-                        <i class="fa-solid fa-lock"></i>
-
-                        PAID
-
-                    </span>
-
-                </div>
-
-
-                <div class="txn-detail-row">
-
-                    <span>
-                        Transaction status
-                    </span>
-
-
-                    <span class="txn-badge red">
-
-                        {{ $transaction->status_label }}
-
-                    </span>
-
-                </div>
-
-            </div>
-
-
-
-            {{-- =============================================
-                BUYER
-            ============================================== --}}
-
-            <div class="admin-card txn-detail-card">
-
-                <h3>
-                    Buyer
-                </h3>
-
-
-                <div class="txn-detail-row">
-
-                    <span>
-                        Name
-                    </span>
-
-
-                    <strong>
-
-                        {{
-                            $dispute
-                                ->buyer
-                                ?->name
-                            ??
-                            'Buyer'
-                        }}
-
-                    </strong>
-
-                </div>
-
-
-                <div class="txn-detail-row">
-
-                    <span>
-                        Email
-                    </span>
-
-
-                    <strong>
-
-                        {{
-                            $dispute
-                                ->buyer
-                                ?->email
-                            ??
-                            $transaction->buyer_email
-                            ??
-                            '-'
-                        }}
-
-                    </strong>
-
-                </div>
-
-
-                @if($transaction->buyer_phone)
-
-                    <div class="txn-detail-row">
-
-                        <span>
-                            Phone
-                        </span>
-
-
-                        <strong>
-                            {{ $transaction->buyer_phone }}
-                        </strong>
-
-                    </div>
-
-                @endif
-
-            </div>
-
-
-
-            {{-- =============================================
-                SELLER
-            ============================================== --}}
-
-            <div class="admin-card txn-detail-card">
-
-                <h3>
-                    Seller
-                </h3>
-
-
-                <div class="txn-detail-row">
-
-                    <span>
-                        Name
-                    </span>
-
-
-                    <strong>
-
-                        {{
-                            $dispute
-                                ->seller
-                                ?->name
-                            ??
-                            'Seller'
-                        }}
-
-                    </strong>
-
-                </div>
-
-
-                <div class="txn-detail-row">
-
-                    <span>
-                        Email
-                    </span>
-
-
-                    <strong>
-
-                        {{
-                            $dispute
-                                ->seller
-                                ?->email
-                            ??
-                            '-'
-                        }}
-
-                    </strong>
-
-                </div>
-
-            </div>
-
-
-
-            {{-- =============================================
-                PAYMENT SECURITY
-            ============================================== --}}
-
-            <div class="admin-card txn-detail-card">
-
-                <h3>
-                    Payment Security
-                </h3>
-
-
-                <div class="txn-detail-row">
-
-                    <span>
-                        Paystack reference
-                    </span>
-
-
-                    <strong>
-
-                        {{
-                            $transaction->paystack_reference
-                            ??
-                            $transaction
-                                ->successfulPayment
-                                ?->reference
-                            ??
-                            '-'
-                        }}
-
-                    </strong>
-
-                </div>
-
-
-                <div class="txn-detail-row">
-
-                    <span>
-                        Paid at
-                    </span>
-
-
-                    <strong>
-
-                        {{
-                            $transaction->paid_at
-                                ? $transaction
-                                    ->paid_at
-                                    ->format(
-                                        'd M Y, h:i A'
-                                    )
-                                : '-'
-                        }}
-
-                    </strong>
-
-                </div>
-
-
-                <div class="txn-detail-row">
-
-                    <span>
-                        Payment channel
-                    </span>
-
-
-                    <strong>
-
-                        {{
-                            $transaction
-                                ->successfulPayment
-                                ?->channel
-
-                                ? ucwords(
-                                    str_replace(
-                                        '_',
-                                        ' ',
-                                        $transaction
-                                            ->successfulPayment
-                                            ->channel
-                                    )
+                    @if (!$dispute->refund_processed_at)
+
+                        <form
+                            method="POST"
+                            action="{{
+                                route(
+                                    'admin.disputes.refund.sync',
+                                    $dispute
                                 )
+                            }}"
+                        >
 
-                                : 'Paystack'
-                        }}
-
-                    </strong>
-
-                </div>
+                            @csrf
 
 
-                <div class="txn-detail-row">
+                            <button
+                                type="submit"
+                                class="adp-button secondary full"
+                            >
 
-                    <span>
-                        Seller payout
-                    </span>
+                                <i class="fa-solid fa-rotate"></i>
 
+                                Sync Paystack refund
 
-                    @if(
-                        $dispute->status
-                        ===
-                        \App\Models\TransactionDispute::STATUS_RESOLVED
-                    )
+                            </button>
 
-                        <span class="txn-badge yellow">
-
-                            REVIEW COMPLETED
-
-                        </span>
-
-
-                    @else
-
-                        <span class="txn-badge red">
-
-                            <i class="fa-solid fa-lock"></i>
-
-                            PAUSED
-
-                        </span>
+                        </form>
 
                     @endif
 
-                </div>
-
-            </div>
-
-
-
-            {{-- =============================================
-                LATEST ADMIN NOTE
-            ============================================== --}}
-
-            @if($dispute->admin_note)
-
-                <div class="admin-card txn-detail-card">
-
-                    <h3>
-                        Latest Admin Note
-                    </h3>
-
-
-                    <div class="dispute-admin-note">
-
-                        {{ $dispute->admin_note }}
-
-                    </div>
-
-                </div>
+                </section>
 
             @endif
 
-        </div>
+
+
+            {{-- =================================================
+                FINAL DECISION
+            ================================================== --}}
+
+            @if (
+                !$dispute->isResolved()
+                &&
+                !in_array(
+                    $dispute->resolution_status,
+                    [
+                        \App\Models\TransactionDispute::RESOLUTION_STATUS_INITIATING,
+                        \App\Models\TransactionDispute::RESOLUTION_STATUS_REFUND_PENDING,
+                        \App\Models\TransactionDispute::RESOLUTION_STATUS_REFUND_PROCESSING,
+                        \App\Models\TransactionDispute::RESOLUTION_STATUS_REFUND_NEEDS_ATTENTION,
+                        \App\Models\TransactionDispute::RESOLUTION_STATUS_REFUND_SYNC_REQUIRED,
+                    ],
+                    true
+                )
+            )
+
+                <section class="adp-card decision">
+
+                    <div class="adp-card-head compact">
+
+                        <div>
+
+                            <h2>
+                                Final decision
+                            </h2>
+
+                            <p>
+                                Financial actions are final. Review the evidence first.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    @if (!$dispute->isRoomActive())
+
+                        <div class="adp-decision-lock">
+
+                            <i class="fa-solid fa-lock"></i>
+
+                            Activate the resolution room before making a final decision.
+
+                        </div>
+
+                    @else
+
+                        <form
+                            method="POST"
+                            action="{{
+                                route(
+                                    'admin.disputes.resolve',
+                                    $dispute
+                                )
+                            }}"
+                            class="adp-form"
+                            id="resolutionForm"
+                        >
+
+                            @csrf
+
+
+                            <label for="resolutionType">
+                                Resolution
+                            </label>
+
+
+                            <select
+                                id="resolutionType"
+                                name="resolution_type"
+                                required
+                            >
+
+                                <option value="">
+                                    Select decision
+                                </option>
+
+                                <option value="full_refund">
+                                    Full refund to buyer
+                                </option>
+
+                                <option value="partial_refund">
+                                    Partial refund + seller settlement
+                                </option>
+
+                                <option value="release_to_seller">
+                                    Release seller entitlement
+                                </option>
+
+                                <option value="resume_transaction">
+                                    Resume normal transaction
+                                </option>
+
+                            </select>
+
+
+                            <div
+                                id="partialRefundField"
+                                hidden
+                            >
+
+                                <label for="refundAmount">
+                                    Buyer refund amount (₦)
+                                </label>
+
+
+                                <input
+                                    id="refundAmount"
+                                    type="number"
+                                    name="refund_amount"
+                                    min="0.01"
+                                    max="{{ max(0, $paidAmount - 0.01) }}"
+                                    step="0.01"
+                                    placeholder="50000"
+                                >
+
+                            </div>
+
+
+                            <div
+                                id="resolutionPreview"
+                                class="adp-resolution-preview"
+                                hidden
+                                data-paid="{{ $paidAmount }}"
+                                data-service-fee-rate="{{ $serviceFeeRate }}"
+                                data-vat-rate="{{ $vatRate }}"
+                                data-existing-seller-net="{{
+                                    (float)
+                                    $transaction->seller_net_amount
+                                }}"
+                            ></div>
+
+
+                            <label for="resolutionNote">
+                                Decision reason
+                            </label>
+
+
+                            <textarea
+                                id="resolutionNote"
+                                name="resolution_note"
+                                rows="5"
+                                minlength="20"
+                                maxlength="5000"
+                                required
+                                placeholder="Explain the evidence reviewed and why Midpoint made this decision..."
+                            ></textarea>
+
+
+                            <div class="adp-paystack-note">
+
+                                <i class="fa-solid fa-circle-info"></i>
+
+                                Full/partial refunds are sent through Paystack using
+                                the original successful payment transaction. Midpoint
+                                does not deduct its service fee from the refunded
+                                portion. Paystack's original transaction processing
+                                charge is handled by Paystack/merchant settlement and
+                                is not manually subtracted from the buyer refund here.
+
+                            </div>
+
+
+                            <button
+                                type="submit"
+                                class="adp-button danger full"
+                                onclick="
+                                    return confirm(
+                                        'Confirm this final dispute decision? Financial actions cannot be casually reversed.'
+                                    );
+                                "
+                            >
+
+                                <i class="fa-solid fa-gavel"></i>
+
+                                Confirm final decision
+
+                            </button>
+
+                        </form>
+
+                    @endif
+
+                </section>
+
+            @endif
+
+
+
+            {{-- =================================================
+                RESOLUTION SUMMARY
+            ================================================== --}}
+
+            @if ($dispute->resolution_type)
+
+                <section class="adp-card">
+
+                    <div class="adp-card-head compact">
+
+                        <div>
+
+                            <h2>
+                                Resolution record
+                            </h2>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="adp-resolution-record">
+
+                        <div>
+
+                            <span>
+                                Decision
+                            </span>
+
+                            <strong>
+                                {{ $dispute->resolution_type_label }}
+                            </strong>
+
+                        </div>
+
+
+                        <div>
+
+                            <span>
+                                Refund
+                            </span>
+
+                            <strong>
+
+                                ₦{{
+                                    number_format(
+                                        (float)
+                                        $dispute->refund_amount,
+                                        2
+                                    )
+                                }}
+
+                            </strong>
+
+                        </div>
+
+
+                        <div>
+
+                            <span>
+                                Seller settlement
+                            </span>
+
+                            <strong>
+
+                                ₦{{
+                                    number_format(
+                                        (float)
+                                        $dispute->seller_settlement_amount,
+                                        2
+                                    )
+                                }}
+
+                            </strong>
+
+                        </div>
+
+
+                        <div>
+
+                            <span>
+                                Resolution status
+                            </span>
+
+                            <strong>
+
+                                {{
+                                    ucwords(
+                                        str_replace(
+                                            '_',
+                                            ' ',
+                                            (string)
+                                            $dispute->resolution_status
+                                        )
+                                    )
+                                }}
+
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+
+                    @if ($dispute->resolution_note)
+
+                        <div class="adp-resolution-note">
+
+                            {!!
+                                nl2br(
+                                    e(
+                                        $dispute->resolution_note
+                                    )
+                                )
+                            !!}
+
+                        </div>
+
+                    @endif
+
+                </section>
+
+            @endif
+
+        </aside>
 
     </div>
 
 </div>
 
-@endsection
-
-
-
-{{-- =========================================================
-    STYLES
-========================================================== --}}
 
 @push('styles')
 
-    @include(
-        'admin.transactions.partials.styles'
-    )
+<style>
 
+    .adp-page {
+        width: 100%;
+    }
 
-    <style>
+    .adp-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 18px;
+        margin-bottom: 18px;
+    }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Heading
-        |--------------------------------------------------------------------------
-        */
+    .adp-eyebrow {
+        margin-bottom: 4px;
+        color: #12B76A;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: .1em;
+        text-transform: uppercase;
+    }
 
-        .dispute-heading-status {
-            margin-bottom:
-                9px;
+    .adp-header h1 {
+        margin: 0;
+        color: #13231B;
+        font-family: 'Bricolage Grotesque', sans-serif;
+        font-size: 25px;
+        font-weight: 800;
+    }
+
+    .adp-header p {
+        margin: 4px 0 0;
+        color: #718078;
+        font-size: 12px;
+    }
+
+    .adp-header-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .adp-button {
+        min-height: 38px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 0 12px;
+        border: 0;
+        border-radius: 9px;
+        font-size: 11px;
+        font-weight: 800;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    .adp-button.full {
+        width: 100%;
+    }
+
+    .adp-button.primary {
+        background: #12B76A;
+        color: #FFFFFF;
+    }
+
+    .adp-button.dark {
+        background: #0B3D2E;
+        color: #FFFFFF;
+    }
+
+    .adp-button.secondary {
+        border: 1px solid #DCE5E0;
+        background: #FFFFFF;
+        color: #0B3D2E;
+    }
+
+    .adp-button.danger {
+        background: #B42318;
+        color: #FFFFFF;
+    }
+
+    .adp-alert {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        margin-bottom: 14px;
+        padding: 11px 13px;
+        border-radius: 10px;
+        font-size: 11px;
+    }
+
+    .adp-alert.success {
+        border: 1px solid #BCE7CF;
+        background: #ECFDF3;
+        color: #067647;
+    }
+
+    .adp-alert.error {
+        border: 1px solid #F5C5C0;
+        background: #FFF1F0;
+        color: #B42318;
+    }
+
+    .adp-metrics {
+        display: grid;
+        grid-template-columns: repeat(4,minmax(0,1fr));
+        gap: 10px;
+        margin-bottom: 15px;
+    }
+
+    .adp-metrics > div {
+        padding: 13px;
+        border: 1px solid #E0E7E3;
+        border-radius: 11px;
+        background: #FFFFFF;
+    }
+
+    .adp-metrics span,
+    .adp-metrics strong {
+        display: block;
+    }
+
+    .adp-metrics span {
+        color: #7C8882;
+        font-size: 10px;
+    }
+
+    .adp-metrics strong {
+        margin-top: 3px;
+        color: #223129;
+        font-size: 12px;
+    }
+
+    .adp-metrics strong.locked {
+        color: #B54708;
+    }
+
+    .adp-layout {
+        display: grid;
+        grid-template-columns: minmax(0,1fr) 330px;
+        align-items: start;
+        gap: 15px;
+    }
+
+    .adp-main,
+    .adp-sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .adp-sidebar {
+        position: sticky;
+        top: 88px;
+    }
+
+    .adp-card {
+        padding: 17px;
+        border: 1px solid #DCE5E0;
+        border-radius: 15px;
+        background: #FFFFFF;
+        box-shadow: 0 12px 35px -32px rgba(11,61,46,.30);
+    }
+
+    .adp-card.decision {
+        border-color: #F2CBC7;
+    }
+
+    .adp-card-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 15px;
+    }
+
+    .adp-card-head.compact {
+        margin-bottom: 12px;
+    }
+
+    .adp-card-head h2 {
+        margin: 0;
+        color: #17251F;
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    .adp-card-head p {
+        margin: 3px 0 0;
+        color: #7A8780;
+        font-size: 10px;
+        line-height: 1.5;
+    }
+
+    .adp-status-badge {
+        padding: 6px 9px;
+        border-radius: 999px;
+        background: #FFF4E5;
+        color: #B54708;
+        font-size: 10px;
+        font-weight: 800;
+    }
+
+    .adp-parties {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 9px;
+        margin-bottom: 10px;
+    }
+
+    .adp-parties > div {
+        padding: 11px;
+        border-radius: 10px;
+        background: #F7F9F8;
+    }
+
+    .adp-parties span,
+    .adp-parties strong,
+    .adp-parties small {
+        display: block;
+    }
+
+    .adp-parties span {
+        color: #7B8781;
+        font-size: 9px;
+        text-transform: uppercase;
+    }
+
+    .adp-parties strong {
+        margin-top: 3px;
+        color: #24332B;
+        font-size: 12px;
+    }
+
+    .adp-parties small {
+        margin-top: 2px;
+        color: #7A8780;
+        font-size: 10px;
+    }
+
+    .adp-detail-grid {
+        display: grid;
+        grid-template-columns: repeat(2,minmax(0,1fr));
+        gap: 8px;
+    }
+
+    .adp-detail-grid > div {
+        padding: 10px;
+        border: 1px solid #E7ECE9;
+        border-radius: 9px;
+    }
+
+    .adp-detail-grid span,
+    .adp-detail-grid strong {
+        display: block;
+    }
+
+    .adp-detail-grid span {
+        color: #7D8983;
+        font-size: 9px;
+    }
+
+    .adp-detail-grid strong {
+        margin-top: 2px;
+        color: #314038;
+        font-size: 11px;
+        overflow-wrap: anywhere;
+    }
+
+    .adp-description {
+        margin-top: 12px;
+        padding: 12px;
+        border-left: 3px solid #12B76A;
+        border-radius: 0 9px 9px 0;
+        background: #F7FAF8;
+        color: #4E5C54;
+        font-size: 12px;
+        line-height: 1.65;
+    }
+
+    .adp-evidence {
+        margin-top: 13px;
+    }
+
+    .adp-evidence h3 {
+        margin: 0 0 7px;
+        color: #26342D;
+        font-size: 11px;
+    }
+
+    .adp-evidence > div {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .adp-evidence a {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        max-width: 100%;
+        padding: 6px 8px;
+        border: 1px solid #DCE5E0;
+        border-radius: 8px;
+        color: #0B3D2E;
+        font-size: 10px;
+        font-weight: 700;
+        text-decoration: none;
+    }
+
+    .adp-form label {
+        display: block;
+        margin-bottom: 5px;
+        color: #415047;
+        font-size: 10px;
+        font-weight: 800;
+    }
+
+    .adp-form select,
+    .adp-form input,
+    .adp-form textarea {
+        width: 100%;
+        margin-bottom: 11px;
+        border: 1px solid #DCE5E0;
+        border-radius: 9px;
+        background: #FBFCFB;
+        color: #28372F;
+        font-family: inherit;
+        font-size: 11px;
+        outline: none;
+    }
+
+    .adp-form select,
+    .adp-form input {
+        height: 38px;
+        padding: 0 10px;
+    }
+
+    .adp-form textarea {
+        padding: 9px 10px;
+        line-height: 1.55;
+        resize: vertical;
+    }
+
+    .adp-form select:focus,
+    .adp-form input:focus,
+    .adp-form textarea:focus {
+        border-color: #12B76A;
+        box-shadow: 0 0 0 3px rgba(18,183,106,.08);
+    }
+
+    .adp-refund-summary,
+    .adp-resolution-record {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 7px;
+        margin-bottom: 11px;
+    }
+
+    .adp-refund-summary > div,
+    .adp-resolution-record > div {
+        padding: 8px;
+        border-radius: 8px;
+        background: #F7F9F8;
+    }
+
+    .adp-refund-summary span,
+    .adp-refund-summary strong,
+    .adp-resolution-record span,
+    .adp-resolution-record strong {
+        display: block;
+    }
+
+    .adp-refund-summary span,
+    .adp-resolution-record span {
+        color: #7B8781;
+        font-size: 9px;
+    }
+
+    .adp-refund-summary strong,
+    .adp-resolution-record strong {
+        margin-top: 2px;
+        color: #314038;
+        font-size: 10px;
+        overflow-wrap: anywhere;
+    }
+
+    .adp-refund-error {
+        margin-bottom: 10px;
+        padding: 8px;
+        border-radius: 8px;
+        background: #FFF1F0;
+        color: #B42318;
+        font-size: 10px;
+        line-height: 1.5;
+    }
+
+    .adp-decision-lock,
+    .adp-paystack-note {
+        display: flex;
+        align-items: flex-start;
+        gap: 7px;
+        margin-bottom: 10px;
+        padding: 9px;
+        border-radius: 9px;
+        font-size: 10px;
+        line-height: 1.5;
+    }
+
+    .adp-decision-lock {
+        background: #FFF6E8;
+        color: #925B0A;
+    }
+
+    .adp-paystack-note {
+        background: #F1F7F4;
+        color: #587068;
+    }
+
+    .adp-resolution-preview {
+        margin-bottom: 11px;
+        padding: 10px;
+        border-radius: 9px;
+        background: #F5F8F6;
+        color: #48574F;
+        font-size: 10px;
+        line-height: 1.8;
+    }
+
+    .adp-resolution-preview strong {
+        color: #0B3D2E;
+    }
+
+    .adp-resolution-note {
+        padding: 9px;
+        border-radius: 8px;
+        background: #F7F9F8;
+        color: #56645C;
+        font-size: 10px;
+        line-height: 1.6;
+    }
+
+    @media(max-width: 1050px) {
+        .adp-layout {
+            grid-template-columns: 1fr;
         }
 
+        .adp-sidebar {
+            position: static;
+        }
+    }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Alerts
-        |--------------------------------------------------------------------------
-        */
-
-        .dispute-success-alert,
-
-        .dispute-error-alert,
-
-        .dispute-resolved-alert {
-            display:
-                flex;
-
-            align-items:
-                flex-start;
-
-            gap:
-                12px;
-
-            padding:
-                15px
-                17px;
-
-            border-radius:
-                12px;
-
-            font-size:
-                11px;
+    @media(max-width: 720px) {
+        .adp-header {
+            flex-direction: column;
         }
 
-
-        .dispute-success-alert {
-            border:
-                1px
-                solid
-                #ABEFC6;
-
-            background:
-                #ECFDF3;
-
-            color:
-                #067647;
+        .adp-metrics {
+            grid-template-columns: 1fr 1fr;
         }
+    }
 
-
-        .dispute-error-alert {
-            border:
-                1px
-                solid
-                #FECDD3;
-
-            background:
-                #FFF1F2;
-
-            color:
-                #B42318;
+    @media(max-width: 520px) {
+        .adp-metrics,
+        .adp-parties,
+        .adp-detail-grid,
+        .adp-refund-summary,
+        .adp-resolution-record {
+            grid-template-columns: 1fr;
         }
+    }
 
-
-        .dispute-resolved-alert {
-            border:
-                1px
-                solid
-                #ABEFC6;
-
-            background:
-                #F3FFF8;
-
-            color:
-                #067647;
-        }
-
-
-        .dispute-success-alert > i,
-
-        .dispute-error-alert > i,
-
-        .dispute-resolved-alert > i {
-            margin-top:
-                2px;
-
-            font-size:
-                17px;
-        }
-
-
-        .dispute-success-alert strong,
-
-        .dispute-error-alert strong,
-
-        .dispute-resolved-alert strong {
-            display:
-                block;
-
-            margin-bottom:
-                3px;
-
-            font-size:
-                11px;
-        }
-
-
-        .dispute-success-alert span,
-
-        .dispute-error-alert span,
-
-        .dispute-resolved-alert span {
-            display:
-                block;
-
-            line-height:
-                1.6;
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Workflow Card
-        |--------------------------------------------------------------------------
-        */
-
-        .dispute-workflow-card {
-            border-color:
-                #CFE7DD;
-        }
-
-
-        .dispute-workflow-header {
-            display:
-                flex;
-
-            align-items:
-                flex-start;
-
-            justify-content:
-                space-between;
-
-            gap:
-                20px;
-
-            margin-bottom:
-                18px;
-        }
-
-
-        .dispute-workflow-header
-        h3 {
-            margin:
-                0
-                0
-                5px;
-        }
-
-
-        .dispute-workflow-header
-        p {
-            max-width:
-                620px;
-
-            margin:
-                0;
-
-            color:
-                var(--admin-muted);
-
-            font-size:
-                10px;
-
-            line-height:
-                1.6;
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Workflow Info
-        |--------------------------------------------------------------------------
-        */
-
-        .dispute-workflow-info {
-            display:
-                flex;
-
-            align-items:
-                flex-start;
-
-            gap:
-                11px;
-
-            margin-bottom:
-                18px;
-
-            padding:
-                14px;
-
-            border-radius:
-                11px;
-
-            font-size:
-                10px;
-
-            line-height:
-                1.6;
-        }
-
-
-        .dispute-workflow-info.warning {
-            border:
-                1px
-                solid
-                #FEDF89;
-
-            background:
-                #FFFDF5;
-
-            color:
-                #8A5A00;
-        }
-
-
-        .dispute-workflow-info.success {
-            border:
-                1px
-                solid
-                #ABEFC6;
-
-            background:
-                #ECFDF3;
-
-            color:
-                #067647;
-        }
-
-
-        .dispute-workflow-info
-        > i {
-            margin-top:
-                2px;
-
-            font-size:
-                15px;
-        }
-
-
-        .dispute-workflow-info
-        strong {
-            display:
-                block;
-
-            margin-bottom:
-                3px;
-
-            font-size:
-                11px;
-        }
-
-
-        .dispute-workflow-info
-        span {
-            display:
-                block;
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Workflow Form
-        |--------------------------------------------------------------------------
-        */
-
-        .dispute-workflow-form {
-            display:
-                grid;
-
-            grid-template-columns:
-                minmax(
-                    220px,
-                    .7fr
-                )
-                minmax(
-                    0,
-                    1.5fr
-                );
-
-            gap:
-                15px;
-        }
-
-
-        .dispute-form-field {
-            display:
-                flex;
-
-            flex-direction:
-                column;
-
-            gap:
-                7px;
-
-            margin-bottom:
-                15px;
-        }
-
-
-        .dispute-form-field
-        label {
-            color:
-                var(--admin-heading);
-
-            font-size:
-                10px;
-
-            font-weight:
-                700;
-        }
-
-
-        .dispute-form-field
-        label
-        small {
-            margin-left:
-                4px;
-
-            color:
-                var(--admin-muted);
-
-            font-size:
-                9px;
-
-            font-weight:
-                400;
-        }
-
-
-        .dispute-form-field
-        select,
-
-        .dispute-form-field
-        textarea {
-            width:
-                100%;
-
-            border:
-                1px
-                solid
-                var(--admin-border);
-
-            border-radius:
-                10px;
-
-            outline:
-                none;
-
-            background:
-                var(--admin-card);
-
-            color:
-                var(--admin-text);
-
-            font:
-                inherit;
-
-            font-size:
-                11px;
-        }
-
-
-        .dispute-form-field
-        select {
-            min-height:
-                42px;
-
-            padding:
-                0
-                12px;
-        }
-
-
-        .dispute-form-field
-        textarea {
-            min-height:
-                100px;
-
-            padding:
-                11px
-                12px;
-
-            resize:
-                vertical;
-
-            line-height:
-                1.6;
-        }
-
-
-        .dispute-form-field
-        select:focus,
-
-        .dispute-form-field
-        textarea:focus {
-            border-color:
-                #0EA584;
-
-            box-shadow:
-                0
-                0
-                0
-                3px
-                rgba(
-                    14,
-                    165,
-                    132,
-                    .08
-                );
-        }
-
-
-        .dispute-field-help {
-            color:
-                var(--admin-muted);
-
-            font-size:
-                9px;
-
-            line-height:
-                1.55;
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Main Button
-        |--------------------------------------------------------------------------
-        */
-
-        .dispute-primary-button {
-            display:
-                inline-flex;
-
-            min-height:
-                42px;
-
-            align-items:
-                center;
-
-            justify-content:
-                center;
-
-            gap:
-                8px;
-
-            padding:
-                0
-                17px;
-
-            border:
-                0;
-
-            border-radius:
-                10px;
-
-            background:
-                #0B8065;
-
-            color:
-                #FFFFFF;
-
-            cursor:
-                pointer;
-
-            font:
-                inherit;
-
-            font-size:
-                11px;
-
-            font-weight:
-                700;
-        }
-
-
-        .dispute-primary-button:hover {
-            background:
-                #096D57;
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Email Preview
-        |--------------------------------------------------------------------------
-        */
-
-        .dispute-email-preview {
-            display:
-                flex;
-
-            align-items:
-                flex-start;
-
-            gap:
-                10px;
-
-            margin-bottom:
-                16px;
-
-            padding:
-                12px
-                14px;
-
-            border:
-                1px
-                solid
-                var(--admin-border);
-
-            border-radius:
-                10px;
-
-            background:
-                var(--admin-subtle);
-
-            color:
-                var(--admin-muted);
-
-            font-size:
-                9px;
-
-            line-height:
-                1.55;
-        }
-
-
-        .dispute-email-preview
-        > i {
-            margin-top:
-                2px;
-
-            color:
-                #0EA584;
-
-            font-size:
-                14px;
-        }
-
-
-        .dispute-email-preview
-        strong {
-            display:
-                block;
-
-            margin-bottom:
-                2px;
-
-            color:
-                var(--admin-heading);
-
-            font-size:
-                10px;
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Explanation
-        |--------------------------------------------------------------------------
-        */
-
-        .dispute-explanation-box {
-            margin-top:
-                18px;
-
-            padding:
-                16px;
-
-            border:
-                1px
-                solid
-                var(--admin-border);
-
-            border-radius:
-                12px;
-
-            background:
-                var(--admin-subtle);
-        }
-
-
-        .dispute-explanation-box
-        > span {
-            display:
-                block;
-
-            margin-bottom:
-                8px;
-
-            color:
-                var(--admin-heading);
-
-            font-size:
-                10px;
-
-            font-weight:
-                700;
-        }
-
-
-        .dispute-explanation-box
-        > div {
-            color:
-                var(--admin-text);
-
-            font-size:
-                11px;
-
-            line-height:
-                1.75;
-
-            white-space:
-                pre-line;
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Resolution Note
-        |--------------------------------------------------------------------------
-        */
-
-        .dispute-resolution-note {
-            padding:
-                14px;
-
-            border:
-                1px
-                solid
-                #CDEDD9;
-
-            border-radius:
-                11px;
-
-            background:
-                #F7FFFA;
-        }
-
-
-        .dispute-resolution-note
-        span {
-            display:
-                block;
-
-            margin-bottom:
-                6px;
-
-            color:
-                #60756B;
-
-            font-size:
-                9px;
-
-            font-weight:
-                700;
-
-            text-transform:
-                uppercase;
-
-            letter-spacing:
-                .05em;
-        }
-
-
-        .dispute-resolution-note
-        strong {
-            display:
-                block;
-
-            color:
-                #315D47;
-
-            font-size:
-                10px;
-
-            font-weight:
-                500;
-
-            line-height:
-                1.7;
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | History
-        |--------------------------------------------------------------------------
-        */
-
-        .dispute-history-list {
-            display:
-                flex;
-
-            flex-direction:
-                column;
-        }
-
-
-        .dispute-history-item {
-            display:
-                grid;
-
-            grid-template-columns:
-                40px
-                minmax(
-                    0,
-                    1fr
-                );
-
-            gap:
-                12px;
-
-            padding:
-                14px
-                0;
-
-            border-bottom:
-                1px
-                solid
-                var(--admin-border);
-        }
-
-
-        .dispute-history-item:last-child {
-            border-bottom:
-                0;
-        }
-
-
-        .dispute-history-icon {
-            display:
-                grid;
-
-            width:
-                36px;
-
-            height:
-                36px;
-
-            place-items:
-                center;
-
-            border-radius:
-                50%;
-
-            background:
-                var(--admin-subtle);
-
-            color:
-                var(--admin-muted);
-        }
-
-
-        .dispute-history-icon.blue {
-            background:
-                #EEF4FF;
-
-            color:
-                #3538CD;
-        }
-
-
-        .dispute-history-icon.yellow {
-            background:
-                #FFF7E8;
-
-            color:
-                #B54708;
-        }
-
-
-        .dispute-history-icon.purple {
-            background:
-                #F2F0FF;
-
-            color:
-                #6941C6;
-        }
-
-
-        .dispute-history-icon.green {
-            background:
-                #ECFDF3;
-
-            color:
-                #067647;
-        }
-
-
-        .dispute-history-title {
-            display:
-                flex;
-
-            align-items:
-                center;
-
-            flex-wrap:
-                wrap;
-
-            gap:
-                6px;
-
-            color:
-                var(--admin-heading);
-
-            font-size:
-                10px;
-
-            font-weight:
-                700;
-        }
-
-
-        .dispute-history-title
-        i {
-            color:
-                var(--admin-muted);
-
-            font-size:
-                8px;
-        }
-
-
-        .dispute-history-meta {
-            display:
-                flex;
-
-            align-items:
-                center;
-
-            flex-wrap:
-                wrap;
-
-            gap:
-                4px;
-
-            margin-top:
-                5px;
-
-            color:
-                var(--admin-muted);
-
-            font-size:
-                9px;
-        }
-
-
-        .dispute-history-note {
-            margin-top:
-                9px;
-
-            padding:
-                9px
-                11px;
-
-            border-radius:
-                9px;
-
-            background:
-                var(--admin-subtle);
-
-            color:
-                var(--admin-text);
-
-            font-size:
-                9px;
-
-            line-height:
-                1.6;
-        }
-
-
-        .dispute-history-empty {
-            display:
-                flex;
-
-            align-items:
-                center;
-
-            justify-content:
-                center;
-
-            gap:
-                8px;
-
-            padding:
-                20px;
-
-            border-radius:
-                10px;
-
-            background:
-                var(--admin-subtle);
-
-            color:
-                var(--admin-muted);
-
-            font-size:
-                10px;
-
-            text-align:
-                center;
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Latest Admin Note
-        |--------------------------------------------------------------------------
-        */
-
-        .dispute-admin-note {
-            color:
-                var(--admin-text);
-
-            font-size:
-                11px;
-
-            line-height:
-                1.7;
-
-            white-space:
-                pre-line;
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Responsive
-        |--------------------------------------------------------------------------
-        */
-
-        @media(max-width: 850px) {
-
-            .dispute-workflow-form {
-                grid-template-columns:
-                    1fr;
-            }
-
-
-            .dispute-workflow-header {
-                flex-direction:
-                    column;
-            }
-
-        }
-
-    </style>
+</style>
 
 @endpush
 
-
-
-{{-- =========================================================
-    SCRIPT
-========================================================== --}}
 
 @push('scripts')
 
@@ -2807,195 +1594,338 @@ document.addEventListener(
     'DOMContentLoaded',
     function () {
 
-        /*
-        |--------------------------------------------------------------------------
-        | Elements
-        |--------------------------------------------------------------------------
-        */
-
-        const statusSelect =
+        const type =
             document.getElementById(
-                'dispute-status'
+                'resolutionType'
+            );
+
+
+        const partialField =
+            document.getElementById(
+                'partialRefundField'
+            );
+
+
+        const amount =
+            document.getElementById(
+                'refundAmount'
             );
 
 
         const preview =
             document.getElementById(
-                'dispute-email-preview'
+                'resolutionPreview'
             );
 
-
-        const previewTitle =
-            document.getElementById(
-                'dispute-email-preview-title'
-            );
-
-
-        const previewText =
-            document.getElementById(
-                'dispute-email-preview-text'
-            );
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | No Active Status Form
-        |--------------------------------------------------------------------------
-        */
 
         if (
-            !statusSelect
+            !type
             ||
             !preview
-            ||
-            !previewTitle
-            ||
-            !previewText
         ) {
 
             return;
         }
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | Update Preview
-        |--------------------------------------------------------------------------
-        */
-
-        function updatePreview() {
-
-            const status =
-                statusSelect.value;
+        const paid =
+            Number(
+                preview.dataset.paid
+                ||
+                0
+            );
 
 
-            /*
-            |--------------------------------------------------------------------------
-            | Under Review
-            |--------------------------------------------------------------------------
-            */
-
-            if (
-                status ===
-                'under_review'
-            ) {
-
-                previewTitle.textContent =
-                    'Buyer will be notified';
+        const feeRate =
+            Number(
+                preview.dataset.serviceFeeRate
+                ||
+                0
+            );
 
 
-                previewText.textContent =
-                    'The buyer will receive an email that Midpoint has resumed reviewing the dispute.';
+        const vatRate =
+            Number(
+                preview.dataset.vatRate
+                ||
+                0
+            );
 
 
-                return;
-            }
+        const existingSellerNet =
+            Number(
+                preview.dataset.existingSellerNet
+                ||
+                0
+            );
 
 
-            /*
-            |--------------------------------------------------------------------------
-            | Awaiting Buyer
-            |--------------------------------------------------------------------------
-            */
+        function money(
+            value
+        ) {
 
-            if (
-                status ===
-                'awaiting_buyer'
-            ) {
+            return new Intl
+                .NumberFormat(
+                    'en-NG',
+                    {
+                        style:
+                            'currency',
 
-                previewTitle.textContent =
-                    'Buyer will receive an action-required email';
+                        currency:
+                            'NGN',
 
-
-                previewText.textContent =
-                    'Your admin message will be sent to the buyer explaining what additional information or action is required.';
-
-
-                return;
-            }
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Awaiting Seller
-            |--------------------------------------------------------------------------
-            */
-
-            if (
-                status ===
-                'awaiting_seller'
-            ) {
-
-                previewTitle.textContent =
-                    'Seller will receive an action-required email';
-
-
-                previewText.textContent =
-                    'Your admin message will be sent to the seller explaining what additional information or action is required.';
-
-
-                return;
-            }
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Resolved
-            |--------------------------------------------------------------------------
-            */
-
-            if (
-                status ===
-                'resolved'
-            ) {
-
-                previewTitle.textContent =
-                    'Buyer and seller will both be notified';
-
-
-                previewText.textContent =
-                    'Both parties will receive the dispute resolution email including the admin resolution note.';
-
-
-                return;
-            }
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Empty
-            |--------------------------------------------------------------------------
-            */
-
-            previewTitle.textContent =
-                'Select a status';
-
-
-            previewText.textContent =
-                'The notification recipient will appear here.';
-
+                        maximumFractionDigits:
+                            2,
+                    }
+                )
+                .format(
+                    Number(
+                        value
+                        ||
+                        0
+                    )
+                );
         }
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | Events
-        |--------------------------------------------------------------------------
-        */
+        function roundMoney(
+            value
+        ) {
 
-        statusSelect.addEventListener(
+            return Math.round(
+                (
+                    Number(
+                        value
+                        ||
+                        0
+                    )
+                    +
+                    Number.EPSILON
+                )
+                *
+                100
+            )
+            /
+            100;
+        }
+
+
+        function render()
+        {
+            const selected =
+                type.value;
+
+
+            partialField.hidden =
+                selected
+                !==
+                'partial_refund';
+
+
+            amount.required =
+                selected
+                ===
+                'partial_refund';
+
+
+            if (
+                !selected
+            ) {
+
+                preview.hidden =
+                    true;
+
+                return;
+            }
+
+
+            let html =
+                '';
+
+
+            if (
+                selected
+                ===
+                'full_refund'
+            ) {
+
+                html =
+                    '<strong>Buyer refund:</strong> '
+                    +
+                    money(
+                        paid
+                    )
+                    +
+                    '<br>'
+                    +
+                    '<strong>Midpoint fee on refunded amount:</strong> '
+                    +
+                    money(
+                        0
+                    )
+                    +
+                    '<br>'
+                    +
+                    '<strong>Seller settlement:</strong> '
+                    +
+                    money(
+                        0
+                    );
+
+            } else if (
+                selected
+                ===
+                'partial_refund'
+            ) {
+
+                const refund =
+                    Math.max(
+                        0,
+                        Number(
+                            amount.value
+                            ||
+                            0
+                        )
+                    );
+
+
+                const retained =
+                    roundMoney(
+                        Math.max(
+                            0,
+                            paid
+                            -
+                            refund
+                        )
+                    );
+
+
+                const fee =
+                    roundMoney(
+                        retained
+                        *
+                        feeRate
+                        /
+                        100
+                    );
+
+
+                const vat =
+                    roundMoney(
+                        fee
+                        *
+                        vatRate
+                        /
+                        100
+                    );
+
+
+                const seller =
+                    roundMoney(
+                        Math.max(
+                            0,
+                            retained
+                            -
+                            fee
+                            -
+                            vat
+                        )
+                    );
+
+
+                html =
+                    '<strong>Buyer refund:</strong> '
+                    +
+                    money(
+                        refund
+                    )
+                    +
+                    '<br>'
+                    +
+                    '<strong>Remaining transaction amount:</strong> '
+                    +
+                    money(
+                        retained
+                    )
+                    +
+                    '<br>'
+                    +
+                    '<strong>Midpoint service fee on remaining amount:</strong> '
+                    +
+                    money(
+                        fee
+                    )
+                    +
+                    '<br>'
+                    +
+                    '<strong>VAT on service fee:</strong> '
+                    +
+                    money(
+                        vat
+                    )
+                    +
+                    '<br>'
+                    +
+                    '<strong>Seller settlement:</strong> '
+                    +
+                    money(
+                        seller
+                    );
+
+            } else if (
+                selected
+                ===
+                'release_to_seller'
+            ) {
+
+                html =
+                    '<strong>Buyer refund:</strong> '
+                    +
+                    money(
+                        0
+                    )
+                    +
+                    '<br>'
+                    +
+                    '<strong>Seller settlement:</strong> '
+                    +
+                    money(
+                        existingSellerNet
+                    );
+
+            } else {
+
+                html =
+                    '<strong>No immediate refund or wallet credit.</strong>'
+                    +
+                    '<br>'
+                    +
+                    'The transaction returns to its protected delivery/inspection flow.';
+            }
+
+
+            preview.innerHTML =
+                html;
+
+
+            preview.hidden =
+                false;
+        }
+
+
+        type.addEventListener(
             'change',
-            updatePreview
+            render
         );
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | Initial
-        |--------------------------------------------------------------------------
-        */
+        amount?.addEventListener(
+            'input',
+            render
+        );
 
-        updatePreview();
+
+        render();
 
     }
 );
@@ -3003,3 +1933,6 @@ document.addEventListener(
 </script>
 
 @endpush
+
+
+@endsection

@@ -78,6 +78,40 @@ class BuyerNotificationController extends Controller
 
         $notification->loadMissing('transaction');
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | Dispute Room Notification
+        |--------------------------------------------------------------------------
+        */
+
+        $disputeId =
+            (int)
+            data_get(
+                $notification->data,
+                'dispute_id',
+                0
+            );
+
+
+        if (
+            $notification->type
+            ===
+            'dispute'
+            &&
+            $disputeId > 0
+        ) {
+
+            return redirect()->route(
+                'dispute-room.show',
+                [
+                    'dispute' =>
+                        $disputeId,
+                ]
+            );
+        }
+
+
         if ($notification->transaction) {
             return redirect()->route(
                 'buyer.transactions.show',

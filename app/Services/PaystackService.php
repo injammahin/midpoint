@@ -629,6 +629,231 @@ class PaystackService
 
     /*
     |--------------------------------------------------------------------------
+    | Create Refund
+    |--------------------------------------------------------------------------
+    |
+    | Paystack expects the refund amount in subunits.
+    |
+    | We always pass an explicit amount, even for a full refund. This makes the
+    | Midpoint financial decision auditable and prevents accidental over-refund.
+    |
+    */
+
+    public function createRefund(
+        string $transactionReference,
+        int $amountSubunit,
+        string $currency = 'NGN',
+        ?string $customerNote = null,
+        ?string $merchantNote = null
+    ): array {
+
+        $transactionReference =
+            trim(
+                $transactionReference
+            );
+
+
+        if (
+            $transactionReference
+            ===
+            ''
+        ) {
+
+            throw new RuntimeException(
+                'Paystack transaction reference is missing for the refund.'
+            );
+        }
+
+
+        if (
+            $amountSubunit
+            <=
+            0
+        ) {
+
+            throw new RuntimeException(
+                'Paystack refund amount must be greater than zero.'
+            );
+        }
+
+
+        $payload = [
+
+            'transaction' =>
+                $transactionReference,
+
+            'amount' =>
+                $amountSubunit,
+
+            'currency' =>
+                strtoupper(
+                    trim(
+                        $currency
+                    )
+                ),
+
+        ];
+
+
+        if (
+            $customerNote
+        ) {
+
+            $payload['customer_note'] =
+                $customerNote;
+        }
+
+
+        if (
+            $merchantNote
+        ) {
+
+            $payload['merchant_note'] =
+                $merchantNote;
+        }
+
+
+        $response =
+            Http::withToken(
+                $this->secretKey
+            )
+                ->acceptJson()
+                ->asJson()
+                ->timeout(30)
+                ->post(
+                    $this->baseUrl
+                    .
+                    '/refund',
+                    $payload
+                );
+
+
+        return $this->extractData(
+            $response,
+            'Unable to initiate Paystack refund.'
+        );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | List Refunds
+    |--------------------------------------------------------------------------
+    |
+    | Used to safely reconcile a refund if the create-refund HTTP request
+    | timed out and Midpoint cannot know whether Paystack accepted it.
+    |
+    */
+
+    public function listRefunds(
+        ?string $paystackTransactionId = null
+    ): array {
+
+        $query = [
+
+            'perPage' =>
+                50,
+
+            'page' =>
+                1,
+
+        ];
+
+
+        if (
+            $paystackTransactionId
+            !==
+            null
+            &&
+            trim(
+                $paystackTransactionId
+            )
+            !==
+            ''
+        ) {
+
+            $query['transaction'] =
+                trim(
+                    $paystackTransactionId
+                );
+        }
+
+
+        $response =
+            Http::withToken(
+                $this->secretKey
+            )
+                ->acceptJson()
+                ->timeout(30)
+                ->get(
+                    $this->baseUrl
+                    .
+                    '/refund',
+                    $query
+                );
+
+
+        return $this->extractData(
+            $response,
+            'Unable to load Paystack refunds.'
+        );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Fetch Refund
+    |--------------------------------------------------------------------------
+    */
+
+    public function fetchRefund(
+        string $refundId
+    ): array {
+
+        $refundId =
+            trim(
+                $refundId
+            );
+
+
+        if (
+            $refundId
+            ===
+            ''
+        ) {
+
+            throw new RuntimeException(
+                'Paystack refund ID is missing.'
+            );
+        }
+
+
+        $response =
+            Http::withToken(
+                $this->secretKey
+            )
+                ->acceptJson()
+                ->timeout(30)
+                ->get(
+                    $this->baseUrl
+                    .
+                    '/refund/'
+                    .
+                    rawurlencode(
+                        $refundId
+                    )
+                );
+
+
+        return $this->extractData(
+            $response,
+            'Unable to fetch Paystack refund.'
+        );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
     | Verify Webhook Signature
     |--------------------------------------------------------------------------
     */

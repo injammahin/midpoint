@@ -16,6 +16,9 @@ class SellerWalletTransaction extends Model
     public const TYPE_TRANSACTION_RELEASE =
         'transaction_release';
 
+    public const TYPE_DISPUTE_SETTLEMENT =
+        'dispute_settlement';
+
     public const TYPE_WITHDRAWAL_REQUEST =
         'withdrawal_request';
 

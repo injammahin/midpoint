@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\SecureTransaction;
+use App\Models\TransactionDispute;
 use App\Models\SellerWallet;
 use App\Models\SellerWalletTransaction;
 use App\Models\User;
@@ -603,4 +604,455 @@ class SellerWalletService
             3
         );
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Credit Admin-Approved Dispute Settlement
+    |--------------------------------------------------------------------------
+    |
+    | This is intentionally separate from creditTransactionRelease().
+    |
+    | Normal transaction release requires explicit buyer acceptance.
+    | A dispute settlement is different: an authorized Midpoint administrator
+    | has made a final decision after reviewing the evidence.
+    |
+    | This method is idempotent by:
+    |
+    | secure_transaction_id + type(dispute_settlement)
+    |
+    */
+
+    public function creditDisputeSettlement(
+        SecureTransaction $transaction,
+        float $amount,
+        TransactionDispute $dispute,
+        array $meta = []
+    ): array {
+
+        return DB::transaction(
+            function () use (
+                $transaction,
+                $amount,
+                $dispute,
+                $meta
+            ) {
+
+                $lockedTransaction =
+                    SecureTransaction::query()
+
+                        ->whereKey(
+                            $transaction->id
+                        )
+
+                        ->lockForUpdate()
+
+                        ->firstOrFail();
+
+
+                if (
+                    $lockedTransaction->payment_status
+                    !==
+                    SecureTransaction::PAYMENT_PAID
+                ) {
+
+                    throw new RuntimeException(
+                        'Only a paid transaction can receive a dispute settlement.'
+                    );
+                }
+
+
+                if (
+                    !$lockedTransaction->seller_id
+                ) {
+
+                    throw new RuntimeException(
+                        'Seller account is missing from this transaction.'
+                    );
+                }
+
+
+                $lockedDispute =
+                    TransactionDispute::query()
+
+                        ->whereKey(
+                            $dispute->id
+                        )
+
+                        ->lockForUpdate()
+
+                        ->firstOrFail();
+
+
+                if (
+                    (int)
+                    $lockedDispute->secure_transaction_id
+                    !==
+                    (int)
+                    $lockedTransaction->id
+                ) {
+
+                    throw new RuntimeException(
+                        'The dispute does not belong to this transaction.'
+                    );
+                }
+
+
+                if (
+                    !$lockedDispute->isResolved()
+                ) {
+
+                    throw new RuntimeException(
+                        'A dispute settlement can only be credited after the dispute is resolved.'
+                    );
+                }
+
+
+                if (
+                    $lockedTransaction->paystack_transfer_reference
+                    &&
+                    !$lockedTransaction->funds_released_at
+                ) {
+
+                    throw new RuntimeException(
+                        'A legacy Paystack bank transfer has already been initialized for this transaction.'
+                    );
+                }
+
+
+                $amount =
+                    round(
+                        max(
+                            0,
+                            $amount
+                        ),
+                        2
+                    );
+
+
+                if (
+                    $amount
+                    <=
+                    0
+                ) {
+
+                    throw new RuntimeException(
+                        'The dispute settlement amount must be greater than zero.'
+                    );
+                }
+
+
+                User::query()
+
+                    ->whereKey(
+                        $lockedTransaction->seller_id
+                    )
+
+                    ->lockForUpdate()
+
+                    ->firstOrFail();
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Idempotency
+                |--------------------------------------------------------------------------
+                */
+
+                $existingEntry =
+                    SellerWalletTransaction::query()
+
+                        ->where(
+                            'secure_transaction_id',
+                            $lockedTransaction->id
+                        )
+
+                        ->where(
+                            'type',
+                            SellerWalletTransaction::TYPE_DISPUTE_SETTLEMENT
+                        )
+
+                        ->first();
+
+
+                if (
+                    $existingEntry
+                ) {
+
+                    if (
+                        $lockedTransaction->status
+                        !==
+                        SecureTransaction::STATUS_COMPLETED
+                        ||
+                        !$lockedTransaction->funds_released_at
+                    ) {
+
+                        $releasedAt =
+                            $existingEntry->processed_at
+                            ?:
+                            now();
+
+
+                        $lockedTransaction
+                            ->forceFill([
+
+                                'status' =>
+                                    SecureTransaction::STATUS_COMPLETED,
+
+                                'payout_status' =>
+                                    SecureTransaction::PAYOUT_WALLET_CREDITED,
+
+                                'funds_released_at' =>
+                                    $lockedTransaction->funds_released_at
+                                    ?:
+                                    $releasedAt,
+
+                                'completed_at' =>
+                                    $lockedTransaction->completed_at
+                                    ?:
+                                    $releasedAt,
+
+                                'auto_complete_at' =>
+                                    null,
+
+                            ])
+                            ->save();
+                    }
+
+
+                    return [
+
+                        'wallet' =>
+                            SellerWallet::query()
+                                ->findOrFail(
+                                    $existingEntry
+                                        ->seller_wallet_id
+                                ),
+
+                        'entry' =>
+                            $existingEntry,
+
+                        'credited' =>
+                            false,
+
+                    ];
+                }
+
+
+                $wallet =
+                    SellerWallet::query()
+
+                        ->where(
+                            'seller_id',
+                            $lockedTransaction->seller_id
+                        )
+
+                        ->lockForUpdate()
+
+                        ->first();
+
+
+                if (
+                    !$wallet
+                ) {
+
+                    $wallet =
+                        SellerWallet::create([
+
+                            'seller_id' =>
+                                $lockedTransaction->seller_id,
+
+                            'currency' =>
+                                strtoupper(
+                                    $lockedTransaction->currency
+                                    ?:
+                                    'NGN'
+                                ),
+
+                            'available_balance' =>
+                                0,
+
+                            'pending_withdrawal_balance' =>
+                                0,
+
+                            'total_credited' =>
+                                0,
+
+                            'total_withdrawn' =>
+                                0,
+
+                        ]);
+                }
+
+
+                $balanceBefore =
+                    round(
+                        (float)
+                        $wallet->available_balance,
+                        2
+                    );
+
+
+                $balanceAfter =
+                    round(
+                        $balanceBefore
+                        +
+                        $amount,
+                        2
+                    );
+
+
+                $totalCredited =
+                    round(
+                        (float)
+                        $wallet->total_credited
+                        +
+                        $amount,
+                        2
+                    );
+
+
+                $wallet
+                    ->forceFill([
+
+                        'currency' =>
+                            strtoupper(
+                                $lockedTransaction->currency
+                                ?:
+                                $wallet->currency
+                                ?:
+                                'NGN'
+                            ),
+
+                        'available_balance' =>
+                            $balanceAfter,
+
+                        'total_credited' =>
+                            $totalCredited,
+
+                    ])
+                    ->save();
+
+
+                $releasedAt =
+                    now();
+
+
+                $entry =
+                    SellerWalletTransaction::create([
+
+                        'seller_wallet_id' =>
+                            $wallet->id,
+
+                        'seller_id' =>
+                            $lockedTransaction->seller_id,
+
+                        'secure_transaction_id' =>
+                            $lockedTransaction->id,
+
+                        'reference' =>
+                            SellerWalletTransaction::generateReference(),
+
+                        'type' =>
+                            SellerWalletTransaction::TYPE_DISPUTE_SETTLEMENT,
+
+                        'direction' =>
+                            SellerWalletTransaction::DIRECTION_CREDIT,
+
+                        'status' =>
+                            SellerWalletTransaction::STATUS_POSTED,
+
+                        'currency' =>
+                            strtoupper(
+                                $lockedTransaction->currency
+                                ?:
+                                'NGN'
+                            ),
+
+                        'amount' =>
+                            $amount,
+
+                        'balance_before' =>
+                            $balanceBefore,
+
+                        'balance_after' =>
+                            $balanceAfter,
+
+                        'description' =>
+                            'Midpoint dispute settlement for transaction '
+                            .
+                            $lockedTransaction->reference,
+
+                        'meta' =>
+                            array_merge(
+                                [
+                                    'dispute_id' =>
+                                        $lockedDispute->id,
+
+                                    'transaction_reference' =>
+                                        $lockedTransaction->reference,
+
+                                    'gross_paid' =>
+                                        (float)
+                                        $lockedTransaction->paid_amount,
+
+                                    'service_fee' =>
+                                        (float)
+                                        $lockedTransaction->service_fee_amount,
+
+                                    'vat' =>
+                                        (float)
+                                        $lockedTransaction->vat_amount,
+
+                                    'seller_settlement_amount' =>
+                                        $amount,
+                                ],
+                                $meta
+                            ),
+
+                        'processed_at' =>
+                            $releasedAt,
+
+                    ]);
+
+
+                $lockedTransaction
+                    ->forceFill([
+
+                        'status' =>
+                            SecureTransaction::STATUS_COMPLETED,
+
+                        'payout_status' =>
+                            SecureTransaction::PAYOUT_WALLET_CREDITED,
+
+                        'funds_released_at' =>
+                            $releasedAt,
+
+                        'completed_at' =>
+                            $releasedAt,
+
+                        'auto_complete_at' =>
+                            null,
+
+                    ])
+                    ->save();
+
+
+                return [
+
+                    'wallet' =>
+                        $wallet->fresh(),
+
+                    'entry' =>
+                        $entry,
+
+                    'credited' =>
+                        true,
+
+                ];
+            },
+
+            3
+        );
+    }
+
 }

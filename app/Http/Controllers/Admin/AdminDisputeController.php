@@ -6,8 +6,11 @@ use App\Http\Controllers\Controller;
 
 use App\Models\SecureTransaction;
 use App\Models\TransactionDispute;
+use App\Models\TransactionDisputeMessage;
 use App\Models\TransactionDisputeStatusHistory;
 
+use App\Services\DisputeResolutionService;
+use App\Services\DisputeRoomCommunicationService;
 use App\Services\TransactionCommunicationService;
 
 use Illuminate\Http\Request;
@@ -387,6 +390,10 @@ class AdminDisputeController extends Controller
 
             'seller',
 
+            'roomActivator',
+
+            'resolver',
+
             'transaction.successfulPayment',
 
             'statusHistories' =>
@@ -431,6 +438,39 @@ class AdminDisputeController extends Controller
 
         /*
         |--------------------------------------------------------------------------
+        | Latest Resolution Room Messages
+        |--------------------------------------------------------------------------
+        */
+
+        $messages =
+            TransactionDisputeMessage::query()
+
+                ->where(
+                    'transaction_dispute_id',
+                    $dispute->id
+                )
+
+                ->with(
+                    'sender'
+                )
+
+                ->latest(
+                    'id'
+                )
+
+                ->limit(
+                    100
+                )
+
+                ->get()
+
+                ->reverse()
+
+                ->values();
+
+
+        /*
+        |--------------------------------------------------------------------------
         | View
         |--------------------------------------------------------------------------
         */
@@ -444,6 +484,9 @@ class AdminDisputeController extends Controller
 
                 'transaction' =>
                     $dispute->transaction,
+
+                'messages' =>
+                    $messages,
 
             ]
         );
@@ -539,8 +582,6 @@ class AdminDisputeController extends Controller
 
                         TransactionDispute::STATUS_AWAITING_SELLER,
 
-                        TransactionDispute::STATUS_RESOLVED,
-
                     ]),
                 ],
 
@@ -601,8 +642,6 @@ class AdminDisputeController extends Controller
                     TransactionDispute::STATUS_AWAITING_BUYER,
 
                     TransactionDispute::STATUS_AWAITING_SELLER,
-
-                    TransactionDispute::STATUS_RESOLVED,
 
                 ],
                 true
@@ -738,169 +777,33 @@ class AdminDisputeController extends Controller
 
                     /*
                     |--------------------------------------------------------------------------
-                    | RESOLVED
+                    | Active Dispute Workflow
                     |--------------------------------------------------------------------------
                     |
-                    | IMPORTANT:
-                    |
-                    | When the dispute was opened we changed:
-                    |
-                    | secure_transactions.status = disputed
-                    | auto_complete_at = null
-                    |
-                    | Therefore simply resolving transaction_disputes is not
-                    | enough. We MUST resume the parent transaction too.
+                    | Under Review / Awaiting Buyer / Awaiting Seller always keeps
+                    | seller payout locked. Final financial resolution is handled
+                    | only by DisputeResolutionService.
                     |
                     */
 
                     if (
-                        $newStatus
-                        ===
-                        TransactionDispute::STATUS_RESOLVED
+                        $lockedTransaction->status
+                        !==
+                        SecureTransaction::STATUS_DISPUTED
                     ) {
 
-                        /*
-                        |--------------------------------------------------------------------------
-                        | Mark Dispute Resolved
-                        |--------------------------------------------------------------------------
-                        */
+                        $lockedTransaction->forceFill([
 
-                        $disputeUpdates['resolved_at'] =
-                            now();
+                            'status' =>
+                                SecureTransaction::STATUS_DISPUTED,
 
+                            'payout_status' =>
+                                SecureTransaction::PAYOUT_LOCKED,
 
-                        /*
-                        |--------------------------------------------------------------------------
-                        | Determine Previous Transaction Stage
-                        |--------------------------------------------------------------------------
-                        |
-                        | A dispute can only be created from:
-                        |
-                        | delivered
-                        | inspection
-                        |
-                        | If inspection_started_at exists, the buyer had already
-                        | started inspection when they opened the dispute.
-                        |
-                        */
+                            'auto_complete_at' =>
+                                null,
 
-                        $wasInspection =
-                            !is_null(
-                                $lockedTransaction
-                                    ->inspection_started_at
-                            );
-
-
-                        /*
-                        |--------------------------------------------------------------------------
-                        | Resume Inspection
-                        |--------------------------------------------------------------------------
-                        */
-
-                        if (
-                            $wasInspection
-                        ) {
-
-                            $inspectionHours =
-                                (int) config(
-                                    'secure_transactions.inspection_hours',
-                                    8
-                                );
-
-
-                            $inspectionEndsAt =
-                                now()->addHours(
-                                    $inspectionHours
-                                );
-
-
-                            $lockedTransaction->forceFill([
-
-                                'status' =>
-                                    SecureTransaction::STATUS_INSPECTION,
-
-
-                                /*
-                                |--------------------------------------------------------------------------
-                                | Fresh protection period
-                                |--------------------------------------------------------------------------
-                                |
-                                | Time spent while Midpoint reviewed the dispute
-                                | must NOT count against the buyer.
-                                |
-                                */
-
-                                'inspection_ends_at' =>
-                                    $inspectionEndsAt,
-
-
-                                /*
-                                | Manual buyer approval: resolving a dispute must not
-                                | schedule automatic seller wallet release.
-                                */
-                                'auto_complete_at' =>
-                                    null,
-
-                            ])->save();
-
-                        } else {
-
-                            /*
-                            |--------------------------------------------------------------------------
-                            | Resume Delivered Stage
-                            |--------------------------------------------------------------------------
-                            */
-
-                            $lockedTransaction->forceFill([
-
-                                'status' =>
-                                    SecureTransaction::STATUS_DELIVERED,
-
-
-                                /*
-                                |--------------------------------------------------------------------------
-                                | Manual Buyer Approval Only
-                                |--------------------------------------------------------------------------
-                                |
-                                | Resolving a dispute returns the order to delivered state, but
-                                | seller funds remain in escrow until the buyer accepts the order.
-                                |
-                                */
-
-                                'auto_complete_at' =>
-                                    null,
-
-                            ])->save();
-                        }
-
-                    } else {
-
-                        /*
-                        |--------------------------------------------------------------------------
-                        | Active Dispute
-                        |--------------------------------------------------------------------------
-                        |
-                        | Under Review / Awaiting Buyer / Awaiting Seller
-                        | must continue blocking payout.
-                        |
-                        */
-
-                        if (
-                            $lockedTransaction->status
-                            !==
-                            SecureTransaction::STATUS_DISPUTED
-                        ) {
-
-                            $lockedTransaction->forceFill([
-
-                                'status' =>
-                                    SecureTransaction::STATUS_DISPUTED,
-
-                                'auto_complete_at' =>
-                                    null,
-
-                            ])->save();
-                        }
+                        ])->save();
                     }
 
 
@@ -1045,19 +948,415 @@ class AdminDisputeController extends Controller
 
             ->with(
                 'success',
-
-                $newStatus
-                ===
-                TransactionDispute::STATUS_RESOLVED
-
-                    ? 'Dispute resolved successfully. The transaction has resumed and both buyer and seller have been notified.'
-
-                    : 'Dispute status changed to '
-                        .
-                        $dispute->status_label
-                        .
-                        '.'
+                'Dispute status changed to '
+                .
+                $dispute->status_label
+                .
+                '.'
             );
+    }
+
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Activate Resolution Room
+    |--------------------------------------------------------------------------
+    */
+
+    public function activateRoom(
+        Request $request,
+        TransactionDispute $dispute,
+        DisputeRoomCommunicationService $communications
+    ) {
+
+        $dispute->loadMissing([
+            'transaction.buyer',
+            'transaction.seller',
+        ]);
+
+
+        abort_unless(
+            $dispute->transaction
+            &&
+            $dispute->transaction->payment_status
+            ===
+            SecureTransaction::PAYMENT_PAID,
+            404
+        );
+
+
+        if (
+            $dispute->isResolved()
+        ) {
+
+            return back()->with(
+                'error',
+                'This dispute is already resolved.'
+            );
+        }
+
+
+        $activatedNow =
+            DB::transaction(
+                function () use (
+                    $request,
+                    $dispute
+                ) {
+
+                    $lockedDispute =
+                        TransactionDispute::query()
+
+                            ->whereKey(
+                                $dispute->id
+                            )
+
+                            ->lockForUpdate()
+
+                            ->firstOrFail();
+
+
+                    if (
+                        $lockedDispute->room_activated_at
+                    ) {
+
+                        return false;
+                    }
+
+
+                    $lockedTransaction =
+                        SecureTransaction::query()
+
+                            ->whereKey(
+                                $lockedDispute
+                                    ->secure_transaction_id
+                            )
+
+                            ->lockForUpdate()
+
+                            ->firstOrFail();
+
+
+                    $oldStatus =
+                        $lockedDispute->status;
+
+
+                    $newStatus =
+                        $oldStatus
+                        ===
+                        TransactionDispute::STATUS_OPEN
+
+                            ? TransactionDispute::STATUS_UNDER_REVIEW
+
+                            : $oldStatus;
+
+
+                    $lockedDispute->forceFill([
+
+                        'room_activated_at' =>
+                            now(),
+
+                        'room_activated_by' =>
+                            $request->user()->id,
+
+                        'status' =>
+                            $newStatus,
+
+                    ])->save();
+
+
+                    $lockedTransaction->forceFill([
+
+                        'status' =>
+                            SecureTransaction::STATUS_DISPUTED,
+
+                        'payout_status' =>
+                            SecureTransaction::PAYOUT_LOCKED,
+
+                        'auto_complete_at' =>
+                            null,
+
+                    ])->save();
+
+
+                    if (
+                        $oldStatus
+                        !==
+                        $newStatus
+                    ) {
+
+                        TransactionDisputeStatusHistory::create([
+
+                            'transaction_dispute_id' =>
+                                $lockedDispute->id,
+
+                            'secure_transaction_id' =>
+                                $lockedDispute
+                                    ->secure_transaction_id,
+
+                            'admin_id' =>
+                                $request->user()->id,
+
+                            'from_status' =>
+                                $oldStatus,
+
+                            'to_status' =>
+                                $newStatus,
+
+                            'note' =>
+                                'Midpoint activated the dispute resolution room.',
+
+                        ]);
+                    }
+
+
+                    TransactionDisputeMessage::create([
+
+                        'transaction_dispute_id' =>
+                            $lockedDispute->id,
+
+                        'secure_transaction_id' =>
+                            $lockedDispute
+                                ->secure_transaction_id,
+
+                        'sender_id' =>
+                            null,
+
+                        'sender_role' =>
+                            TransactionDisputeMessage::ROLE_SYSTEM,
+
+                        'visibility' =>
+                            TransactionDisputeMessage::VISIBILITY_ALL,
+
+                        'message' =>
+                            'Midpoint Support opened this dispute resolution room. Buyer, seller and Midpoint Support can now exchange messages and proof here. Seller payout remains locked while the case is active.',
+
+                        'attachments' =>
+                            null,
+
+                        'is_system' =>
+                            true,
+
+                    ]);
+
+
+                    return true;
+                }
+            );
+
+
+        if (
+            $activatedNow
+        ) {
+
+            $communications->roomActivated(
+                $dispute->fresh([
+                    'transaction.buyer',
+                    'transaction.seller',
+                ])
+            );
+        }
+
+
+        return redirect()
+
+            ->route(
+                'admin.disputes.show',
+                $dispute
+            )
+
+            ->with(
+                'success',
+                $activatedNow
+
+                    ? 'Dispute resolution room activated. Buyer and seller were notified by Midpoint and email.'
+
+                    : 'The dispute resolution room is already active.'
+            );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Final Resolution
+    |--------------------------------------------------------------------------
+    */
+
+    public function resolve(
+        Request $request,
+        TransactionDispute $dispute,
+        DisputeResolutionService $resolutions
+    ) {
+
+        $validated =
+            $request->validate([
+
+                'resolution_type' => [
+                    'required',
+                    Rule::in([
+                        TransactionDispute::RESOLUTION_FULL_REFUND,
+                        TransactionDispute::RESOLUTION_PARTIAL_REFUND,
+                        TransactionDispute::RESOLUTION_RELEASE_TO_SELLER,
+                        TransactionDispute::RESOLUTION_RESUME_TRANSACTION,
+                    ]),
+                ],
+
+                'refund_amount' => [
+                    'nullable',
+                    'numeric',
+                    'min:0.01',
+                ],
+
+                'resolution_note' => [
+                    'required',
+                    'string',
+                    'min:20',
+                    'max:5000',
+                ],
+            ]);
+
+
+        try {
+
+            $resolved =
+                $resolutions->resolve(
+                    $request->user(),
+                    $dispute,
+                    $validated['resolution_type'],
+                    isset(
+                        $validated['refund_amount']
+                    )
+                        ? (float)
+                        $validated['refund_amount']
+                        : null,
+                    trim(
+                        $validated['resolution_note']
+                    )
+                );
+
+
+            $message =
+                $resolved->isResolved()
+
+                    ? 'Dispute resolved successfully.'
+
+                    : 'Midpoint recorded the decision and initiated the Paystack refund. The case will finalize after Paystack confirms the refund.';
+
+
+            return redirect()
+
+                ->route(
+                    'admin.disputes.show',
+                    $resolved
+                )
+
+                ->with(
+                    'success',
+                    $message
+                );
+
+        } catch (
+            ValidationException $exception
+        ) {
+
+            throw $exception;
+
+        } catch (
+            Throwable $exception
+        ) {
+
+            Log::error(
+                'Dispute resolution failed.',
+                [
+                    'dispute_id' =>
+                        $dispute->id,
+
+                    'admin_id' =>
+                        $request->user()->id,
+
+                    'error' =>
+                        $exception->getMessage(),
+                ]
+            );
+
+
+            return redirect()
+
+                ->route(
+                    'admin.disputes.show',
+                    $dispute
+                )
+
+                ->with(
+                    'error',
+                    $exception->getMessage()
+                );
+        }
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Sync Paystack Refund
+    |--------------------------------------------------------------------------
+    */
+
+    public function syncRefund(
+        Request $request,
+        TransactionDispute $dispute,
+        DisputeResolutionService $resolutions
+    ) {
+
+        try {
+
+            $resolutions->syncRefund(
+                $dispute
+            );
+
+
+            return redirect()
+
+                ->route(
+                    'admin.disputes.show',
+                    $dispute
+                )
+
+                ->with(
+                    'success',
+                    'Paystack refund status synchronized successfully.'
+                );
+
+        } catch (
+            Throwable $exception
+        ) {
+
+            Log::error(
+                'Paystack dispute refund sync failed.',
+                [
+                    'dispute_id' =>
+                        $dispute->id,
+
+                    'admin_id' =>
+                        $request->user()->id,
+
+                    'error' =>
+                        $exception->getMessage(),
+                ]
+            );
+
+
+            return redirect()
+
+                ->route(
+                    'admin.disputes.show',
+                    $dispute
+                )
+
+                ->with(
+                    'error',
+                    $exception->getMessage()
+                );
+        }
     }
 
 
@@ -1105,8 +1404,6 @@ class AdminDisputeController extends Controller
 
                 TransactionDispute::STATUS_AWAITING_SELLER,
 
-                TransactionDispute::STATUS_RESOLVED,
-
             ],
 
 
@@ -1122,8 +1419,6 @@ class AdminDisputeController extends Controller
 
                 TransactionDispute::STATUS_AWAITING_SELLER,
 
-                TransactionDispute::STATUS_RESOLVED,
-
             ],
 
 
@@ -1138,8 +1433,6 @@ class AdminDisputeController extends Controller
                 TransactionDispute::STATUS_UNDER_REVIEW,
 
                 TransactionDispute::STATUS_AWAITING_BUYER,
-
-                TransactionDispute::STATUS_RESOLVED,
 
             ],
 

@@ -363,6 +363,27 @@
 
                 </span>
 
+
+                @if($dispute->room_activated_at)
+
+                    <a
+                        href="{{
+                            route(
+                                'dispute-room.show',
+                                $dispute
+                            )
+                        }}"
+                        class="tm-dispute-room-link"
+                    >
+
+                        <i class="fa-solid fa-comments"></i>
+
+                        Open dispute room
+
+                    </a>
+
+                @endif
+
             </div>
 
         </div>
@@ -414,6 +435,27 @@
                         {{ $dispute->admin_note }}
 
                     </small>
+
+                @endif
+
+
+                @if($dispute->room_activated_at)
+
+                    <a
+                        href="{{
+                            route(
+                                'dispute-room.show',
+                                $dispute
+                            )
+                        }}"
+                        class="tm-dispute-room-link resolved"
+                    >
+
+                        <i class="fa-solid fa-comments"></i>
+
+                        View dispute record
+
+                    </a>
 
                 @endif
 
@@ -1956,6 +1998,31 @@
     background: #FEF3F2;
     color: #B42318;
 }
+
+.tm-dispute-room-link {
+    width: fit-content;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    padding: 7px 10px;
+    border-radius: 8px;
+    background: #0B3D2E;
+    color: #FFFFFF;
+    font-size: 9px;
+    font-weight: 800;
+    text-decoration: none;
+}
+
+.tm-dispute-room-link:hover {
+    color: #FFFFFF;
+    background: #0E4A38;
+}
+
+.tm-dispute-room-link.resolved {
+    background: #087443;
+}
+
 
 .tm-dispute-banner strong,
 .tm-dispute-banner span {
