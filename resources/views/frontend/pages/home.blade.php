@@ -3,7 +3,7 @@
 
 @section(
     'title',
-    'Midpoint - Buy with confidence. Sell with confidence.'
+    'Midpoint — Buy with confidence. Sell with confidence.'
 )
 
 
@@ -218,11 +218,19 @@
 
     /*
     |--------------------------------------------------------------------------
-    | Hero Visual
+    | Hero Image
     |--------------------------------------------------------------------------
+    |
+    | Image location:
+    | public/img/hero image.png
+    |
+    | Important:
+    | This block only controls the hero image.
+    | Testimonial, business, FAQ and other existing styles are untouched.
+    |
     */
 
-    .mp-platform-visual {
+    .mp-hero-image-wrap {
 
         position:
             relative;
@@ -231,10 +239,7 @@
             100%;
 
         max-width:
-            620px;
-
-        height:
-            470px;
+            650px;
 
         margin-left:
             auto;
@@ -248,10 +253,16 @@
         justify-content:
             center;
 
+        overflow:
+            visible;
+
+        isolation:
+            isolate;
+
     }
 
 
-    .mp-platform-visual::before {
+    .mp-hero-image-wrap::before {
 
         content:
             '';
@@ -263,13 +274,16 @@
             50%;
 
         top:
-            50%;
+            52%;
+
+        z-index:
+            -1;
 
         width:
-            440px;
+            88%;
 
-        height:
-            440px;
+        aspect-ratio:
+            1 / 1;
 
         transform:
             translate(
@@ -288,858 +302,93 @@
             radial-gradient(
                 circle,
                 rgba(
+                    126,
+                    240,
+                    182,
+                    .15
+                ) 0%,
+                rgba(
                     18,
                     183,
                     106,
-                    .13
-                ),
-                transparent 68%
+                    .08
+                ) 38%,
+                transparent 70%
             );
 
-    }
-
-
-    .mp-platform-line {
-
-        position:
-            absolute;
-
-        z-index:
-            1;
-
-        top:
-            50%;
-
-        left:
-            14%;
-
-        right:
-            14%;
-
-        height:
-            2px;
-
-        transform:
-            translateY(-50%);
-
-        background:
-
-            repeating-linear-gradient(
-                90deg,
-                rgba(
-                    255,
-                    255,
-                    255,
-                    .25
-                ) 0 10px,
-                transparent 10px 20px
-            );
+        filter:
+            blur(12px);
 
     }
 
 
-    .mp-platform-line::before {
-
-        content:
-            '';
-
-        position:
-            absolute;
-
-        top:
-            0;
-
-        left:
-            -120px;
-
-        width:
-            120px;
-
-        height:
-            2px;
-
-        background:
-
-            linear-gradient(
-                90deg,
-                transparent,
-                #7EF0B6,
-                transparent
-            );
-
-        box-shadow:
-
-            0 0 15px
-            rgba(
-                126,
-                240,
-                182,
-                .65
-            );
-
-        animation:
-            midpointLineMove
-            3.2s
-            linear
-            infinite;
-
-    }
-
-
-    @keyframes midpointLineMove {
-
-        from {
-
-            left:
-                -120px;
-
-        }
-
-        to {
-
-            left:
-                calc(
-                    100%
-                    +
-                    40px
-                );
-
-        }
-
-    }
-
-
-    .mp-platform-node {
-
-        position:
-            absolute;
-
-        z-index:
-            5;
-
-        top:
-            50%;
-
-        transform:
-            translate(
-                -50%,
-                -50%
-            );
-
-        text-align:
-            center;
-
-    }
-
-
-    .mp-buyer-node {
-
-        left:
-            14%;
-
-    }
-
-
-    .mp-midpoint-node {
-
-        left:
-            50%;
-
-        z-index:
-            10;
-
-    }
-
-
-    .mp-seller-node {
-
-        left:
-            86%;
-
-    }
-
-
-    .mp-side-card {
-
-        width:
-            142px;
-
-        height:
-            150px;
-
-        display:
-            flex;
-
-        flex-direction:
-            column;
-
-        align-items:
-            center;
-
-        justify-content:
-            center;
-
-        border:
-            1px solid
-            rgba(
-                255,
-                255,
-                255,
-                .19
-            );
-
-        border-radius:
-            27px;
-
-        background:
-
-            linear-gradient(
-                145deg,
-                rgba(
-                    255,
-                    255,
-                    255,
-                    .13
-                ),
-                rgba(
-                    255,
-                    255,
-                    255,
-                    .07
-                )
-            );
-
-        box-shadow:
-
-            0 22px 50px
-            rgba(
-                0,
-                0,
-                0,
-                .17
-            ),
-
-            inset
-            0 1px 0
-            rgba(
-                255,
-                255,
-                255,
-                .09
-            );
-
-        backdrop-filter:
-            blur(13px);
-
-    }
-
-
-    .mp-side-icon {
-
-        width:
-            62px;
-
-        height:
-            62px;
-
-        display:
-            grid;
-
-        place-items:
-            center;
-
-        border-radius:
-            20px;
-
-        color:
-            #0B3D2E;
-
-        background:
-
-            linear-gradient(
-                145deg,
-                #FFFFFF,
-                #DDF7E9
-            );
-
-        box-shadow:
-
-            0 12px 28px
-            rgba(
-                0,
-                0,
-                0,
-                .15
-            );
-
-    }
-
-
-    .mp-side-icon svg {
-
-        width:
-            30px;
-
-        height:
-            30px;
-
-    }
-
-
-    .mp-seller-node
-    .mp-side-icon {
-
-        color:
-            #6345E4;
-
-        background:
-
-            linear-gradient(
-                145deg,
-                #FFFFFF,
-                #EEE9FF
-            );
-
-    }
-
-
-    .mp-side-card strong {
-
-        margin-top:
-            13px;
-
-        color:
-            #FFFFFF;
-
-        font-family:
-            'Bricolage Grotesque',
-            sans-serif;
-
-        font-size:
-            16px;
-
-        font-weight:
-            800;
-
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | MidPoint Center
-    |--------------------------------------------------------------------------
-    */
-
-    .mp-midpoint-core {
+    .mp-hero-image {
 
         position:
             relative;
 
-        width:
-            190px;
-
-        height:
-            190px;
-
-        display:
-            flex;
-
-        flex-direction:
-            column;
-
-        align-items:
-            center;
-
-        justify-content:
-            center;
-
-        border:
-            1px solid
-            rgba(
-                126,
-                240,
-                182,
-                .36
-            );
-
-        border-radius:
-            42px;
-
-        background:
-
-            radial-gradient(
-                circle at 50% 18%,
-                rgba(
-                    126,
-                    240,
-                    182,
-                    .16
-                ),
-                transparent 43%
-            ),
-
-            linear-gradient(
-                145deg,
-                rgba(
-                    18,
-                    183,
-                    106,
-                    .28
-                ),
-                rgba(
-                    4,
-                    48,
-                    36,
-                    .82
-                )
-            );
-
-        box-shadow:
-
-            0 28px 65px
-            rgba(
-                0,
-                0,
-                0,
-                .24
-            ),
-
-            inset
-            0 1px 0
-            rgba(
-                255,
-                255,
-                255,
-                .12
-            );
-
-    }
-
-
-    .mp-midpoint-core::before,
-    .mp-midpoint-core::after {
-
-        content:
-            '';
-
-        position:
-            absolute;
-
-        top:
-            50%;
-
-        left:
-            50%;
-
         z-index:
-            -1;
-
-        width:
-            205px;
-
-        height:
-            205px;
-
-        border:
-            1px solid
-            rgba(
-                126,
-                240,
-                182,
-                .23
-            );
-
-        border-radius:
-            50%;
-
-        animation:
-            midpointProtectPulse
-            3.2s
-            ease-out
-            infinite;
-
-    }
-
-
-    .mp-midpoint-core::after {
-
-        animation-delay:
-            1.6s;
-
-    }
-
-
-    @keyframes midpointProtectPulse {
-
-        0% {
-
-            transform:
-                translate(
-                    -50%,
-                    -50%
-                )
-                scale(.65);
-
-            opacity:
-                .9;
-
-        }
-
-
-        100% {
-
-            transform:
-                translate(
-                    -50%,
-                    -50%
-                )
-                scale(1.5);
-
-            opacity:
-                0;
-
-        }
-
-    }
-
-
-    .mp-midpoint-shield {
-
-        width:
-            76px;
-
-        height:
-            76px;
+            2;
 
         display:
-            grid;
-
-        place-items:
-            center;
-
-        border-radius:
-            24px;
-
-        color:
-            #07432F;
-
-        background:
-
-            linear-gradient(
-                145deg,
-                #A8FFD6,
-                #54E69D
-            );
-
-        box-shadow:
-
-            0 17px 38px
-            rgba(
-                75,
-                228,
-                150,
-                .31
-            );
-
-        animation:
-            midpointShieldFloat
-            3s
-            ease-in-out
-            infinite;
-
-    }
-
-
-    .mp-midpoint-shield svg {
+            block;
 
         width:
-            39px;
+            100%;
+
+        max-width:
+            none;
 
         height:
-            39px;
+            auto;
 
-    }
+        object-fit:
+            contain;
 
+        object-position:
+            center;
 
-    @keyframes midpointShieldFloat {
+        filter:
 
-        0%,
-        100% {
-
-            transform:
-                translateY(0);
-
-        }
-
-
-        50% {
-
-            transform:
-                translateY(-6px);
-
-        }
-
-    }
-
-
-    .mp-midpoint-core strong {
-
-        margin-top:
-            15px;
-
-        color:
-            #FFFFFF;
-
-        font-family:
-            'Bricolage Grotesque',
-            sans-serif;
-
-        font-size:
-            20px;
-
-        font-weight:
-            800;
+            drop-shadow(
+                0 24px 36px
+                rgba(
+                    0,
+                    0,
+                    0,
+                    .20
+                )
+            );
 
     }
 
 
     /*
     |--------------------------------------------------------------------------
-    | Moving Money
+    | Desktop Hero Image
     |--------------------------------------------------------------------------
     */
 
-    .mp-money-packet {
+    @media(min-width: 961px) {
 
-        position:
-            absolute;
+        .mp-hero-image-wrap {
 
-        z-index:
-            20;
-
-        top:
-            calc(
-                50%
-                -
-                19px
-            );
-
-        left:
-            14%;
-
-        width:
-            38px;
-
-        height:
-            38px;
-
-        display:
-            grid;
-
-        place-items:
-            center;
-
-        border:
-            2px solid
-            rgba(
-                255,
-                255,
-                255,
-                .82
-            );
-
-        border-radius:
-            50%;
-
-        color:
-            #07432F;
-
-        background:
-            #7EF0B6;
-
-        box-shadow:
-
-            0 0 0 7px
-            rgba(
-                126,
-                240,
-                182,
-                .10
-            ),
-
-            0 10px 25px
-            rgba(
-                0,
-                0,
-                0,
-                .20
-            );
-
-        font-size:
-            15px;
-
-        font-weight:
-            900;
-
-        animation:
-            midpointMoneyJourney
-            8s
-            ease-in-out
-            infinite;
-
-    }
-
-
-    @keyframes midpointMoneyJourney {
-
-        0% {
-
-            left:
-                14%;
-
-            opacity:
-                0;
-
-            transform:
-                scale(.55);
-
-            background:
-                #7EF0B6;
-
-            color:
-                #07432F;
+            min-height:
+                430px;
 
         }
 
 
-        5% {
+        .mp-hero-image {
 
-            opacity:
-                1;
+            width:
+                118%;
 
             transform:
-                scale(1);
-
-        }
-
-
-        27% {
-
-            left:
-                calc(
-                    50%
-                    -
-                    19px
+                translate(
+                    10px,
+                    4px
                 );
-
-            opacity:
-                1;
-
-            transform:
-                scale(1);
-
-        }
-
-
-        33% {
-
-            left:
-                calc(
-                    50%
-                    -
-                    19px
-                );
-
-            opacity:
-                0;
-
-            transform:
-                scale(.25);
-
-        }
-
-
-        34%,
-        69% {
-
-            left:
-                calc(
-                    50%
-                    -
-                    19px
-                );
-
-            opacity:
-                0;
-
-            transform:
-                scale(.25);
-
-        }
-
-
-        73% {
-
-            left:
-                calc(
-                    50%
-                    +
-                    18px
-                );
-
-            opacity:
-                1;
-
-            transform:
-                scale(.85);
-
-            color:
-                #FFFFFF;
-
-            background:
-                #7A5AF8;
-
-        }
-
-
-        94% {
-
-            left:
-                calc(
-                    86%
-                    -
-                    19px
-                );
-
-            opacity:
-                1;
-
-            transform:
-                scale(1);
-
-            color:
-                #FFFFFF;
-
-            background:
-                #7A5AF8;
-
-        }
-
-
-        100% {
-
-            left:
-                calc(
-                    86%
-                    -
-                    19px
-                );
-
-            opacity:
-                0;
-
-            transform:
-                scale(.4);
 
         }
 
@@ -1148,181 +397,139 @@
 
     /*
     |--------------------------------------------------------------------------
-    | Moving Product
+    | Tablet Hero Layout
     |--------------------------------------------------------------------------
+    |
+    | Tablet only:
+    | 641px - 960px
+    |
+    | Center:
+    | - badge
+    | - title
+    | - description
+    | - buttons
+    | - stats
+    | - hero image
+    |
+    | Desktop and mobile stay unchanged.
+    |
     */
 
-    .mp-product-packet {
+    @media(min-width: 641px) and (max-width: 960px) {
 
-        position:
-            absolute;
+        .Midpoint-hero-inner {
 
-        z-index:
-            19;
+            row-gap:
+                18px;
 
-        top:
-            calc(
-                50%
-                +
-                42px
-            );
+            padding-top:
+                48px !important;
 
-        left:
-            calc(
-                86%
-                -
-                22px
-            );
-
-        width:
-            44px;
-
-        height:
-            44px;
-
-        display:
-            grid;
-
-        place-items:
-            center;
-
-        border:
-            1px solid
-            rgba(
-                255,
-                255,
-                255,
-                .65
-            );
-
-        border-radius:
-            14px;
-
-        color:
-            #6544E4;
-
-        background:
-            #F1EDFE;
-
-        box-shadow:
-
-            0 11px 28px
-            rgba(
-                0,
-                0,
-                0,
-                .19
-            );
-
-        opacity:
-            0;
-
-        animation:
-            midpointProductJourney
-            8s
-            ease-in-out
-            infinite;
-
-    }
-
-
-    .mp-product-packet svg {
-
-        width:
-            23px;
-
-        height:
-            23px;
-
-    }
-
-
-    @keyframes midpointProductJourney {
-
-        0%,
-        34% {
-
-            left:
-                calc(
-                    86%
-                    -
-                    22px
-                );
-
-            opacity:
-                0;
-
-            transform:
-                scale(.55);
+            padding-bottom:
+                52px !important;
 
         }
 
 
-        39% {
+        .Midpoint-hero-copy {
 
-            left:
-                calc(
-                    84%
-                    -
-                    22px
-                );
+            width:
+                100%;
 
-            opacity:
-                1;
+            max-width:
+                700px;
 
-            transform:
-                scale(1);
+            margin-left:
+                auto;
 
-        }
+            margin-right:
+                auto;
 
-
-        63% {
-
-            left:
-                calc(
-                    16%
-                    -
-                    22px
-                );
-
-            opacity:
-                1;
-
-            transform:
-                scale(1);
+            text-align:
+                center;
 
         }
 
 
-        69% {
+        .Midpoint-hero-badge {
 
-            left:
-                calc(
-                    14%
-                    -
-                    22px
-                );
+            margin-left:
+                auto;
 
-            opacity:
-                0;
-
-            transform:
-                scale(.45);
+            margin-right:
+                auto;
 
         }
 
 
-        100% {
+        .Midpoint-hero-title {
 
-            left:
-                calc(
-                    14%
-                    -
-                    22px
+            max-width:
+                650px !important;
+
+            margin-left:
+                auto;
+
+            margin-right:
+                auto;
+
+        }
+
+
+        .Midpoint-hero-description {
+
+            max-width:
+                590px !important;
+
+            margin-left:
+                auto;
+
+            margin-right:
+                auto;
+
+        }
+
+
+        .Midpoint-hero-actions {
+
+            justify-content:
+                center;
+
+        }
+
+
+        .Midpoint-hero-stats {
+
+            justify-content:
+                center;
+
+            text-align:
+                center;
+
+        }
+
+
+        .mp-hero-image-wrap {
+
+            max-width:
+                650px;
+
+            margin:
+                4px auto 0;
+
+        }
+
+
+        .mp-hero-image {
+
+            width:
+                min(
+                    100%,
+                    610px
                 );
 
-            opacity:
-                0;
+            transform:
+                none;
 
         }
 
@@ -1331,110 +538,41 @@
 
     /*
     |--------------------------------------------------------------------------
-    | Held Indicator
+    | Mobile Hero Image
     |--------------------------------------------------------------------------
     */
 
-    .mp-held-indicator {
+    @media(max-width: 640px) {
 
-        position:
-            absolute;
+        .mp-hero-image-wrap {
 
-        z-index:
-            25;
+            max-width:
+                520px;
 
-        left:
-            50%;
-
-        top:
-            50%;
-
-        width:
-            13px;
-
-        height:
-            13px;
-
-        transform:
-            translate(
-                -50%,
-                -50%
-            );
-
-        border-radius:
-            50%;
-
-        background:
-            #7EF0B6;
-
-        box-shadow:
-
-            0 0 0 7px
-            rgba(
-                126,
-                240,
-                182,
-                .10
-            );
-
-        opacity:
-            0;
-
-        animation:
-            midpointHeldIndicator
-            8s
-            ease-in-out
-            infinite;
-
-    }
-
-
-    @keyframes midpointHeldIndicator {
-
-        0%,
-        27% {
-
-            opacity:
-                0;
-
-            transform:
-                translate(
-                    -50%,
-                    -50%
-                )
-                scale(.4);
+            margin:
+                8px auto 0;
 
         }
 
 
-        34%,
-        68% {
+        .mp-hero-image-wrap::before {
 
-            opacity:
-                1;
-
-            transform:
-                translate(
-                    -50%,
-                    -50%
-                )
-                scale(1);
+            width:
+                94%;
 
         }
 
 
-        72%,
-        100% {
+        .mp-hero-image {
 
-            opacity:
-                0;
+            width:
+                100%;
+
+            max-width:
+                500px;
 
             transform:
-                translate(
-                    -50%,
-                    -50%
-                )
-                scale(.4);
+                none;
 
         }
 
@@ -1882,17 +1020,6 @@
 
     @media(max-width: 960px) {
 
-        .mp-platform-visual {
-
-            max-width:
-                620px;
-
-            margin:
-                0 auto;
-
-        }
-
-
         .home-testimonial-slide {
 
             flex-basis:
@@ -1902,155 +1029,6 @@
                     /
                     2
                 );
-
-        }
-
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Tablet Hero Fix (641px - 960px)
-    |--------------------------------------------------------------------------
-    |
-    | The hero switches to one column below 961px. The desktop illustration
-    | used to keep its 470px height, leaving a large empty area above the
-    | Buyer → Midpoint → Seller nodes on tablets. Keep the stacked layout,
-    | but compact the illustration and the section spacing for tablet screens.
-    |
-    */
-
-    @media(min-width: 641px) and (max-width: 960px) {
-
-        .Midpoint-hero-inner {
-
-            row-gap:
-                12px !important;
-
-            padding-top:
-                48px !important;
-
-            padding-bottom:
-                50px !important;
-
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Hero Text Area
-        |--------------------------------------------------------------------------
-        */
-
-        .Midpoint-hero-inner > div:first-child {
-
-            width:
-                100%;
-
-            text-align:
-                center;
-
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Heading
-        |--------------------------------------------------------------------------
-        */
-
-        .Midpoint-hero-inner h1 {
-
-            max-width:
-                640px;
-
-            margin-left:
-                auto;
-
-            margin-right:
-                auto;
-
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Description
-        |--------------------------------------------------------------------------
-        */
-
-        .Midpoint-hero-inner > div:first-child > p {
-
-            max-width:
-                590px;
-
-            margin-left:
-                auto;
-
-            margin-right:
-                auto;
-
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Hero Buttons
-        |--------------------------------------------------------------------------
-        */
-
-        .Midpoint-hero-inner > div:first-child > div:nth-of-type(2) {
-
-            justify-content:
-                center;
-
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Statistics
-        |--------------------------------------------------------------------------
-        */
-
-        .Midpoint-hero-inner > div:first-child > div:nth-of-type(3) {
-
-            justify-content:
-                center;
-
-            text-align:
-                center;
-
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Buyer → Midpoint → Seller Illustration
-        |--------------------------------------------------------------------------
-        */
-
-        .mp-platform-visual {
-
-            max-width:
-                720px;
-
-            height:
-                300px;
-
-            margin:
-                -4px auto 0;
-
-        }
-
-
-        .mp-platform-visual::before {
-
-            width:
-                350px;
-
-            height:
-                350px;
 
         }
 
@@ -2072,203 +1050,6 @@
 
             height:
                 440px;
-
-        }
-
-
-        .mp-platform-visual {
-
-            height:
-                365px;
-
-        }
-
-
-        .mp-side-card {
-
-            width:
-                90px;
-
-            height:
-                110px;
-
-            border-radius:
-                19px;
-
-        }
-
-
-        .mp-side-icon {
-
-            width:
-                44px;
-
-            height:
-                44px;
-
-            border-radius:
-                14px;
-
-        }
-
-
-        .mp-side-icon svg {
-
-            width:
-                22px;
-
-            height:
-                22px;
-
-        }
-
-
-        .mp-side-card strong {
-
-            margin-top:
-                8px;
-
-            font-size:
-                12px;
-
-        }
-
-
-        .mp-midpoint-core {
-
-            width:
-                128px;
-
-            height:
-                140px;
-
-            border-radius:
-                30px;
-
-        }
-
-
-        .mp-midpoint-core::before,
-        .mp-midpoint-core::after {
-
-            width:
-                145px;
-
-            height:
-                145px;
-
-        }
-
-
-        .mp-midpoint-shield {
-
-            width:
-                54px;
-
-            height:
-                54px;
-
-            border-radius:
-                17px;
-
-        }
-
-
-        .mp-midpoint-shield svg {
-
-            width:
-                28px;
-
-            height:
-                28px;
-
-        }
-
-
-        .mp-midpoint-core strong {
-
-            margin-top:
-                9px;
-
-            font-size:
-                14px;
-
-        }
-
-
-        .mp-money-packet {
-
-            width:
-                30px;
-
-            height:
-                30px;
-
-            top:
-                calc(
-                    50%
-                    -
-                    15px
-                );
-
-            font-size:
-                11px;
-
-        }
-
-
-        .mp-product-packet {
-
-            width:
-                35px;
-
-            height:
-                35px;
-
-            top:
-                calc(
-                    50%
-                    +
-                    34px
-                );
-
-        }
-
-
-        .mp-product-packet svg {
-
-            width:
-                18px;
-
-            height:
-                18px;
-
-        }
-
-
-        .mp-buyer-node {
-
-            left:
-                13%;
-
-        }
-
-
-        .mp-seller-node {
-
-            left:
-                87%;
-
-        }
-
-
-        .mp-platform-line {
-
-            left:
-                13%;
-
-            right:
-                13%;
 
         }
 
@@ -2312,19 +1093,6 @@
         prefers-reduced-motion:
         reduce
     ) {
-
-        .mp-platform-visual *,
-        .mp-platform-visual *::before,
-        .mp-platform-visual *::after {
-
-            animation-duration:
-                .001ms !important;
-
-            animation-iteration-count:
-                1 !important;
-
-        }
-
 
         .home-testimonial-track {
 
@@ -2376,11 +1144,12 @@
 
             {{-- Hero Text --}}
 
-            <div>
+            <div class="Midpoint-hero-copy">
 
 
                 <div
                     class="
+                        Midpoint-hero-badge
                         inline-flex
                         items-center
                         gap-2
@@ -2411,6 +1180,7 @@
 
                 <h1
                     class="
+                        Midpoint-hero-title
                         display-font
                         my-[16px]
                         max-w-[580px]
@@ -2438,6 +1208,7 @@
 
                 <p
                     class="
+                        Midpoint-hero-description
                         max-w-[480px]
                         text-[15px]
                         leading-[1.65]
@@ -2456,6 +1227,7 @@
 
                 <div
                     class="
+                        Midpoint-hero-actions
                         mt-[26px]
                         flex
                         flex-wrap
@@ -2532,6 +1304,7 @@
 
                 <div
                     class="
+                        Midpoint-hero-stats
                         mt-[38px]
                         flex
                         flex-wrap
@@ -2601,297 +1374,24 @@
 
 
             {{-- =====================================================
-                BUYER → MIDPOINT → SELLER VISUAL
+                MIDPOINT HERO IMAGE
             ====================================================== --}}
 
             <div
-                class="mp-platform-visual"
-
-                aria-label="
-                    MidPoint protects transactions
-                    between buyers and sellers.
-                "
+                class="mp-hero-image-wrap"
+                aria-label="Midpoint securely connects buyers and sellers."
             >
 
-
-                <div
-                    class="mp-platform-line"
-                    aria-hidden="true"
-                ></div>
-
-
-
-                {{-- Buyer --}}
-
-                <div
-                    class="
-                        mp-platform-node
-                        mp-buyer-node
-                    "
+                <img
+                    src="{{ asset('img/hero image.png') }}"
+                    alt="Buyer and seller connected securely through Midpoint"
+                    class="mp-hero-image"
+                    width="1254"
+                    height="1254"
+                    loading="eager"
+                    fetchpriority="high"
+                    decoding="async"
                 >
-
-
-                    <div class="mp-side-card">
-
-
-                        <div class="mp-side-icon">
-
-
-                            <svg
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="1.8"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                aria-hidden="true"
-                            >
-
-                                <circle
-                                    cx="12"
-                                    cy="8"
-                                    r="4"
-                                ></circle>
-
-
-                                <path
-                                    d="
-                                        M4.5 21
-                                        a7.5 7.5
-                                        0 0 1
-                                        15 0
-                                    "
-                                ></path>
-
-                            </svg>
-
-
-                        </div>
-
-
-                        <strong>
-                            Buyer
-                        </strong>
-
-
-                    </div>
-
-
-                </div>
-
-
-
-                {{-- MidPoint --}}
-
-                <div
-                    class="
-                        mp-platform-node
-                        mp-midpoint-node
-                    "
-                >
-
-
-                    <div class="mp-midpoint-core">
-
-
-                        <div class="mp-midpoint-shield">
-
-
-                            <svg
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="1.8"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                aria-hidden="true"
-                            >
-
-                                <path
-                                    d="
-                                        M12 3
-                                        20 6
-                                        v5
-                                        c0 5.1
-                                        -3.3 8.4
-                                        -8 10
-                                        -4.7-1.6
-                                        -8-4.9
-                                        -8-10
-                                        V6
-                                        l8-3Z
-                                    "
-                                ></path>
-
-
-                                <path
-                                    d="
-                                        m8.8 12
-                                        2 2
-                                        4.5-4.5
-                                    "
-                                ></path>
-
-                            </svg>
-
-
-                        </div>
-
-
-                        <strong>
-                            MidPoint
-                        </strong>
-
-
-                    </div>
-
-
-                </div>
-
-
-
-                {{-- Seller --}}
-
-                <div
-                    class="
-                        mp-platform-node
-                        mp-seller-node
-                    "
-                >
-
-
-                    <div class="mp-side-card">
-
-
-                        <div class="mp-side-icon">
-
-
-                            <svg
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="1.8"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                aria-hidden="true"
-                            >
-
-                                <path
-                                    d="
-                                        M4 10
-                                        v10
-                                        h16
-                                        V10
-                                    "
-                                ></path>
-
-
-                                <path
-                                    d="
-                                        M3 10
-                                        5 4
-                                        h14
-                                        l2 6
-                                    "
-                                ></path>
-
-
-                                <path
-                                    d="
-                                        M8 20
-                                        v-6
-                                        h8
-                                        v6
-                                    "
-                                ></path>
-
-                            </svg>
-
-
-                        </div>
-
-
-                        <strong>
-                            Seller
-                        </strong>
-
-
-                    </div>
-
-
-                </div>
-
-
-
-                {{-- Money --}}
-
-                <div
-                    class="mp-money-packet"
-                    aria-hidden="true"
-                >
-                    ₦
-                </div>
-
-
-
-                {{-- Product --}}
-
-                <div
-                    class="mp-product-packet"
-                    aria-hidden="true"
-                >
-
-
-                    <svg
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.8"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                    >
-
-                        <path
-                            d="
-                                M4 7
-                                12 3
-                                20 7
-                                12 11
-                                4 7Z
-                            "
-                        ></path>
-
-
-                        <path
-                            d="
-                                M4 7
-                                v10
-                                l8 4
-                                8-4
-                                V7
-                            "
-                        ></path>
-
-
-                        <path
-                            d="
-                                M12 11
-                                v10
-                            "
-                        ></path>
-
-                    </svg>
-
-
-                </div>
-
-
-
-                <div
-                    class="mp-held-indicator"
-                    aria-hidden="true"
-                ></div>
-
 
             </div>
 
