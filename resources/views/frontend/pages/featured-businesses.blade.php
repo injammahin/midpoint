@@ -124,6 +124,34 @@
                 <select name="sort">
 
                     <option
+                        value="recommended"
+                        @selected($sort === 'recommended')
+                    >
+                        Recommended
+                    </option>
+
+                    <option
+                        value="rating"
+                        @selected($sort === 'rating')
+                    >
+                        Highest rating
+                    </option>
+
+                    <option
+                        value="orders"
+                        @selected($sort === 'orders')
+                    >
+                        Most completed orders
+                    </option>
+
+                    <option
+                        value="products"
+                        @selected($sort === 'products')
+                    >
+                        Most products
+                    </option>
+
+                    <option
                         value="newest"
                         @selected($sort === 'newest')
                     >
@@ -135,20 +163,6 @@
                         @selected($sort === 'name')
                     >
                         Business name
-                    </option>
-
-                    <option
-                        value="rating"
-                        @selected($sort === 'rating')
-                    >
-                        Highest rating
-                    </option>
-
-                    <option
-                        value="products"
-                        @selected($sort === 'products')
-                    >
-                        Most products
                     </option>
 
                 </select>
@@ -358,6 +372,87 @@
                             $gradientList[
                                 $seller->id % count($gradientList)
                             ];
+
+
+                        /*
+                        |--------------------------------------------------------------------------
+                        | Active Package Tier
+                        |--------------------------------------------------------------------------
+                        */
+
+                        $packageName =
+                            trim(
+                                (string)
+                                (
+                                    optional($subscription)->package_name
+                                    ?:
+                                    optional(
+                                        optional($subscription)->package
+                                    )->name
+                                    ?:
+                                    ''
+                                )
+                            );
+
+
+                        $packageTier =
+                            strtolower(
+                                (string)
+                                (
+                                    $seller->directory_package_tier
+                                    ??
+                                    ''
+                                )
+                            );
+
+
+                        if ($packageTier === '') {
+
+                            $normalizedPackage =
+                                strtolower($packageName);
+
+
+                            if (
+                                str_contains(
+                                    $normalizedPackage,
+                                    'premium'
+                                )
+                            ) {
+
+                                $packageTier =
+                                    'premium';
+
+                            } elseif (
+                                str_contains(
+                                    $normalizedPackage,
+                                    'standard'
+                                )
+                            ) {
+
+                                $packageTier =
+                                    'standard';
+
+                            } else {
+
+                                $packageTier =
+                                    'basic';
+
+                            }
+
+                        }
+
+
+                        $packageBadgeClass =
+                            match ($packageTier) {
+                                'premium' =>
+                                    'fb-package-premium',
+
+                                'standard' =>
+                                    'fb-package-standard',
+
+                                default =>
+                                    'fb-package-basic',
+                            };
                     @endphp
 
 
@@ -410,6 +505,33 @@
                                         Verified
 
                                     </span>
+
+
+                                    @if ($packageName !== '')
+
+                                        <span
+                                            class="fb-package-badge {{ $packageBadgeClass }}"
+                                        >
+
+                                            @if ($packageTier === 'premium')
+
+                                                <i class="fa-solid fa-gem"></i>
+
+                                            @elseif ($packageTier === 'standard')
+
+                                                <i class="fa-solid fa-shield-halved"></i>
+
+                                            @else
+
+                                                <i class="fa-solid fa-seedling"></i>
+
+                                            @endif
+
+                                            {{ $packageName }}
+
+                                        </span>
+
+                                    @endif
 
                                 </div>
 
@@ -465,9 +587,38 @@
 
                                 <i class="fa-solid fa-box"></i>
 
-                                {{ number_format($seller->active_products_count) }}
+                                {{
+                                    number_format(
+                                        (int)
+                                        (
+                                            $seller->active_products_count
+                                            ??
+                                            0
+                                        )
+                                    )
+                                }}
 
                                 listed products
+
+                            </span>
+
+
+                            <span>
+
+                                <i class="fa-solid fa-circle-check"></i>
+
+                                {{
+                                    number_format(
+                                        (int)
+                                        (
+                                            $seller->completed_orders_count
+                                            ??
+                                            0
+                                        )
+                                    )
+                                }}
+
+                                completed
 
                             </span>
 
@@ -486,18 +637,6 @@
 
                             @endif
 
-
-                            @if ($subscription && $subscription->package_name)
-
-                                <span>
-
-                                    <i class="fa-solid fa-gem"></i>
-
-                                    {{ $subscription->package_name }}
-
-                                </span>
-
-                            @endif
 
                         </div>
 
@@ -919,11 +1058,12 @@
     .fb-business-name-row {
         display: flex;
         align-items: center;
+        flex-wrap: wrap;
         gap: 6px;
     }
 
     .fb-business-name-row h2 {
-        max-width: 175px;
+        max-width: 165px;
         overflow: hidden;
         margin: 2px 0 1px;
         color: #101915;
@@ -951,6 +1091,42 @@
         color: #067647;
         font-size: 7px;
         font-weight: 800;
+    }
+
+
+    .fb-package-badge {
+        flex: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 7px;
+        border: 1px solid transparent;
+        border-radius: 999px;
+        font-size: 7px;
+        font-weight: 800;
+        line-height: 1;
+        white-space: nowrap;
+    }
+
+
+    .fb-package-premium {
+        border-color: #E7D7FF;
+        background: #F5EEFF;
+        color: #6941C6;
+    }
+
+
+    .fb-package-standard {
+        border-color: #CEEAD9;
+        background: #EEF9F2;
+        color: #087443;
+    }
+
+
+    .fb-package-basic {
+        border-color: #E4E8E6;
+        background: #F4F6F5;
+        color: #68756E;
     }
 
     .fb-rating {

@@ -2,10 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\SecureTransaction;
 use App\Models\SellerApplication;
 use App\Models\SellerBusinessProfile;
 use App\Models\User;
 
+use App\Services\FeaturedBusinessRankingService;
+
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 
 
@@ -18,7 +22,8 @@ class FeaturedBusinessController extends Controller
     */
 
     public function index(
-        Request $request
+        Request $request,
+        FeaturedBusinessRankingService $ranking
     ) {
         /*
         |--------------------------------------------------------------------------
@@ -56,11 +61,28 @@ class FeaturedBusinessController extends Controller
             );
 
 
+        /*
+        |--------------------------------------------------------------------------
+        | Sort
+        |--------------------------------------------------------------------------
+        |
+        | Recommended is now the marketplace default.
+        |
+        | Recommended:
+        | - 75% Premium exposure
+        | - 17% Standard exposure
+        | - 8% Basic/Starter exposure
+        | - quality ranking inside each package tier
+        |
+        | Explicit user-selected sorting does NOT force Premium to the top.
+        |
+        */
+
         $sort =
             (string)
             $request->get(
                 'sort',
-                'newest'
+                'recommended'
             );
 
 
@@ -68,16 +90,18 @@ class FeaturedBusinessController extends Controller
             !in_array(
                 $sort,
                 [
+                    'recommended',
+                    'rating',
+                    'orders',
+                    'products',
                     'newest',
                     'name',
-                    'rating',
-                    'products',
                 ],
                 true
             )
         ) {
             $sort =
-                'newest';
+                'recommended';
         }
 
 
@@ -105,100 +129,31 @@ class FeaturedBusinessController extends Controller
         }
 
 
+        $page =
+            max(
+                1,
+                (int)
+                $request->get(
+                    'page',
+                    1
+                )
+            );
+
+
         /*
         |--------------------------------------------------------------------------
-        | Sellers
+        | Base Eligible Sellers Query
         |--------------------------------------------------------------------------
         |
         | Only:
-        |
-        | - active users
-        | - users with an ACTIVE, non-expired seller subscription
+        | - normal user role
+        | - active account
+        | - active, non-expired seller package
         |
         */
 
         $query =
-            User::query()
-
-                ->where(
-                    'role',
-                    'user'
-                )
-
-                ->where(
-                    'status',
-                    true
-                )
-
-                ->whereHas(
-                    'activeSellerSubscription'
-                )
-
-
-                /*
-                |--------------------------------------------------------------------------
-                | Load Everything Needed By Directory
-                |--------------------------------------------------------------------------
-                */
-
-                ->with([
-
-                    'sellerBusinessProfile',
-
-                    'activeSellerSubscription' =>
-                        function ($subscriptionQuery) {
-
-                            $subscriptionQuery
-                                ->with([
-                                    'application',
-                                    'package',
-                                ]);
-                        },
-
-                ])
-
-
-                /*
-                |--------------------------------------------------------------------------
-                | Product Count
-                |--------------------------------------------------------------------------
-                */
-
-                ->withCount([
-
-                    'sellerProducts as active_products_count' =>
-                        function ($productQuery) {
-
-                            $productQuery->where(
-                                'is_active',
-                                true
-                            );
-                        },
-
-                ])
-
-
-                /*
-                |--------------------------------------------------------------------------
-                | Rating
-                |--------------------------------------------------------------------------
-                */
-
-                ->withAvg(
-                    'publishedSellerReviews as seller_rating',
-                    'rating'
-                )
-
-
-                /*
-                |--------------------------------------------------------------------------
-                | Reviews
-                |--------------------------------------------------------------------------
-                */
-
-                ->withCount(
-                    'publishedSellerReviews as seller_review_count'
-                );
+            $this->directoryQuery();
 
 
         /*
@@ -210,18 +165,10 @@ class FeaturedBusinessController extends Controller
         if (
             $search !== ''
         ) {
-
             $query->where(
                 function ($searchQuery) use (
                     $search
                 ) {
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | User Name
-                    |--------------------------------------------------------------------------
-                    */
-
                     $searchQuery->where(
                         'name',
                         'like',
@@ -233,18 +180,11 @@ class FeaturedBusinessController extends Controller
                     );
 
 
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Business Profile
-                    |--------------------------------------------------------------------------
-                    */
-
                     $searchQuery->orWhereHas(
                         'sellerBusinessProfile',
                         function ($profileQuery) use (
                             $search
                         ) {
-
                             $profileQuery
                                 ->where(
                                     'tagline',
@@ -255,7 +195,6 @@ class FeaturedBusinessController extends Controller
                                     .
                                     '%'
                                 )
-
                                 ->orWhere(
                                     'about',
                                     'like',
@@ -265,7 +204,6 @@ class FeaturedBusinessController extends Controller
                                     .
                                     '%'
                                 )
-
                                 ->orWhere(
                                     'location',
                                     'like',
@@ -279,18 +217,11 @@ class FeaturedBusinessController extends Controller
                     );
 
 
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Verified Application
-                    |--------------------------------------------------------------------------
-                    */
-
                     $searchQuery->orWhereHas(
                         'activeSellerSubscription.application',
                         function ($applicationQuery) use (
                             $search
                         ) {
-
                             $applicationQuery
                                 ->where(
                                     'business_name',
@@ -301,7 +232,6 @@ class FeaturedBusinessController extends Controller
                                     .
                                     '%'
                                 )
-
                                 ->orWhere(
                                     'category',
                                     'like',
@@ -311,7 +241,6 @@ class FeaturedBusinessController extends Controller
                                     .
                                     '%'
                                 )
-
                                 ->orWhere(
                                     'location',
                                     'like',
@@ -321,7 +250,6 @@ class FeaturedBusinessController extends Controller
                                     .
                                     '%'
                                 )
-
                                 ->orWhere(
                                     'description',
                                     'like',
@@ -335,38 +263,20 @@ class FeaturedBusinessController extends Controller
                     );
 
 
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Product Search
-                    |--------------------------------------------------------------------------
-                    |
-                    | Allows:
-                    |
-                    | android watch
-                    | iphone
-                    | laptop
-                    | gaming console
-                    |
-                    */
-
                     $searchQuery->orWhereHas(
                         'sellerProducts',
                         function ($productQuery) use (
                             $search
                         ) {
-
                             $productQuery
-
                                 ->where(
                                     'is_active',
                                     true
                                 )
-
                                 ->where(
                                     function ($q) use (
                                         $search
                                     ) {
-
                                         $q->where(
                                             'name',
                                             'like',
@@ -376,7 +286,6 @@ class FeaturedBusinessController extends Controller
                                             .
                                             '%'
                                         )
-
                                         ->orWhere(
                                             'description',
                                             'like',
@@ -397,20 +306,18 @@ class FeaturedBusinessController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Category
+        | Category Filter
         |--------------------------------------------------------------------------
         */
 
         if (
             $category !== ''
         ) {
-
             $query->whereHas(
                 'activeSellerSubscription.application',
                 function ($applicationQuery) use (
                     $category
                 ) {
-
                     $applicationQuery->where(
                         'category',
                         $category
@@ -422,28 +329,22 @@ class FeaturedBusinessController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Location
+        | Location Filter
         |--------------------------------------------------------------------------
-        |
-        | Search both editable business profile and verified application.
-        |
         */
 
         if (
             $location !== ''
         ) {
-
             $query->where(
                 function ($locationQuery) use (
                     $location
                 ) {
-
                     $locationQuery->whereHas(
                         'sellerBusinessProfile',
                         function ($profileQuery) use (
                             $location
                         ) {
-
                             $profileQuery->where(
                                 'location',
                                 $location
@@ -457,7 +358,6 @@ class FeaturedBusinessController extends Controller
                         function ($applicationQuery) use (
                             $location
                         ) {
-
                             $applicationQuery->where(
                                 'location',
                                 $location
@@ -471,107 +371,168 @@ class FeaturedBusinessController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Sort
+        | Recommended Marketplace Ranking
         |--------------------------------------------------------------------------
+        |
+        | We intentionally rank the filtered candidate set in the service.
+        | The service creates a stable page-by-page 9 / 2 / 1 mix for 12 results,
+        | while dynamically backfilling missing tiers.
+        |
         */
 
-        switch (
-            $sort
+        if (
+            $sort === 'recommended'
         ) {
+            $candidates =
+                $query->get();
 
-            case 'rating':
 
+            $queryForPaginator =
+                $request->query();
+
+
+            unset(
+                $queryForPaginator['page']
+            );
+
+
+            $sellers =
+                $ranking->paginate(
+                    $candidates,
+                    $perPage,
+                    $page,
+                    $request->url(),
+                    $queryForPaginator
+                );
+        } else {
+            /*
+            |--------------------------------------------------------------------------
+            | Explicit User Sorts
+            |--------------------------------------------------------------------------
+            |
+            | These remain honest. Example: "Highest rating" really means rating,
+            | not Premium package first.
+            |
+            */
+
+            switch (
+                $sort
+            ) {
+                case 'rating':
+
+                    $query
+                        ->orderByRaw(
+                            'CASE WHEN seller_rating IS NULL THEN 1 ELSE 0 END'
+                        )
+                        ->orderByDesc(
+                            'seller_rating'
+                        )
+                        ->orderByDesc(
+                            'seller_review_count'
+                        )
+                        ->orderByDesc(
+                            'completed_orders_count'
+                        )
+                        ->orderByDesc(
+                            'users.id'
+                        );
+
+                    break;
+
+
+                case 'orders':
+
+                    $query
+                        ->orderByDesc(
+                            'completed_orders_count'
+                        )
+                        ->orderByDesc(
+                            'seller_rating'
+                        )
+                        ->orderByDesc(
+                            'seller_review_count'
+                        )
+                        ->orderByDesc(
+                            'users.id'
+                        );
+
+                    break;
+
+
+                case 'products':
+
+                    $query
+                        ->orderByDesc(
+                            'active_products_count'
+                        )
+                        ->orderByDesc(
+                            'completed_orders_count'
+                        )
+                        ->orderByDesc(
+                            'users.id'
+                        );
+
+                    break;
+
+
+                case 'name':
+
+                    $query
+                        ->orderBy(
+                            'name'
+                        )
+                        ->orderBy(
+                            'users.id'
+                        );
+
+                    break;
+
+
+                case 'newest':
+                default:
+
+                    $query
+                        ->orderByDesc(
+                            'users.id'
+                        );
+
+                    break;
+            }
+
+
+            $sellers =
                 $query
-                    ->orderByDesc(
-                        'seller_rating'
+                    ->paginate(
+                        $perPage
                     )
-                    ->orderByDesc(
-                        'id'
-                    );
-
-                break;
-
-
-            case 'products':
-
-                $query
-                    ->orderByDesc(
-                        'active_products_count'
-                    )
-                    ->orderByDesc(
-                        'id'
-                    );
-
-                break;
-
-
-            case 'name':
-
-                $query
-                    ->orderBy(
-                        'name'
-                    );
-
-                break;
-
-
-            case 'newest':
-            default:
-
-                $query
-                    ->orderByDesc(
-                        'id'
-                    );
-
-                break;
+                    ->withQueryString();
         }
 
 
         /*
         |--------------------------------------------------------------------------
-        | Pagination
-        |--------------------------------------------------------------------------
-        */
-
-        $sellers =
-            $query
-                ->paginate(
-                    $perPage
-                )
-
-                ->withQueryString();
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Categories
+        | Category Options
         |--------------------------------------------------------------------------
         */
 
         $categories =
             SellerApplication::query()
-
                 ->where(
                     'status',
                     SellerApplication::STATUS_ACTIVE
                 )
-
                 ->whereNotNull(
                     'category'
                 )
-
                 ->where(
                     'category',
                     '<>',
                     ''
                 )
-
                 ->distinct()
-
                 ->orderBy(
                     'category'
                 )
-
                 ->pluck(
                     'category'
                 );
@@ -579,28 +540,24 @@ class FeaturedBusinessController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Locations
+        | Location Options
         |--------------------------------------------------------------------------
         */
 
         $applicationLocations =
             SellerApplication::query()
-
                 ->where(
                     'status',
                     SellerApplication::STATUS_ACTIVE
                 )
-
                 ->whereNotNull(
                     'location'
                 )
-
                 ->where(
                     'location',
                     '<>',
                     ''
                 )
-
                 ->pluck(
                     'location'
                 );
@@ -608,17 +565,14 @@ class FeaturedBusinessController extends Controller
 
         $profileLocations =
             SellerBusinessProfile::query()
-
                 ->whereNotNull(
                     'location'
                 )
-
                 ->where(
                     'location',
                     '<>',
                     ''
                 )
-
                 ->pluck(
                     'location'
                 );
@@ -626,17 +580,12 @@ class FeaturedBusinessController extends Controller
 
         $locations =
             $applicationLocations
-
                 ->merge(
                     $profileLocations
                 )
-
                 ->filter()
-
                 ->unique()
-
                 ->sort()
-
                 ->values();
 
 
@@ -653,6 +602,136 @@ class FeaturedBusinessController extends Controller
                 'perPage'
             )
         );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Directory Query
+    |--------------------------------------------------------------------------
+    */
+
+    private function directoryQuery(): Builder
+    {
+        return User::query()
+            ->select(
+                'users.*'
+            )
+            ->where(
+                'role',
+                'user'
+            )
+            ->where(
+                'status',
+                true
+            )
+            ->whereHas(
+                'activeSellerSubscription'
+            )
+            ->with([
+                'sellerBusinessProfile',
+
+                'activeSellerSubscription' =>
+                    function ($subscriptionQuery) {
+                        $subscriptionQuery->with([
+                            'application',
+                            'package',
+                        ]);
+                    },
+            ])
+            ->withCount([
+                'sellerProducts as active_products_count' =>
+                    function ($productQuery) {
+                        $productQuery->where(
+                            'is_active',
+                            true
+                        );
+                    },
+            ])
+            ->withAvg(
+                'publishedSellerReviews as seller_rating',
+                'rating'
+            )
+            ->withCount(
+                'publishedSellerReviews as seller_review_count'
+            )
+            ->addSelect([
+                /*
+                |------------------------------------------------------------------
+                | Successfully Completed Orders
+                |------------------------------------------------------------------
+                */
+
+                'completed_orders_count' =>
+                    SecureTransaction::query()
+                        ->selectRaw(
+                            'COUNT(*)'
+                        )
+                        ->whereColumn(
+                            'secure_transactions.seller_id',
+                            'users.id'
+                        )
+                        ->where(
+                            'secure_transactions.status',
+                            SecureTransaction::STATUS_COMPLETED
+                        ),
+
+
+                /*
+                |------------------------------------------------------------------
+                | All Paid Orders
+                |------------------------------------------------------------------
+                |
+                | Used only for the reliability component of Recommended ranking.
+                |
+                */
+
+                'paid_orders_count' =>
+                    SecureTransaction::query()
+                        ->selectRaw(
+                            'COUNT(*)'
+                        )
+                        ->whereColumn(
+                            'secure_transactions.seller_id',
+                            'users.id'
+                        )
+                        ->where(
+                            'secure_transactions.payment_status',
+                            SecureTransaction::PAYMENT_PAID
+                        ),
+
+
+                /*
+                |------------------------------------------------------------------
+                | Recent Completed Orders (90 Days)
+                |------------------------------------------------------------------
+                */
+
+                'recent_completed_orders_count' =>
+                    SecureTransaction::query()
+                        ->selectRaw(
+                            'COUNT(*)'
+                        )
+                        ->whereColumn(
+                            'secure_transactions.seller_id',
+                            'users.id'
+                        )
+                        ->where(
+                            'secure_transactions.status',
+                            SecureTransaction::STATUS_COMPLETED
+                        )
+                        ->whereNotNull(
+                            'secure_transactions.completed_at'
+                        )
+                        ->where(
+                            'secure_transactions.completed_at',
+                            '>=',
+                            now()
+                                ->subDays(
+                                    90
+                                )
+                        ),
+            ]);
     }
 
 
