@@ -77,6 +77,11 @@ use App\Http\Controllers\Buyer\BuyerTransactionDisputeController;
 use App\Http\Controllers\Buyer\BuyerProfileSettingsController;
 use App\Http\Controllers\Buyer\ProductCheckoutController;
 use App\Http\Controllers\Buyer\BuyerSellerInviteController;
+use App\Http\Controllers\Buyer\BuyerSellerReviewController;
+
+
+
+
 /*
 |--------------------------------------------------------------------------
 | Admin Controllers
@@ -177,6 +182,15 @@ Route::get(
     ]
 )->name('featured-businesses.show');
 
+Route::get(
+    '/featured-businesses/{seller}/reviews',
+    [
+        FeaturedBusinessController::class,
+        'reviews',
+    ]
+)->name(
+    'featured-businesses.reviews'
+);
 
 Route::get(
     '/verified-sellers',
@@ -1232,6 +1246,19 @@ Route::post(
                 ]
             )->name('transactions.accept');
 
+            Route::post(
+                '/transactions/{secureTransaction}/review',
+                [
+                    BuyerSellerReviewController::class,
+                    'store',
+                ]
+            )
+                ->middleware(
+                    'throttle:10,1'
+                )
+                ->name(
+                    'transactions.review.store'
+                );
 
             /*
             |--------------------------------------------------------------------------

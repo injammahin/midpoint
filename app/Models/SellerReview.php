@@ -13,6 +13,8 @@ class SellerReview extends Model
 
         'buyer_id',
 
+        'secure_transaction_id',
+
         'seller_product_id',
 
         'rating',
@@ -61,6 +63,21 @@ class SellerReview extends Model
         return $this->belongsTo(
             User::class,
             'buyer_id'
+        );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Secure Transaction
+    |--------------------------------------------------------------------------
+    */
+
+    public function transaction()
+    {
+        return $this->belongsTo(
+            SecureTransaction::class,
+            'secure_transaction_id'
         );
     }
 

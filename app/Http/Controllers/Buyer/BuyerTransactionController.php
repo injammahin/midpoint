@@ -305,6 +305,8 @@ class BuyerTransactionController extends Controller
 
             'dispute',
 
+            'sellerReview',
+
         ]);
 
 
@@ -322,6 +324,34 @@ class BuyerTransactionController extends Controller
 
         /*
         |--------------------------------------------------------------------------
+        | Seller Review Required
+        |--------------------------------------------------------------------------
+        |
+        | After the buyer accepts the order and the transaction reaches the
+        | completed state, show the seller-review popup until this transaction
+        | has one review.
+        |
+        */
+
+        $reviewRequired =
+
+            $secureTransaction->status
+            ===
+            SecureTransaction::STATUS_COMPLETED
+
+            &&
+
+            $secureTransaction->payment_status
+            ===
+            SecureTransaction::PAYMENT_PAID
+
+            &&
+
+            !$secureTransaction->sellerReview;
+
+
+        /*
+        |--------------------------------------------------------------------------
         | View
         |--------------------------------------------------------------------------
         */
@@ -335,6 +365,9 @@ class BuyerTransactionController extends Controller
 
                 'timeline' =>
                     $timeline,
+
+                'reviewRequired' =>
+                    $reviewRequired,
 
             ]
         );

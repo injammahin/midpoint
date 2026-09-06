@@ -11,4 +11,20 @@
     ]
 )
 
+
+@if(
+    $reviewRequired
+    ?? false
+)
+
+    @include(
+        'buyer.transactions.partials.seller-review-modal',
+        [
+            'transaction' =>
+                $transaction,
+        ]
+    )
+
+@endif
+
 @endsection

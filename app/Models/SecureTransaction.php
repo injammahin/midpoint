@@ -412,6 +412,24 @@ class SecureTransaction extends Model
             'seller_product_id'
         );
     }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Seller Review
+    |--------------------------------------------------------------------------
+    |
+    | A completed secure transaction may have one buyer review.
+    |
+    */
+
+    public function sellerReview()
+    {
+        return $this->hasOne(
+            SellerReview::class,
+            'secure_transaction_id'
+        );
+    }
     /*
     |--------------------------------------------------------------------------
     | Safe Description

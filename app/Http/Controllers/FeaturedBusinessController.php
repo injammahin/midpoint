@@ -771,7 +771,34 @@ class FeaturedBusinessController extends Controller
         |--------------------------------------------------------------------------
         | Reviews
         |--------------------------------------------------------------------------
+        |
+        | Only the first 5 reviews are rendered initially. Additional reviews
+        | are loaded in batches of 5 through the public reviews endpoint.
+        |
         */
+
+        $reviewCount =
+            $seller
+                ->publishedSellerReviews()
+                ->count();
+
+
+        $averageRating =
+
+            $reviewCount > 0
+
+                ? round(
+                    (float)
+                    $seller
+                        ->publishedSellerReviews()
+                        ->avg(
+                            'rating'
+                        ),
+                    1
+                )
+
+                : null;
+
 
         $reviews =
             $seller
@@ -784,25 +811,16 @@ class FeaturedBusinessController extends Controller
 
                 ->latest()
 
+                ->take(
+                    5
+                )
+
                 ->get();
 
 
-        $averageRating =
-            $reviews
-                ->isNotEmpty()
-
-                ? round(
-                    (float)
-                    $reviews->avg(
-                        'rating'
-                    ),
-                    1
-                )
-
-                : null;
-
-
-        $reviewCount =
+        $hasMoreReviews =
+            $reviewCount
+            >
             $reviews->count();
 
 
@@ -816,8 +834,169 @@ class FeaturedBusinessController extends Controller
                 'products',
                 'reviews',
                 'averageRating',
-                'reviewCount'
+                'reviewCount',
+                'hasMoreReviews'
             )
         );
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Load More Public Seller Reviews
+    |--------------------------------------------------------------------------
+    |
+    | Returns 5 published reviews at a time for the public seller shop.
+    |
+    */
+
+    public function reviews(
+        Request $request,
+        User $seller
+    ) {
+        /*
+        |--------------------------------------------------------------------------
+        | Seller Must Be Active
+        |--------------------------------------------------------------------------
+        */
+
+        abort_unless(
+            $seller->role === 'user'
+            &&
+            (bool)
+            $seller->status,
+            404
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Active Verified Seller Package Required
+        |--------------------------------------------------------------------------
+        */
+
+        $seller->load([
+            'activeSellerSubscription.application',
+        ]);
+
+
+        abort_unless(
+            $seller->activeSellerSubscription
+            &&
+            $seller
+                ->activeSellerSubscription
+                ->application,
+            404
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Page
+        |--------------------------------------------------------------------------
+        */
+
+        $page =
+            max(
+                1,
+                (int)
+                $request->query(
+                    'page',
+                    1
+                )
+            );
+
+
+        $perPage =
+            5;
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Total Published Reviews
+        |--------------------------------------------------------------------------
+        */
+
+        $reviewCount =
+            $seller
+                ->publishedSellerReviews()
+                ->count();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Review Batch
+        |--------------------------------------------------------------------------
+        */
+
+        $reviews =
+            $seller
+                ->publishedSellerReviews()
+
+                ->with([
+                    'buyer',
+                    'product',
+                ])
+
+                ->latest()
+
+                ->skip(
+                    ($page - 1)
+                    *
+                    $perPage
+                )
+
+                ->take(
+                    $perPage
+                )
+
+                ->get();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Render Existing Review Card Partial
+        |--------------------------------------------------------------------------
+        */
+
+        $html =
+            view(
+                'frontend.businesses.partials.review-cards',
+                compact(
+                    'reviews'
+                )
+            )
+                ->render();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | JSON Response
+        |--------------------------------------------------------------------------
+        */
+
+        return response()->json([
+
+            'html' =>
+                $html,
+
+            'loaded' =>
+                $reviews->count(),
+
+            'has_more' =>
+                (
+                    $page
+                    *
+                    $perPage
+                )
+                <
+                $reviewCount,
+
+            'next_page' =>
+                $page
+                +
+                1,
+
+        ]);
+    }
+
 }

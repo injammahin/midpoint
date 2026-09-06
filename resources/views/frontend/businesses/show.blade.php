@@ -1269,10 +1269,11 @@
 
                         <i class="fa-solid fa-star"></i>
 
-                        {{ $averageRating }}
+                        {{ number_format((float) $averageRating, 1) }}
 
                         <span>
-                            /5
+                            /5 · {{ number_format($reviewCount) }}
+                            {{ $reviewCount === 1 ? 'review' : 'reviews' }}
                         </span>
 
                     </div>
@@ -1285,61 +1286,54 @@
 
             @if ($reviews->isNotEmpty())
 
-                <div class="shop-reviews-list">
+                <div
+                    class="shop-reviews-list"
+                    id="shopReviewsList"
+                >
 
-                    @foreach ($reviews as $review)
-
-                        <article class="shop-review">
-
-                            <div class="shop-review-top">
-
-                                <div>
-
-                                    <strong>
-                                        {{ optional($review->buyer)->name ?: 'Midpoint Buyer' }}
-                                    </strong>
-
-
-                                    @if ($review->product)
-
-                                        <span>
-                                            Purchased {{ $review->product->name }}
-                                        </span>
-
-                                    @endif
-
-                                </div>
-
-
-                                <div class="shop-stars">
-
-                                    @for ($i = 1; $i <= 5; $i++)
-
-                                        <i
-                                            class="fa-solid fa-star {{ $i <= $review->rating ? 'active' : '' }}"
-                                        ></i>
-
-                                    @endfor
-
-                                </div>
-
-                            </div>
-
-
-                            <p>
-                                {{ $review->review }}
-                            </p>
-
-
-                            <small>
-                                {{ $review->created_at->format('d M Y') }}
-                            </small>
-
-                        </article>
-
-                    @endforeach
+                    @include(
+                        'frontend.businesses.partials.review-cards',
+                        [
+                            'reviews' =>
+                                $reviews,
+                        ]
+                    )
 
                 </div>
+
+
+                @if ($hasMoreReviews)
+
+                    <div class="shop-reviews-more">
+
+                        <button
+                            type="button"
+                            id="shopLoadMoreReviews"
+                            class="shop-load-more-reviews"
+                            data-url="{{
+                                route(
+                                    'featured-businesses.reviews',
+                                    $seller
+                                )
+                            }}"
+                            data-next-page="2"
+                        >
+
+                            <span data-load-more-label>
+                                See more reviews
+                            </span>
+
+
+                            <i
+                                class="fa-solid fa-chevron-down"
+                                aria-hidden="true"
+                            ></i>
+
+                        </button>
+
+                    </div>
+
+                @endif
 
             @else
 
@@ -2291,15 +2285,88 @@
     }
 
     .shop-review p {
-        margin: 11px 0;
+        margin: 11px 0 0;
         color: #536159;
         font-size:11px;
         line-height: 1.65;
     }
 
+
+    .shop-review-copy {
+        margin-bottom: 11px;
+    }
+
+
+    .shop-review-text {
+        white-space: pre-line;
+        overflow-wrap: anywhere;
+    }
+
+
+    .shop-review-toggle {
+        margin-top: 5px;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: #087443;
+        font-family: inherit;
+        font-size: 9px;
+        font-weight: 800;
+        cursor: pointer;
+    }
+
+
+    .shop-review-toggle:hover {
+        text-decoration: underline;
+    }
+
+
     .shop-review small {
         color: #89948F;
         font-size: 7px;
+    }
+
+
+    .shop-reviews-more {
+        display: flex;
+        justify-content: center;
+        margin-top: 16px;
+    }
+
+
+    .shop-load-more-reviews {
+        min-height: 40px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        padding: 9px 17px;
+        border: 1px solid #DCE5E0;
+        border-radius: 10px;
+        background: #FFFFFF;
+        color: #0B3D2E;
+        font-family: inherit;
+        font-size: 10px;
+        font-weight: 800;
+        cursor: pointer;
+        transition:
+            border-color .15s ease,
+            color .15s ease,
+            transform .15s ease;
+    }
+
+
+    .shop-load-more-reviews:hover {
+        transform: translateY(-1px);
+        border-color: #12B76A;
+        color: #087443;
+    }
+
+
+    .shop-load-more-reviews:disabled {
+        cursor: wait;
+        opacity: .65;
+        transform: none;
     }
 
     .shop-no-reviews,
@@ -2661,6 +2728,265 @@
 document.addEventListener(
     'DOMContentLoaded',
     function () {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Review Text See More / See Less
+        |--------------------------------------------------------------------------
+        */
+
+        document.addEventListener(
+            'click',
+            function (event) {
+
+                const toggle =
+                    event.target.closest(
+                        '[data-review-toggle]'
+                    );
+
+
+                if (
+                    !toggle
+                ) {
+
+                    return;
+                }
+
+
+                const card =
+                    toggle.closest(
+                        '.shop-review'
+                    );
+
+
+                const preview =
+                    card?.querySelector(
+                        '[data-review-preview]'
+                    );
+
+
+                const full =
+                    card?.querySelector(
+                        '[data-review-full]'
+                    );
+
+
+                if (
+                    !preview
+                    ||
+                    !full
+                ) {
+
+                    return;
+                }
+
+
+                const expanded =
+                    toggle.getAttribute(
+                        'aria-expanded'
+                    )
+                    ===
+                    'true';
+
+
+                preview.hidden =
+                    !expanded;
+
+
+                full.hidden =
+                    expanded;
+
+
+                toggle.setAttribute(
+                    'aria-expanded',
+                    expanded
+                        ? 'false'
+                        : 'true'
+                );
+
+
+                toggle.textContent =
+                    expanded
+                        ? 'See more'
+                        : 'See less';
+
+            }
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Load More Reviews
+        |--------------------------------------------------------------------------
+        */
+
+        const loadMoreReviews =
+            document.getElementById(
+                'shopLoadMoreReviews'
+            );
+
+
+        const reviewList =
+            document.getElementById(
+                'shopReviewsList'
+            );
+
+
+        loadMoreReviews?.addEventListener(
+            'click',
+            async function () {
+
+                if (
+                    !reviewList
+                ) {
+
+                    return;
+                }
+
+
+                const url =
+                    loadMoreReviews.dataset.url;
+
+
+                const page =
+                    parseInt(
+                        loadMoreReviews.dataset.nextPage
+                        ||
+                        '2',
+                        10
+                    );
+
+
+                if (
+                    !url
+                ) {
+
+                    return;
+                }
+
+
+                const label =
+                    loadMoreReviews.querySelector(
+                        '[data-load-more-label]'
+                    );
+
+
+                loadMoreReviews.disabled =
+                    true;
+
+
+                if (
+                    label
+                ) {
+
+                    label.textContent =
+                        'Loading reviews...';
+                }
+
+
+                try {
+
+                    const separator =
+                        url.includes(
+                            '?'
+                        )
+                            ? '&'
+                            : '?';
+
+
+                    const response =
+                        await fetch(
+                            url
+                            +
+                            separator
+                            +
+                            'page='
+                            +
+                            encodeURIComponent(
+                                page
+                            ),
+                            {
+                                headers: {
+                                    'Accept':
+                                        'application/json',
+                                },
+                            }
+                        );
+
+
+                    if (
+                        !response.ok
+                    ) {
+
+                        throw new Error(
+                            'Unable to load more reviews.'
+                        );
+                    }
+
+
+                    const payload =
+                        await response.json();
+
+
+                    if (
+                        payload.html
+                    ) {
+
+                        reviewList.insertAdjacentHTML(
+                            'beforeend',
+                            payload.html
+                        );
+                    }
+
+
+                    if (
+                        payload.has_more
+                    ) {
+
+                        loadMoreReviews.dataset.nextPage =
+                            payload.next_page;
+
+
+                        loadMoreReviews.disabled =
+                            false;
+
+
+                        if (
+                            label
+                        ) {
+
+                            label.textContent =
+                                'See more reviews';
+                        }
+
+                    } else {
+
+                        loadMoreReviews.remove();
+                    }
+
+                } catch (error) {
+
+                    console.error(
+                        error
+                    );
+
+
+                    loadMoreReviews.disabled =
+                        false;
+
+
+                    if (
+                        label
+                    ) {
+
+                        label.textContent =
+                            'Try again';
+                    }
+                }
+
+            }
+        );
+
 
         /*
         |--------------------------------------------------------------------------
