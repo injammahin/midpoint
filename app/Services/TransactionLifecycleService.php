@@ -153,22 +153,23 @@ class TransactionLifecycleService
             SecureTransaction::STATUS_DELIVERED
         ) {
 
-            $hours =
-                (int)
-                config(
-                    'secure_transactions.delivery_auto_complete_hours',
-                    72
-                );
-
+            /*
+            |--------------------------------------------------------------------------
+            | Manual Buyer Approval Only
+            |--------------------------------------------------------------------------
+            |
+            | Delivery does NOT release seller funds and does NOT start an automatic
+            | wallet-release countdown. The money remains locked in escrow until the
+            | buyer explicitly accepts the order.
+            |
+            */
 
             $updates['delivered_at'] =
                 now();
 
 
             $updates['auto_complete_at'] =
-                now()->addHours(
-                    $hours
-                );
+                null;
         }
 
 
@@ -246,12 +247,18 @@ class TransactionLifecycleService
                             $hours
                         ),
 
+                /*
+                |--------------------------------------------------------------------------
+                | No Automatic Seller Release
+                |--------------------------------------------------------------------------
+                |
+                | inspection_ends_at is kept for the buyer-facing inspection timer, but
+                | expiry of that timer must NOT credit the seller wallet.
+                |
+                */
+
                 'auto_complete_at' =>
-                    $now
-                        ->copy()
-                        ->addHours(
-                            $hours
-                        ),
+                    null,
 
             ])
             ->save();
@@ -367,64 +374,20 @@ class TransactionLifecycleService
         SecureTransaction $transaction
     ): void {
 
-        $transaction->loadMissing(
-            'dispute'
-        );
+        /*
+        |--------------------------------------------------------------------------
+        | Automatic Wallet Release Disabled
+        |--------------------------------------------------------------------------
+        |
+        | Midpoint now uses manual buyer approval for seller wallet release.
+        | Delivery/inspection timeout must never release funds automatically.
+        |
+        | This method intentionally remains as a safe no-op so older scheduled
+        | jobs or deployments cannot accidentally credit a seller wallet.
+        |
+        */
 
-
-        if (
-            !$transaction->auto_complete_at
-            ||
-            $transaction
-                ->auto_complete_at
-                ->isFuture()
-        ) {
-
-            return;
-        }
-
-
-        if (
-            !in_array(
-                $transaction->status,
-                [
-                    SecureTransaction::STATUS_DELIVERED,
-                    SecureTransaction::STATUS_INSPECTION,
-                ],
-                true
-            )
-        ) {
-
-            return;
-        }
-
-
-        if (
-            $transaction->dispute
-            &&
-            $transaction->dispute->status
-            !==
-            'resolved'
-        ) {
-
-            return;
-        }
-
-
-        $source =
-            $transaction->status
-            ===
-            SecureTransaction::STATUS_INSPECTION
-
-                ? 'inspection_expired'
-
-                : 'delivery_window_expired';
-
-
-        $this->releaseFunds(
-            $transaction,
-            $source
-        );
+        return;
     }
 
 
@@ -438,6 +401,28 @@ class TransactionLifecycleService
         SecureTransaction $transaction,
         string $source
     ): void {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Manual Buyer Acceptance Is The Only New Wallet Release Trigger
+        |--------------------------------------------------------------------------
+        |
+        | Payment success only secures the money in escrow.
+        | Seller fulfilment statuses do not release money.
+        | Inspection timeout does not release money.
+        | Only the authenticated buyer's Accept action may approve a new release.
+        |
+        */
+
+        if (
+            $source
+            !==
+            'buyer_accept'
+        ) {
+
+            return;
+        }
+
 
         $notifyReleaseApproval =
             false;
@@ -521,6 +506,10 @@ class TransactionLifecycleService
                             'payout_status' =>
                                 SecureTransaction::PAYOUT_WALLET_PENDING,
 
+                            'received_at' =>
+                                $locked->received_at
+                                ?: now(),
+
                             'auto_complete_at' =>
                                 null,
 
@@ -550,6 +539,15 @@ class TransactionLifecycleService
 
                         'release_approved_at' =>
                             $locked->release_approved_at
+                            ?: now(),
+
+                        /*
+                        | Buyer acceptance marker. SellerWalletService requires this
+                        | before any transaction money can enter the available wallet.
+                        */
+
+                        'received_at' =>
+                            $locked->received_at
                             ?: now(),
 
                         'auto_complete_at' =>
@@ -1070,7 +1068,7 @@ class TransactionLifecycleService
 
                     'Seller marked your order delivered',
 
-                    'The seller marked your order as delivered. Your 3-day protection countdown has started. You can accept the item, begin the 8-hour inspection period, or open a dispute.',
+                    'The seller marked your order as delivered. Your payment remains protected in escrow until you accept the order. You can accept the item, begin the inspection period, or open a dispute.',
 
                 ],
 

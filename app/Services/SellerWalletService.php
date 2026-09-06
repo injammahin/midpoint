@@ -81,6 +81,81 @@ class SellerWalletService
 
                 /*
                 |--------------------------------------------------------------------------
+                | Buyer Must Explicitly Accept Before Wallet Credit
+                |--------------------------------------------------------------------------
+                |
+                | PAYMENT_PAID means Paystack successfully secured the buyer's money.
+                | It does NOT mean the seller has earned an available wallet balance yet.
+                |
+                | A valid manual release has all of these markers:
+                |
+                | 1. status = release_approved
+                | 2. release_approved_at is present
+                | 3. received_at is present (set only by buyer acceptance)
+                | 4. payout_status = wallet_pending
+                |
+                | This guard protects seller-link orders and marketplace/featured-business
+                | orders because both use the same SecureTransaction wallet ledger.
+                |
+                */
+
+                if (
+                    $lockedTransaction->status
+                    !==
+                    SecureTransaction::STATUS_RELEASE_APPROVED
+                ) {
+
+                    throw new RuntimeException(
+                        'Seller wallet funds can only be credited after the buyer accepts the order.'
+                    );
+                }
+
+
+                if (
+                    !$lockedTransaction->release_approved_at
+                    ||
+                    !$lockedTransaction->received_at
+                ) {
+
+                    throw new RuntimeException(
+                        'Buyer acceptance has not been recorded for this transaction.'
+                    );
+                }
+
+
+                if (
+                    $lockedTransaction->payout_status
+                    !==
+                    SecureTransaction::PAYOUT_WALLET_PENDING
+                ) {
+
+                    throw new RuntimeException(
+                        'This transaction is not approved for seller wallet release.'
+                    );
+                }
+
+
+                $lockedTransaction->loadMissing(
+                    'dispute'
+                );
+
+
+                if (
+                    $lockedTransaction->dispute
+                    &&
+                    $lockedTransaction->dispute->status
+                    !==
+                    'resolved'
+                ) {
+
+                    throw new RuntimeException(
+                        'Seller wallet release is blocked while this transaction has an active dispute.'
+                    );
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
                 | Protect Old Paystack Direct Bank Transfers
                 |--------------------------------------------------------------------------
                 |

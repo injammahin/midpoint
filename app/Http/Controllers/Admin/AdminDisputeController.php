@@ -834,8 +834,12 @@ class AdminDisputeController extends Controller
                                     $inspectionEndsAt,
 
 
+                                /*
+                                | Manual buyer approval: resolving a dispute must not
+                                | schedule automatic seller wallet release.
+                                */
                                 'auto_complete_at' =>
-                                    $inspectionEndsAt,
+                                    null,
 
                             ])->save();
 
@@ -847,13 +851,6 @@ class AdminDisputeController extends Controller
                             |--------------------------------------------------------------------------
                             */
 
-                            $deliveryHours =
-                                (int) config(
-                                    'secure_transactions.delivery_auto_complete_hours',
-                                    72
-                                );
-
-
                             $lockedTransaction->forceFill([
 
                                 'status' =>
@@ -862,14 +859,16 @@ class AdminDisputeController extends Controller
 
                                 /*
                                 |--------------------------------------------------------------------------
-                                | Fresh protection countdown
+                                | Manual Buyer Approval Only
                                 |--------------------------------------------------------------------------
+                                |
+                                | Resolving a dispute returns the order to delivered state, but
+                                | seller funds remain in escrow until the buyer accepts the order.
+                                |
                                 */
 
                                 'auto_complete_at' =>
-                                    now()->addHours(
-                                        $deliveryHours
-                                    ),
+                                    null,
 
                             ])->save();
                         }

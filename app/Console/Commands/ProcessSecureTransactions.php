@@ -25,56 +25,18 @@ class ProcessSecureTransactions extends Command
 
         /*
         |--------------------------------------------------------------------------
-        | Automatic Release After Delivery / Inspection Timeout
+        | Automatic Release Disabled
         |--------------------------------------------------------------------------
+        |
+        | Paid transactions remain in escrow until the buyer explicitly accepts
+        | the order. This command must never convert delivered/inspection timeout
+        | into seller wallet money.
+        |
+        | We intentionally keep only the recovery processor below. It can finish a
+        | wallet credit that was already approved by a buyer acceptance request but
+        | was interrupted by a temporary application/database failure.
+        |
         */
-
-        SecureTransaction::query()
-            ->with(
-                'dispute'
-            )
-            ->whereIn(
-                'status',
-                [
-                    SecureTransaction::STATUS_DELIVERED,
-                    SecureTransaction::STATUS_INSPECTION,
-                ]
-            )
-            ->whereNotNull(
-                'auto_complete_at'
-            )
-            ->where(
-                'auto_complete_at',
-                '<=',
-                now()
-            )
-            ->chunkById(
-                50,
-                function ($transactions) use (
-                    $lifecycle
-                ) {
-
-                    foreach (
-                        $transactions
-                        as
-                        $transaction
-                    ) {
-
-                        try {
-
-                            $lifecycle->autoRelease(
-                                $transaction
-                            );
-
-                        } catch (Throwable $exception) {
-
-                            report(
-                                $exception
-                            );
-                        }
-                    }
-                }
-            );
 
 
         /*

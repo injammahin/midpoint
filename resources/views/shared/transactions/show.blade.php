@@ -110,20 +110,25 @@
     $countdownEnd =
         null;
 
+    /*
+    |--------------------------------------------------------------------------
+    | Manual Buyer Approval
+    |--------------------------------------------------------------------------
+    |
+    | We may still show the buyer's inspection timer, but there is no automatic
+    | seller wallet release countdown anymore.
+    |
+    */
+
     if (
-        in_array(
-            $transaction->status,
-            [
-                \App\Models\SecureTransaction::STATUS_DELIVERED,
-                \App\Models\SecureTransaction::STATUS_INSPECTION,
-            ],
-            true
-        )
+        $transaction->status
+        ===
+        \App\Models\SecureTransaction::STATUS_INSPECTION
         &&
-        $transaction->auto_complete_at
+        $transaction->inspection_ends_at
     ) {
         $countdownEnd =
-            $transaction->auto_complete_at;
+            $transaction->inspection_ends_at;
     }
 
     $sellerProfile =
@@ -796,17 +801,7 @@
                 >
 
                     <h3>
-
-                        {{
-                            $transaction->status
-                            ===
-                            \App\Models\SecureTransaction::STATUS_INSPECTION
-
-                                ? 'Inspection countdown'
-
-                                : 'Auto-complete countdown'
-                        }}
-
+                        Inspection countdown
                     </h3>
 
 
@@ -854,21 +849,9 @@
 
 
                     <p>
-
-                        @if(
-                            $transaction->status
-                            ===
-                            \App\Models\SecureTransaction::STATUS_INSPECTION
-                        )
-
-                            Funds are automatically approved for release when the inspection period ends unless a dispute is opened.
-
-                        @else
-
-                            Transaction automatically completes after 3 days if the buyer takes no action.
-
-                        @endif
-
+                        The inspection timer does not release seller funds automatically.
+                        Your payment remains protected in escrow until you explicitly accept
+                        the order. If there is a problem, open a dispute before accepting.
                     </p>
 
                 </div>

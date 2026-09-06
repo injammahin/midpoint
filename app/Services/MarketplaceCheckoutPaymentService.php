@@ -37,6 +37,7 @@ class MarketplaceCheckoutPaymentService
     ) {
     }
 
+
     /*
     |--------------------------------------------------------------------------
     | Start Marketplace Checkout
@@ -1250,112 +1251,43 @@ class MarketplaceCheckoutPaymentService
 
                         /*
                         |--------------------------------------------------------------------------
-                        | Existing Midpoint Fee Configuration
-                        |--------------------------------------------------------------------------
-                        */
-
-                        $serviceFeeRate =
-                            (float)
-                            config(
-                                'secure_transactions.service_fee_percent',
-                                5
-                            );
-
-
-                        $vatRate =
-                            (float)
-                            config(
-                                'secure_transactions.fee_vat_percent',
-                                7.5
-                            );
-
-
-                        if (
-                            $serviceFeeRate
-                            <
-                            0
-
-                            ||
-
-                            $vatRate
-                            <
-                            0
-                        ) {
-
-                            throw new RuntimeException(
-                                'Midpoint transaction fee configuration is invalid.'
-                            );
-                        }
-
-
-                        /*
-                        |--------------------------------------------------------------------------
-                        | IMPORTANT
+                        | Midpoint Seller Fee
                         |--------------------------------------------------------------------------
                         |
-                        | Same algorithm your existing Paystack code uses:
+                        | The service fee is calculated on the complete escrow amount:
                         |
-                        | service fee is calculated from PRODUCT SUBTOTAL.
+                        | product subtotal + delivery fee
                         |
-                        | Delivery is not included in the service fee calculation.
+                        | VAT is calculated only on the Midpoint service fee.
                         |
                         */
 
                         $feeBreakdown =
                             $this->fees->calculate(
-
-                                (float)
-                                $lockedIntent
-                                    ->subtotal,
-
-                                (float)
-                                $lockedIntent
-                                    ->delivery_fee,
-
+                                (float) $lockedIntent->subtotal,
+                                (float) $lockedIntent->delivery_fee,
                                 $paidAmount
                             );
 
 
                         $serviceFeeRate =
-                            $feeBreakdown[
-                                'service_fee_rate'
-                            ];
+                            $feeBreakdown['service_fee_rate'];
 
 
                         $vatRate =
-                            $feeBreakdown[
-                                'vat_rate'
-                            ];
+                            $feeBreakdown['vat_rate'];
 
 
                         $serviceFeeAmount =
-                            $feeBreakdown[
-                                'service_fee_amount'
-                            ];
+                            $feeBreakdown['service_fee_amount'];
 
 
                         $vatAmount =
-                            $feeBreakdown[
-                                'vat_amount'
-                            ];
+                            $feeBreakdown['vat_amount'];
 
 
                         $sellerNetAmount =
-                            $feeBreakdown[
-                                'seller_net_amount'
-                            ];
-
-
-                        if (
-                            $sellerNetAmount
-                            <
-                            0
-                        ) {
-
-                            throw new RuntimeException(
-                                'Calculated seller payout amount is invalid.'
-                            );
-                        }
+                            $feeBreakdown['seller_net_amount'];
 
 
                         /*
@@ -1606,6 +1538,33 @@ class MarketplaceCheckoutPaymentService
 
                                 'payout_status' =>
                                     SecureTransaction::PAYOUT_LOCKED,
+
+
+                                /*
+                                |--------------------------------------------------------------------------
+                                | Escrow Stays Locked After Marketplace Payment
+                                |--------------------------------------------------------------------------
+                                |
+                                | Featured-business / marketplace checkout payment only creates a paid
+                                | and secured transaction. Seller wallet release happens later, after
+                                | the buyer explicitly accepts the order.
+                                |
+                                */
+
+                                'received_at' =>
+                                    null,
+
+                                'release_approved_at' =>
+                                    null,
+
+                                'funds_released_at' =>
+                                    null,
+
+                                'completed_at' =>
+                                    null,
+
+                                'auto_complete_at' =>
+                                    null,
 
 
                                 /*

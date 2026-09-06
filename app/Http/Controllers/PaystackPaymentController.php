@@ -1635,78 +1635,52 @@ $lockedPayment->update([
                 }
 
 
-               $paidAmount =
-    round(
-        $amountSubunit / 100,
-        2
-    );
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Midpoint Seller Fee
-    |--------------------------------------------------------------------------
-    |
-    | Service fee is calculated on:
-    |
-    | Product subtotal + Delivery fee
-    |
-    | VAT is calculated only on the Midpoint service fee.
-    |
-    */
-
-    $feeBreakdown =
-        $this->fees->calculate(
-
-            (float)
-            $lockedTransaction
-                ->subtotal,
-
-            (float)
-            $lockedTransaction
-                ->delivery_fee,
-
-            $paidAmount
-        );
-
-
-    $serviceFeeRate =
-        $feeBreakdown[
-            'service_fee_rate'
-        ];
-
-
-    $vatRate =
-        $feeBreakdown[
-            'vat_rate'
-        ];
-
-
-    $serviceFeeAmount =
-        $feeBreakdown[
-            'service_fee_amount'
-        ];
-
-
-    $vatAmount =
-        $feeBreakdown[
-            'vat_amount'
-        ];
-
-
-    $sellerNetAmount =
-        $feeBreakdown[
-            'seller_net_amount'
-        ];
-
-
-                if (
-                    $sellerNetAmount < 0
-                ) {
-                    throw new RuntimeException(
-                        'Calculated seller payout amount is invalid.'
+                $paidAmount =
+                    round(
+                        $amountSubunit / 100,
+                        2
                     );
-                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Midpoint Seller Fee
+                |--------------------------------------------------------------------------
+                |
+                | The service fee is calculated on the complete escrow amount:
+                |
+                | product subtotal + delivery fee
+                |
+                | VAT is calculated only on the Midpoint service fee.
+                |
+                */
+
+                $feeBreakdown =
+                    $this->fees->calculate(
+                        (float) $lockedTransaction->subtotal,
+                        (float) $lockedTransaction->delivery_fee,
+                        $paidAmount
+                    );
+
+
+                $serviceFeeRate =
+                    $feeBreakdown['service_fee_rate'];
+
+
+                $vatRate =
+                    $feeBreakdown['vat_rate'];
+
+
+                $serviceFeeAmount =
+                    $feeBreakdown['service_fee_amount'];
+
+
+                $vatAmount =
+                    $feeBreakdown['vat_amount'];
+
+
+                $sellerNetAmount =
+                    $feeBreakdown['seller_net_amount'];
 
 
                 $inspectionHours =
@@ -1768,6 +1742,32 @@ $lockedPayment->update([
 
                     'payout_status' =>
                         SecureTransaction::PAYOUT_LOCKED,
+
+                    /*
+                    |--------------------------------------------------------------
+                    | Escrow stays locked after payment
+                    |--------------------------------------------------------------
+                    |
+                    | Successful Paystack payment only secures the buyer's money.
+                    | It must never complete the transaction or credit the seller
+                    | wallet. Those fields are set only after buyer acceptance.
+                    |
+                    */
+
+                    'received_at' =>
+                        null,
+
+                    'release_approved_at' =>
+                        null,
+
+                    'funds_released_at' =>
+                        null,
+
+                    'completed_at' =>
+                        null,
+
+                    'auto_complete_at' =>
+                        null,
 
                 ]);
             }
