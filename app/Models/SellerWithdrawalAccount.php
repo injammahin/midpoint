@@ -33,6 +33,87 @@ class SellerWithdrawalAccount extends Model
     ];
 
 
+    protected static function booted(): void
+    {
+        static::deleting(
+            function (SellerWithdrawalAccount $account) {
+
+                $kyc =
+                    SellerKycVerification::query()
+                        ->where(
+                            'seller_id',
+                            $account->seller_id
+                        )
+                        ->where(
+                            'seller_withdrawal_account_id',
+                            $account->id
+                        )
+                        ->first();
+
+
+                if (!$kyc) {
+                    return;
+                }
+
+
+                $kyc
+                    ->forceFill([
+
+                        'status' =>
+                            SellerKycVerification::STATUS_PENDING,
+
+                        'provider_status' =>
+                            'invalidated_bank_deleted',
+
+                        'paystack_identification_status' =>
+                            'invalidated_bank_deleted',
+
+                        'seller_withdrawal_account_id' =>
+                            null,
+
+                        'name_match' =>
+                            null,
+
+                        'bank_name_match' =>
+                            null,
+
+                        'approved_at' =>
+                            null,
+
+                        'auto_verified_at' =>
+                            null,
+
+                        'paystack_identification_completed_at' =>
+                            null,
+
+                        'failure_code' =>
+                            'verified_bank_deleted',
+
+                        'failure_message' =>
+                            'The bank account linked to this KYC verification was deleted. Add an active verified bank and verify the exact BVN again.',
+
+                        'provider_response' =>
+                            array_merge(
+                                $kyc->provider_response ?? [],
+                                [
+                                    'exact_bvn_confirmed' =>
+                                        false,
+
+                                    'local_invalidation' =>
+                                        'verified_bank_deleted',
+
+                                    'invalidated_at' =>
+                                        now()->toIso8601String(),
+                                ]
+                            ),
+
+                    ])
+                    ->save();
+            }
+        );
+    }
+
+
     public function seller()
     {
         return $this->belongsTo(

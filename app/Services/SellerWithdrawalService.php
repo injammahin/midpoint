@@ -198,24 +198,10 @@ class SellerWithdrawalService
                         ]);
                     }
                     if (
-                        (int)
-                        $kyc
-                            ->seller_withdrawal_account_id
-
-                        !==
-
-                        (int)
-                        $account
-                            ->id
-
-                        ||
-
-                        $kyc
-                            ->bank_name_match
-
-                        !==
-
-                        true
+                        !$kyc
+                            ->isApprovedForWithdrawalAccount(
+                                $account
+                            )
                     ) {
 
                         throw ValidationException::withMessages([
