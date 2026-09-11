@@ -18,9 +18,7 @@
     {{-- Back --}}
     <div class="admin-contact-detail-back">
 
-        <a
-            href="{{ route('admin.support-inquiries.contacts') }}"
-        >
+        <a href="{{ route('admin.support-inquiries.contacts') }}">
 
             <i class="fa-solid fa-arrow-left"></i>
 
@@ -47,12 +45,10 @@
     <div class="admin-contact-detail-grid">
 
         {{-- =========================================================
-            MESSAGE
+        MESSAGE
         ========================================================== --}}
-        <article
-            class="admin-card
-                   admin-contact-detail-card"
-        >
+        <article class="admin-card
+                       admin-contact-detail-card">
 
             <div class="admin-contact-detail-header">
 
@@ -61,14 +57,14 @@
                     <span class="admin-contact-avatar">
 
                         {{
-                            strtoupper(
-                                substr(
-                                    $contactMessage->name,
-                                    0,
-                                    1
-                                )
-                            )
-                        }}
+        strtoupper(
+            substr(
+                $contactMessage->name,
+                0,
+                1
+            )
+        )
+                            }}
 
                     </span>
 
@@ -80,9 +76,7 @@
                         </h2>
 
 
-                        <a
-                            href="mailto:{{ $contactMessage->email }}"
-                        >
+                        <a href="mailto:{{ $contactMessage->email }}">
                             {{ $contactMessage->email }}
                         </a>
 
@@ -91,19 +85,17 @@
                 </div>
 
 
-                <span
-                    class="admin-contact-status
-                           status-{{ $contactMessage->status }}"
-                >
+                <span class="admin-contact-status
+                               status-{{ $contactMessage->status }}">
 
                     {{
-                        match ($contactMessage->status) {
-                            'new' => 'New',
-                            'in_progress' => 'In Progress',
-                            'resolved' => 'Resolved',
-                            default => ucfirst($contactMessage->status),
-                        }
-                    }}
+        match ($contactMessage->status) {
+            'new' => 'New',
+            'in_progress' => 'In Progress',
+            'resolved' => 'Resolved',
+            default => ucfirst($contactMessage->status),
+        }
+                        }}
 
                 </span>
 
@@ -146,10 +138,10 @@
 
                     <strong>
                         {{
-                            $contactMessage
-                                ->created_at
-                                ->format('M d, Y · h:i A')
-                        }}
+        $contactMessage
+            ->created_at
+            ->format('M d, Y · h:i A')
+                            }}
                     </strong>
 
                 </div>
@@ -160,20 +152,18 @@
             <div class="admin-contact-message-body">
 
                 {!! nl2br(
-                    e(
-                        $contactMessage->message
-                    )
-                ) !!}
+        e(
+            $contactMessage->message
+        )
+    ) !!}
 
             </div>
 
 
             <div class="admin-contact-message-actions">
 
-                <a
-                    href="mailto:{{ $contactMessage->email }}?subject=Re: {{ urlencode($contactMessage->topic_label) }}"
-                    class="admin-contact-reply-button"
-                >
+                <a href="mailto:{{ $contactMessage->email }}?subject=Re: {{ urlencode($contactMessage->topic_label) }}"
+                    class="admin-contact-reply-button">
 
                     <i class="fa-solid fa-reply"></i>
 
@@ -181,18 +171,31 @@
 
                 </a>
 
+
+                <form method="POST" action="{{ route(
+        'admin.support-inquiries.contacts.destroy',
+        $contactMessage
+    ) }}"
+                    onsubmit="return confirm('Permanently delete this contact message? This cannot be undone.');">
+                    @csrf
+                    @method('DELETE')
+
+                    <button type="submit" class="admin-contact-detail-delete-button">
+                        <i class="fa-solid fa-trash-can"></i>
+                        Delete message
+                    </button>
+                </form>
+
             </div>
 
         </article>
 
 
         {{-- =========================================================
-            ACTION PANEL
+        ACTION PANEL
         ========================================================== --}}
-        <aside
-            class="admin-card
-                   admin-contact-action-card"
-        >
+        <aside class="admin-card
+                       admin-contact-action-card">
 
             <h3>
                 Message Status
@@ -204,13 +207,10 @@
             </p>
 
 
-            <form
-                method="POST"
-                action="{{ route(
-                    'admin.support-inquiries.contacts.status',
-                    $contactMessage
-                ) }}"
-            >
+            <form method="POST" action="{{ route(
+        'admin.support-inquiries.contacts.status',
+        $contactMessage
+    ) }}">
 
                 @csrf
 
@@ -224,26 +224,17 @@
 
                 <select name="status">
 
-                    <option
-                        value="new"
-                        {{ $contactMessage->status === 'new' ? 'selected' : '' }}
-                    >
+                    <option value="new" {{ $contactMessage->status === 'new' ? 'selected' : '' }}>
                         New
                     </option>
 
 
-                    <option
-                        value="in_progress"
-                        {{ $contactMessage->status === 'in_progress' ? 'selected' : '' }}
-                    >
+                    <option value="in_progress" {{ $contactMessage->status === 'in_progress' ? 'selected' : '' }}>
                         In Progress
                     </option>
 
 
-                    <option
-                        value="resolved"
-                        {{ $contactMessage->status === 'resolved' ? 'selected' : '' }}
-                    >
+                    <option value="resolved" {{ $contactMessage->status === 'resolved' ? 'selected' : '' }}>
                         Resolved
                     </option>
 
@@ -276,11 +267,11 @@
 
                         @if ($contactMessage->read_at)
 
-                            {{
-                                $contactMessage
-                                    ->read_at
-                                    ->format('M d, Y · h:i A')
-                            }}
+                                        {{
+                            $contactMessage
+                                ->read_at
+                                ->format('M d, Y · h:i A')
+                                                }}
 
                         @else
 

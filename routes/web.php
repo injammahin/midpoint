@@ -2549,6 +2549,15 @@ Route::prefix(
                 )->name('contacts');
 
 
+                Route::delete(
+                    '/contacts',
+                    [
+                        ContactMessageController::class,
+                        'bulkDestroy',
+                    ]
+                )->name('contacts.bulk-destroy');
+
+
                 Route::get(
                     '/contacts/{contactMessage}',
                     [
@@ -2565,6 +2574,15 @@ Route::prefix(
                         'updateStatus',
                     ]
                 )->name('contacts.status');
+
+
+                Route::delete(
+                    '/contacts/{contactMessage}',
+                    [
+                        ContactMessageController::class,
+                        'destroy',
+                    ]
+                )->name('contacts.destroy');
 
 
                 /*

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ContactMessage;
 use App\Models\User;
 use App\Notifications\ContactMessageSubmitted;
+use App\Services\TurnstileService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Notification;
 
@@ -16,10 +17,22 @@ class ContactController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    public function create()
+    public function create(
+        TurnstileService $turnstile
+    )
     {
         return view(
-            'frontend.pages.contact'
+            'frontend.pages.contact',
+            [
+                'turnstileSiteKey' =>
+                    $turnstile->siteKey(),
+
+                'turnstileAction' =>
+                    (string) config(
+                        'services.turnstile.action',
+                        'contact_form'
+                    ),
+            ]
         );
     }
 
@@ -30,7 +43,10 @@ class ContactController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    public function store(Request $request)
+    public function store(
+        Request $request,
+        TurnstileService $turnstile
+    )
     {
         /*
         |--------------------------------------------------------------------------
@@ -82,6 +98,12 @@ class ContactController extends Controller
                     'max:5000',
                 ],
 
+                'cf-turnstile-response' => [
+                    'required',
+                    'string',
+                    'max:2048',
+                ],
+
             ],
             [
 
@@ -100,8 +122,36 @@ class ContactController extends Controller
                 'message.required' =>
                     'Please enter your message.',
 
+                'cf-turnstile-response.required' =>
+                    'Please complete the security verification.',
+
             ]
         );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Server-side CAPTCHA verification
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            !$turnstile->verify(
+                $validated['cf-turnstile-response'],
+                $request->ip()
+            )
+        ) {
+            return back()
+                ->withInput(
+                    $request->except(
+                        'cf-turnstile-response'
+                    )
+                )
+                ->withErrors([
+                    'cf-turnstile-response' =>
+                        'Security verification failed or expired. Please complete it again.',
+                ]);
+        }
 
 
         /*

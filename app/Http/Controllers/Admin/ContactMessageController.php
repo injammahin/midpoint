@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\ContactMessage;
 use Illuminate\Http\Request;
+use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class ContactMessageController extends Controller
 {
@@ -222,5 +224,126 @@ class ContactMessageController extends Controller
             'success',
             'Contact message status updated successfully.'
         );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Delete One Contact Message
+    |--------------------------------------------------------------------------
+    */
+
+    public function destroy(
+        ContactMessage $contactMessage
+    ) {
+        DB::transaction(
+            function () use ($contactMessage) {
+                $this->deleteRelatedNotifications([
+                    (int) $contactMessage->id,
+                ]);
+
+                $contactMessage->delete();
+            }
+        );
+
+
+        return redirect()
+            ->route(
+                'admin.support-inquiries.contacts'
+            )
+            ->with(
+                'success',
+                'Contact message deleted successfully.'
+            );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Delete Selected Contact Messages
+    |--------------------------------------------------------------------------
+    */
+
+    public function bulkDestroy(Request $request)
+    {
+        $validated = $request->validate(
+            [
+                'message_ids' => [
+                    'required',
+                    'array',
+                    'min:1',
+                    'max:100',
+                ],
+
+                'message_ids.*' => [
+                    'required',
+                    'integer',
+                    'distinct',
+                    'exists:contact_messages,id',
+                ],
+            ],
+            [
+                'message_ids.required' =>
+                    'Select at least one contact message to delete.',
+
+                'message_ids.min' =>
+                    'Select at least one contact message to delete.',
+            ]
+        );
+
+
+        $messageIds = collect(
+            $validated['message_ids']
+        )
+            ->map(
+                fn ($messageId) =>
+                    (int) $messageId
+            )
+            ->unique()
+            ->values()
+            ->all();
+
+
+        $deletedCount = DB::transaction(
+            function () use ($messageIds) {
+                $this->deleteRelatedNotifications(
+                    $messageIds
+                );
+
+                return ContactMessage::query()
+                    ->whereKey($messageIds)
+                    ->delete();
+            }
+        );
+
+
+        return redirect()
+            ->route(
+                'admin.support-inquiries.contacts'
+            )
+            ->with(
+                'success',
+                $deletedCount === 1
+                    ? '1 contact message deleted successfully.'
+                    : $deletedCount . ' contact messages deleted successfully.'
+            );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Remove Notifications Pointing To Deleted Messages
+    |--------------------------------------------------------------------------
+    */
+
+    private function deleteRelatedNotifications(
+        array $messageIds
+    ): void {
+        DatabaseNotification::query()
+            ->whereIn(
+                'data->contact_message_id',
+                $messageIds
+            )
+            ->delete();
     }
 }

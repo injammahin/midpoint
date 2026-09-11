@@ -88,10 +88,10 @@
                                 >
 
                                     <a
-                                        href="mailto:support@Midpoint.ng"
+                                        href="mailto:support@midpoint.ng"
                                         class="transition hover:text-[#12B76A]"
                                     >
-                                        support@Midpoint.ng
+                                        support@midpoint.ng
                                     </a>
 
                                 </div>
@@ -111,6 +111,7 @@
                 <div class="mp-card p-7">
 
                     <form
+                        id="contact-form"
                         method="POST"
                         action="{{ route('contact.store') }}"
                     >
@@ -301,9 +302,52 @@
                         </div>
 
 
+                        {{-- Cloudflare Turnstile CAPTCHA --}}
+                        <div class="mb-5">
+
+                            <label
+                                class="mb-2 block text-[13px] font-semibold text-[#0D120F]"
+                            >
+                                Security verification
+                            </label>
+
+
+                            @if ($turnstileSiteKey !== '')
+
+                                <div
+                                    class="cf-turnstile"
+                                    data-sitekey="{{ $turnstileSiteKey }}"
+                                    data-action="{{ $turnstileAction }}"
+                                    data-theme="light"
+                                    data-size="flexible"
+                                ></div>
+
+                            @else
+
+                                <div
+                                    class="rounded-[12px] border border-red-200 bg-red-50 px-4 py-3 text-[12px] leading-[1.6] text-red-600"
+                                >
+                                    The contact form is temporarily unavailable because security verification is not configured.
+                                </div>
+
+                            @endif
+
+
+                            @error('cf-turnstile-response')
+
+                                <p class="mt-2 text-[12px] text-red-500">
+                                    {{ $message }}
+                                </p>
+
+                            @enderror
+
+                        </div>
+
+
                         <button
                             type="submit"
                             id="contact-submit"
+                            {{ $turnstileSiteKey === '' ? 'disabled' : '' }}
                             class="mp-btn
                                 mp-btn-primary
                                 w-full"
@@ -330,49 +374,13 @@
 
 @push('scripts')
 
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-
-    const form = document.getElementById('contact-form');
-    const success = document.getElementById('contact-success');
-    const button = document.getElementById('contact-submit');
-
-    if (!form) {
-        return;
-    }
-
-    form.addEventListener('submit', function (event) {
-
-        event.preventDefault();
-
-        if (!form.checkValidity()) {
-            form.reportValidity();
-            return;
-        }
-
-        button.disabled = true;
-        button.textContent = 'Sending...';
-        button.classList.add('opacity-70', 'cursor-not-allowed');
-
-        setTimeout(function () {
-
-            success.classList.remove('hidden');
-
-            button.disabled = false;
-            button.textContent = 'Send message';
-            button.classList.remove('opacity-70', 'cursor-not-allowed');
-
-            form.reset();
-
-        }, 600);
-
-    });
-
-});
-</script>
-
-@endpush
-@push('scripts')
+@if ($turnstileSiteKey !== '')
+    <script
+        src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+        async
+        defer
+    ></script>
+@endif
 
 <script>
 

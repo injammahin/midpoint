@@ -3,6 +3,38 @@
 return [
 
 
+    'turnstile' => [
+
+        'site_key' =>
+            env('TURNSTILE_SITE_KEY'),
+
+        'secret_key' =>
+            env('TURNSTILE_SECRET_KEY'),
+
+        'verify_url' =>
+            env(
+                'TURNSTILE_VERIFY_URL',
+                'https://challenges.cloudflare.com/turnstile/v0/siteverify'
+            ),
+
+        'expected_hostname' =>
+            env('TURNSTILE_EXPECTED_HOSTNAME'),
+
+        'action' =>
+            env(
+                'TURNSTILE_ACTION',
+                'contact_form'
+            ),
+
+        'timeout_seconds' =>
+            (int) env(
+                'TURNSTILE_TIMEOUT_SECONDS',
+                10
+            ),
+
+    ],
+
+
 
         'dojah' => [
 
