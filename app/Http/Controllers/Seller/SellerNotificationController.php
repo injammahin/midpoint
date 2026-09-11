@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Seller;
 
 use App\Http\Controllers\Controller;
+use App\Models\TransactionDispute;
 use App\Models\TransactionNotification;
 use Illuminate\Http\Request;
 
@@ -102,13 +103,25 @@ class SellerNotificationController extends Controller
             $disputeId > 0
         ) {
 
-            return redirect()->route(
-                'dispute-room.show',
-                [
-                    'dispute' =>
-                        $disputeId,
-                ]
-            );
+            $dispute =
+                TransactionDispute::query()
+                    ->whereKey($disputeId)
+                    ->where(
+                        'seller_id',
+                        $request->user()->id
+                    )
+                    ->first();
+
+            if ($dispute && $dispute->isRoomActive()) {
+
+                return redirect()->route(
+                    'dispute-room.show',
+                    [
+                        'dispute' =>
+                            $disputeId,
+                    ]
+                );
+            }
         }
 
 

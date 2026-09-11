@@ -8,6 +8,7 @@ use App\Models\TransactionDispute;
 use App\Models\TransactionDisputeMessage;
 use App\Models\TransactionDisputeStatusHistory;
 use App\Models\User;
+use App\Support\DisputeRefundAllocation;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -35,7 +36,7 @@ class DisputeResolutionService
         User $admin,
         TransactionDispute $dispute,
         string $resolutionType,
-        ?float $requestedRefundAmount,
+        string|float|null $requestedRefundAmount,
         string $note
     ): TransactionDispute {
 
@@ -66,7 +67,7 @@ class DisputeResolutionService
 
 
         if (
-            !$dispute->isRoomActive()
+            !$dispute->isRoomActivated()
         ) {
 
             throw ValidationException::withMessages([
@@ -83,6 +84,19 @@ class DisputeResolutionService
             throw ValidationException::withMessages([
                 'resolution_type' =>
                     'This dispute has already been resolved.',
+            ]);
+        }
+
+
+        if (
+            $dispute->resolution_type
+            ||
+            $dispute->resolution_status
+        ) {
+
+            throw ValidationException::withMessages([
+                'resolution_type' =>
+                    'A final decision has already been recorded for this dispute. Do not submit a second financial decision; reconcile the existing Paystack refund instead.',
             ]);
         }
 
@@ -155,7 +169,7 @@ class DisputeResolutionService
         User $admin,
         TransactionDispute $dispute,
         bool $fullRefund,
-        ?float $requestedRefundAmount,
+        string|float|null $requestedRefundAmount,
         string $note
     ): TransactionDispute {
 
@@ -183,22 +197,26 @@ class DisputeResolutionService
         }
 
 
-        $paidAmount =
-            round(
-                (float)
-                (
-                    $transaction->paid_amount
-                    ?:
+        $paidAmountSubunit =
+            (int)
+            $payment->amount_subunit;
+
+
+        if ($paidAmountSubunit <= 0) {
+
+            $paidAmountSubunit =
+                DisputeRefundAllocation::majorToSubunit(
                     $payment->amount
                     ?:
+                    $transaction->paid_amount
+                    ?:
                     $transaction->total_amount
-                ),
-                2
-            );
+                );
+        }
 
 
         if (
-            $paidAmount
+            $paidAmountSubunit
             <=
             0
         ) {
@@ -210,13 +228,11 @@ class DisputeResolutionService
         }
 
 
-        $refundAmount =
+        $refundAmountSubunit =
             $fullRefund
-                ? $paidAmount
-                : round(
-                    (float)
-                    $requestedRefundAmount,
-                    2
+                ? $paidAmountSubunit
+                : DisputeRefundAllocation::majorToSubunit(
+                    $requestedRefundAmount
                 );
 
 
@@ -224,9 +240,9 @@ class DisputeResolutionService
             !$fullRefund
             &&
             (
-                $refundAmount <= 0
+                $refundAmountSubunit <= 0
                 ||
-                $refundAmount >= $paidAmount
+                $refundAmountSubunit >= $paidAmountSubunit
             )
         ) {
 
@@ -238,9 +254,9 @@ class DisputeResolutionService
 
 
         if (
-            $refundAmount
+            $refundAmountSubunit
             >
-            $paidAmount
+            $paidAmountSubunit
         ) {
 
             throw ValidationException::withMessages([
@@ -250,22 +266,25 @@ class DisputeResolutionService
         }
 
 
-        $retainedGross =
-            round(
-                max(
-                    0,
-                    $paidAmount
-                    -
-                    $refundAmount
-                ),
-                2
-            );
-
-
         $settlement =
-            $this->calculateSellerSettlement(
-                $retainedGross
+            DisputeRefundAllocation::calculate(
+                $paidAmountSubunit,
+                $refundAmountSubunit,
+                (float)
+                config(
+                    'secure_transactions.service_fee_percent',
+                    5
+                ),
+                (float)
+                config(
+                    'secure_transactions.fee_vat_percent',
+                    7.5
+                )
             );
+
+
+        $refundAmount =
+            $settlement['refund'];
 
 
         /*
@@ -285,6 +304,7 @@ class DisputeResolutionService
                 $dispute,
                 $fullRefund,
                 $refundAmount,
+                $refundAmountSubunit,
                 $settlement,
                 $note
             ) {
@@ -330,6 +350,9 @@ class DisputeResolutionService
                     'refund_amount' =>
                         $refundAmount,
 
+                    'refund_amount_subunit' =>
+                        $refundAmountSubunit,
+
                     'seller_settlement_amount' =>
                         $settlement['seller_net'],
 
@@ -348,6 +371,21 @@ class DisputeResolutionService
                     'resolution_initiated_at' =>
                         now(),
 
+                    'paystack_refund_requested_at' =>
+                        now(),
+
+                    'room_closed_at' =>
+                        now(),
+
+                    'room_closed_by' =>
+                        $admin->id,
+
+                    'room_close_type' =>
+                        TransactionDispute::ROOM_CLOSE_FINAL_DECISION,
+
+                    'room_close_reason' =>
+                        'Midpoint Support made the final financial decision. The room is now read-only; follow the result on the transaction page.',
+
                     'refund_error' =>
                         null,
 
@@ -364,7 +402,14 @@ class DisputeResolutionService
                             : 'partial'
                     )
                     .
-                    ' Paystack refund is being initiated. The case will remain financially locked until Paystack confirms the refund outcome.'
+                    ' Paystack refund of ₦'
+                    .
+                    number_format(
+                        $refundAmount,
+                        2
+                    )
+                    .
+                    ' is being initiated. This room is now closed. The case will remain financially locked until Paystack confirms the refund outcome.'
                 );
             }
         );
@@ -391,12 +436,7 @@ class DisputeResolutionService
             $refundData =
                 $this->paystack->createRefund(
                     $payment->reference,
-                    (int)
-                    round(
-                        $refundAmount
-                        *
-                        100
-                    ),
+                    $refundAmountSubunit,
                     $currency,
                     'Midpoint dispute refund for '
                     .
@@ -409,6 +449,49 @@ class DisputeResolutionService
                     .
                     $admin->id
                 );
+
+
+            $gatewayAmountSubunit =
+                (int)
+                (
+                    $refundData['amount']
+                    ??
+                    0
+                );
+
+
+            if (
+                $gatewayAmountSubunit <= 0
+                ||
+                $gatewayAmountSubunit !== $refundAmountSubunit
+            ) {
+
+                $dispute->forceFill([
+                    'paystack_refund_amount_subunit' =>
+                        $gatewayAmountSubunit > 0
+                            ? $gatewayAmountSubunit
+                            : null,
+
+                    'paystack_refund_id' =>
+                        isset($refundData['id'])
+                            ? (string) $refundData['id']
+                            : $dispute->paystack_refund_id,
+
+                    'paystack_refund_reference' =>
+                        isset($refundData['refund_reference'])
+                            ? (string) $refundData['refund_reference']
+                            : $dispute->paystack_refund_reference,
+
+                    'paystack_refund_status' =>
+                        isset($refundData['status'])
+                            ? strtolower((string) $refundData['status'])
+                            : $dispute->paystack_refund_status,
+                ])->save();
+
+                throw new RuntimeException(
+                    'Paystack returned a refund amount that does not exactly match the approved Midpoint amount. Seller settlement remains locked for manual reconciliation.'
+                );
+            }
 
 
             $dispute =
@@ -424,7 +507,7 @@ class DisputeResolutionService
             |--------------------------------------------------------------------------
             */
 
-            if (
+            $processedImmediately =
                 strtolower(
                     (string)
                     (
@@ -434,8 +517,10 @@ class DisputeResolutionService
                     )
                 )
                 ===
-                'processed'
-            ) {
+                'processed';
+
+
+            if ($processedImmediately) {
 
                 $dispute =
                     $this->finalizeProcessedRefund(
@@ -445,37 +530,40 @@ class DisputeResolutionService
             }
 
 
-            $this->communications->resolutionUpdate(
-                $dispute->fresh([
-                    'transaction.buyer',
-                    'transaction.seller',
-                ]),
-                'dispute-refund-initiated-'
-                .
-                $dispute->id,
-                'Midpoint initiated your dispute refund',
-                'Midpoint has initiated a '
-                .
-                (
-                    $fullRefund
-                        ? 'full'
-                        : 'partial'
-                )
-                .
-                ' refund of ₦'
-                .
-                number_format(
-                    $refundAmount,
-                    2
-                )
-                .
-                ' through Paystack for transaction '
-                .
-                $transaction->reference
-                .
-                '. Paystack will send further processing updates. Seller payout remains locked until the refund reaches a final state.',
-                'Refund initiated'
-            );
+            if (!$processedImmediately) {
+
+                $this->communications->resolutionUpdate(
+                    $dispute->fresh([
+                        'transaction.buyer',
+                        'transaction.seller',
+                    ]),
+                    'dispute-refund-initiated-'
+                    .
+                    $dispute->id,
+                    'Midpoint initiated your dispute refund',
+                    'Midpoint has initiated a '
+                    .
+                    (
+                        $fullRefund
+                            ? 'full'
+                            : 'partial'
+                    )
+                    .
+                    ' refund of ₦'
+                    .
+                    number_format(
+                        $refundAmount,
+                        2
+                    )
+                    .
+                    ' through Paystack for transaction '
+                    .
+                    $transaction->reference
+                    .
+                    '. The room is now closed. Paystack says a processed refund can still take up to 10 business days to appear in the buyer\'s bank account. Seller payout remains locked until the refund reaches a final state.',
+                    'Refund initiated'
+                );
+            }
 
 
             return $dispute->fresh();
@@ -621,6 +709,9 @@ class DisputeResolutionService
                     'refund_amount' =>
                         0,
 
+                    'refund_amount_subunit' =>
+                        0,
+
                     'seller_settlement_amount' =>
                         $sellerAmount,
 
@@ -640,6 +731,18 @@ class DisputeResolutionService
 
                     'resolution_initiated_at' =>
                         now(),
+
+                    'room_closed_at' =>
+                        now(),
+
+                    'room_closed_by' =>
+                        $admin->id,
+
+                    'room_close_type' =>
+                        TransactionDispute::ROOM_CLOSE_FINAL_DECISION,
+
+                    'room_close_reason' =>
+                        'Midpoint Support made the final decision to release the seller entitlement. The room is now read-only.',
 
                     'resolved_at' =>
                         now(),
@@ -817,6 +920,9 @@ class DisputeResolutionService
                     'refund_amount' =>
                         0,
 
+                    'refund_amount_subunit' =>
+                        0,
+
                     'seller_settlement_amount' =>
                         0,
 
@@ -834,6 +940,18 @@ class DisputeResolutionService
 
                     'resolution_initiated_at' =>
                         now(),
+
+                    'room_closed_at' =>
+                        now(),
+
+                    'room_closed_by' =>
+                        $admin->id,
+
+                    'room_close_type' =>
+                        TransactionDispute::ROOM_CLOSE_FINAL_DECISION,
+
+                    'room_close_reason' =>
+                        'Midpoint Support made the final decision to return this order to the protected transaction flow. The room is now read-only.',
 
                     'resolved_at' =>
                         now(),
@@ -968,6 +1086,14 @@ class DisputeResolutionService
 
             'paystack_refund_status' =>
                 $status,
+
+            'paystack_refund_amount_subunit' =>
+                isset(
+                    $data['amount']
+                )
+                    ? (int)
+                    $data['amount']
+                    : $dispute->paystack_refund_amount_subunit,
 
             'refund_expected_at' =>
                 $expectedAt
@@ -1148,11 +1274,12 @@ class DisputeResolutionService
 
         $expectedAmountSubunit =
             (int)
-            round(
-                (float)
-                $dispute->refund_amount
-                *
-                100
+            (
+                $dispute->refund_amount_subunit
+                ?:
+                DisputeRefundAllocation::majorToSubunit(
+                    $dispute->refund_amount
+                )
             );
 
 
@@ -1164,9 +1291,54 @@ class DisputeResolutionService
             $expectedAmountSubunit
         ) {
 
-            throw new RuntimeException(
-                'Paystack refund webhook amount does not match the Midpoint dispute resolution amount.'
+            $dispute->forceFill([
+                'resolution_status' =>
+                    TransactionDispute::RESOLUTION_STATUS_REFUND_SYNC_REQUIRED,
+
+                'paystack_refund_amount_subunit' =>
+                    $gatewayAmountSubunit,
+
+                'refund_error' =>
+                    'Paystack reported '
+                    .
+                    $gatewayAmountSubunit
+                    .
+                    ' subunits, but Midpoint approved '
+                    .
+                    $expectedAmountSubunit
+                    .
+                    ' subunits. No seller settlement was credited.',
+            ])->save();
+
+
+            Log::critical(
+                'Paystack refund amount mismatch; automatic settlement blocked.',
+                [
+                    'dispute_id' =>
+                        $dispute->id,
+
+                    'expected_amount_subunit' =>
+                        $expectedAmountSubunit,
+
+                    'gateway_amount_subunit' =>
+                        $gatewayAmountSubunit,
+                ]
             );
+
+
+            $this->communications->resolutionUpdate(
+                $dispute->fresh([
+                    'transaction.buyer',
+                    'transaction.seller',
+                ]),
+                'dispute-refund-amount-review-' . $dispute->id,
+                'Refund amount requires Midpoint review',
+                'Midpoint detected an amount mismatch in the Paystack refund update. The seller payout remains locked and no seller settlement has been credited while Support reconciles it.',
+                'Refund review'
+            );
+
+
+            return;
         }
 
 
@@ -1311,11 +1483,12 @@ class DisputeResolutionService
 
         $expectedSubunit =
             (int)
-            round(
-                (float)
-                $dispute->refund_amount
-                *
-                100
+            (
+                $dispute->refund_amount_subunit
+                ?:
+                DisputeRefundAllocation::majorToSubunit(
+                    $dispute->refund_amount
+                )
             );
 
 
@@ -1413,10 +1586,44 @@ class DisputeResolutionService
         array $gatewayData = []
     ): TransactionDispute {
 
+        $expectedAmountSubunit =
+            (int)
+            (
+                $dispute->refund_amount_subunit
+                ?:
+                DisputeRefundAllocation::majorToSubunit(
+                    $dispute->refund_amount
+                )
+            );
+
+
+        $gatewayAmountSubunit =
+            (int)
+            (
+                $gatewayData['amount']
+                ??
+                $dispute->paystack_refund_amount_subunit
+                ??
+                0
+            );
+
+
+        if (
+            $expectedAmountSubunit <= 0
+            ||
+            $gatewayAmountSubunit !== $expectedAmountSubunit
+        ) {
+
+            throw new RuntimeException(
+                'Refund finalization was blocked because the Paystack amount does not exactly match the approved Midpoint amount.'
+            );
+        }
+
         return DB::transaction(
             function () use (
                 $dispute,
-                $gatewayData
+                $gatewayData,
+                $gatewayAmountSubunit
             ) {
 
                 $lockedDispute =
@@ -1566,6 +1773,9 @@ class DisputeResolutionService
 
                     'refund_processed_at' =>
                         $processedAt,
+
+                    'paystack_refund_amount_subunit' =>
+                        $gatewayAmountSubunit,
 
                     'refund_error' =>
                         null,

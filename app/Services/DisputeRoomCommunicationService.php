@@ -49,7 +49,7 @@ class DisputeRoomCommunicationService
             .
             $transaction->reference
             .
-            '. You can now message Support, reply to the other party, and upload supporting evidence. Seller payout remains locked while the dispute is active.';
+            '. You can now communicate privately with Midpoint Support and upload supporting evidence. The buyer and seller cannot see each other\'s messages. Seller payout remains locked while the dispute is active.';
 
 
         $this->notifyBuyer(
@@ -224,47 +224,85 @@ class DisputeRoomCommunicationService
 
         /*
         |--------------------------------------------------------------------------
-        | Buyer / Seller Messages
+        | Buyer / Seller Messages Stay Private From Each Other
         |--------------------------------------------------------------------------
         |
-        | The other transaction party receives an in-app/email update.
-        | Admins already see the message in the dispute queue/room.
+        | Admins read participant replies from the admin dispute room. Never send
+        | a buyer message to the seller, or a seller message to the buyer.
         |
         */
 
-        if (
-            $roomMessage->sender_role
-            ===
-            TransactionDisputeMessage::ROLE_BUYER
-        ) {
-
-            $this->notifySeller(
-                $dispute,
-                $event,
-                'Buyer replied in the dispute room',
-                $notificationMessage,
-                'Dispute update'
-            );
+        return;
+    }
 
 
+    /*
+    |--------------------------------------------------------------------------
+    | Room Closed
+    |--------------------------------------------------------------------------
+    */
+
+    public function roomClosed(
+        TransactionDispute $dispute
+    ): void {
+
+        $dispute->loadMissing([
+            'transaction.buyer',
+            'transaction.seller',
+        ]);
+
+
+        $transaction =
+            $dispute->transaction;
+
+
+        if (!$transaction) {
             return;
         }
 
 
-        if (
-            $roomMessage->sender_role
-            ===
-            TransactionDisputeMessage::ROLE_SELLER
-        ) {
+        $message =
+            $dispute->room_closed_message
+            .
+            ' You have been returned to transaction '
+            .
+            $transaction->reference
+            .
+            '. The read-only dispute record remains available from that transaction.';
 
-            $this->notifyBuyer(
-                $dispute,
-                $event,
-                'Seller replied in the dispute room',
-                $notificationMessage,
-                'Dispute update'
-            );
-        }
+
+        $this->notifyBuyer(
+            $dispute,
+            'dispute-room-closed-' . $dispute->id,
+            'Midpoint closed the dispute room',
+            $message,
+            'Room closed',
+            route(
+                'buyer.transactions.show',
+                [
+                    'secureTransaction' =>
+                        $transaction->public_token,
+                ]
+            ),
+            'View transaction'
+        );
+
+
+        $this->notifySeller(
+            $dispute,
+            'dispute-room-closed-' . $dispute->id,
+            'Midpoint closed the dispute room',
+            $message,
+            'Room closed',
+            route(
+                'seller.transactions.show',
+                [
+                    'secureTransaction' =>
+                        $transaction->public_token,
+                ]
+            ),
+            'View transaction'
+        );
     }
 
 
@@ -282,12 +320,34 @@ class DisputeRoomCommunicationService
         ?string $badge = null
     ): void {
 
+        $dispute->loadMissing([
+            'transaction.buyer',
+            'transaction.seller',
+        ]);
+
+
+        $transaction =
+            $dispute->transaction;
+
+
+        if (!$transaction) {
+            return;
+        }
+
         $this->notifyBuyer(
             $dispute,
             $event,
             $title,
             $message,
-            $badge
+            $badge,
+            route(
+                'buyer.transactions.show',
+                [
+                    'secureTransaction' =>
+                        $transaction->public_token,
+                ]
+            ),
+            'View transaction'
         );
 
 
@@ -296,7 +356,15 @@ class DisputeRoomCommunicationService
             $event,
             $title,
             $message,
-            $badge
+            $badge,
+            route(
+                'seller.transactions.show',
+                [
+                    'secureTransaction' =>
+                        $transaction->public_token,
+                ]
+            ),
+            'View transaction'
         );
     }
 
@@ -312,7 +380,9 @@ class DisputeRoomCommunicationService
         string $event,
         string $title,
         string $message,
-        ?string $badge = null
+        ?string $badge = null,
+        ?string $destinationUrl = null,
+        string $actionText = 'Open dispute room'
     ): void {
 
         $transaction =
@@ -332,6 +402,15 @@ class DisputeRoomCommunicationService
 
             return;
         }
+
+
+        $destinationUrl =
+            $destinationUrl
+            ?:
+            route(
+                'dispute-room.show',
+                $dispute
+            );
 
 
         $eventKey =
@@ -379,10 +458,7 @@ class DisputeRoomCommunicationService
                         $dispute->id,
 
                     'url' =>
-                        route(
-                            'dispute-room.show',
-                            $dispute
-                        ),
+                        $destinationUrl,
                 ],
             ]
         );
@@ -414,11 +490,8 @@ class DisputeRoomCommunicationService
                     $transaction,
                     $title,
                     $message,
-                    'Open dispute room',
-                    route(
-                        'dispute-room.show',
-                        $dispute
-                    ),
+                    $actionText,
+                    $destinationUrl,
                     $badge
                 )
             );
@@ -455,7 +528,9 @@ class DisputeRoomCommunicationService
         string $event,
         string $title,
         string $message,
-        ?string $badge = null
+        ?string $badge = null,
+        ?string $destinationUrl = null,
+        string $actionText = 'Open dispute room'
     ): void {
 
         $transaction =
@@ -475,6 +550,15 @@ class DisputeRoomCommunicationService
 
             return;
         }
+
+
+        $destinationUrl =
+            $destinationUrl
+            ?:
+            route(
+                'dispute-room.show',
+                $dispute
+            );
 
 
         $eventKey =
@@ -522,10 +606,7 @@ class DisputeRoomCommunicationService
                         $dispute->id,
 
                     'url' =>
-                        route(
-                            'dispute-room.show',
-                            $dispute
-                        ),
+                        $destinationUrl,
                 ],
             ]
         );
@@ -557,11 +638,8 @@ class DisputeRoomCommunicationService
                     $transaction,
                     $title,
                     $message,
-                    'Open dispute room',
-                    route(
-                        'dispute-room.show',
-                        $dispute
-                    ),
+                    $actionText,
+                    $destinationUrl,
                     $badge
                 )
             );

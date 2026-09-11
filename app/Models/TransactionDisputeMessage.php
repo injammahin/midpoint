@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class TransactionDisputeMessage extends Model
@@ -77,5 +78,130 @@ class TransactionDisputeMessage extends Model
             User::class,
             'sender_id'
         );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Private participant conversations
+    |--------------------------------------------------------------------------
+    |
+    | Buyer messages belong to the buyer/admin thread. Seller messages belong
+    | to the seller/admin thread. This sender-role check also protects legacy
+    | messages that were previously stored with visibility="all".
+    |
+    */
+
+    public function scopeVisibleToRole(
+        Builder $query,
+        string $role
+    ): Builder {
+
+        if ($role === self::ROLE_ADMIN) {
+            return $query;
+        }
+
+
+        if ($role === self::ROLE_BUYER) {
+
+            return $query
+                ->where(
+                    'sender_role',
+                    '!=',
+                    self::ROLE_SELLER
+                )
+                ->whereIn(
+                    'visibility',
+                    [
+                        self::VISIBILITY_ALL,
+                        self::VISIBILITY_BUYER,
+                    ]
+                );
+        }
+
+
+        if ($role === self::ROLE_SELLER) {
+
+            return $query
+                ->where(
+                    'sender_role',
+                    '!=',
+                    self::ROLE_BUYER
+                )
+                ->whereIn(
+                    'visibility',
+                    [
+                        self::VISIBILITY_ALL,
+                        self::VISIBILITY_SELLER,
+                    ]
+                );
+        }
+
+
+        return $query->whereRaw('1 = 0');
+    }
+
+
+    public function isVisibleToRole(
+        string $role
+    ): bool {
+
+        if ($role === self::ROLE_ADMIN) {
+            return true;
+        }
+
+
+        if (
+            $role === self::ROLE_BUYER
+            &&
+            $this->sender_role !== self::ROLE_SELLER
+        ) {
+
+            return in_array(
+                $this->visibility,
+                [
+                    self::VISIBILITY_ALL,
+                    self::VISIBILITY_BUYER,
+                ],
+                true
+            );
+        }
+
+
+        if (
+            $role === self::ROLE_SELLER
+            &&
+            $this->sender_role !== self::ROLE_BUYER
+        ) {
+
+            return in_array(
+                $this->visibility,
+                [
+                    self::VISIBILITY_ALL,
+                    self::VISIBILITY_SELLER,
+                ],
+                true
+            );
+        }
+
+
+        return false;
+    }
+
+
+    public static function participantVisibility(
+        string $senderRole
+    ): string {
+
+        return match ($senderRole) {
+            self::ROLE_BUYER =>
+                self::VISIBILITY_BUYER,
+
+            self::ROLE_SELLER =>
+                self::VISIBILITY_SELLER,
+
+            default =>
+                self::VISIBILITY_INTERNAL,
+        };
     }
 }

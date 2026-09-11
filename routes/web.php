@@ -1844,7 +1844,16 @@ Route::prefix(
                     ]
                 )->name('index');
 
-
+                Route::post(
+                    '/{dispute}/room/close',
+                    [
+                        AdminDisputeController::class,
+                        'closeRoom',
+                    ]
+                )
+                    ->middleware('throttle:20,1')
+                    ->name('room.close');
+                    
                 Route::get(
                     '/{dispute}',
                     [

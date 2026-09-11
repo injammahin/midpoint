@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Services\DisputeRoomCommunicationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -38,26 +39,13 @@ class DisputeRoomController extends Controller
             'buyer',
             'seller',
             'roomActivator',
+            'roomCloser',
         ]);
-
-
-        $messages =
-            $this
-                ->visibleMessagesQuery(
-                    $dispute,
-                    $role
-                )
-                ->with('sender')
-                ->latest('id')
-                ->limit(100)
-                ->get()
-                ->reverse()
-                ->values();
 
 
         /*
         |--------------------------------------------------------------------------
-        | Admins Normally Use admin.disputes.show
+        | Admins use the full case page
         |--------------------------------------------------------------------------
         */
 
@@ -73,6 +61,52 @@ class DisputeRoomController extends Controller
                     $dispute
                 );
         }
+
+
+        $transactionUrl =
+            $this->participantTransactionUrl(
+                $dispute,
+                $role
+            );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | A live participant is removed when Support closes the room
+        |--------------------------------------------------------------------------
+        |
+        | The record=1 query is used only by the transaction page's explicit
+        | "View dispute record" link. It preserves the read-only audit record.
+        |
+        */
+
+        if (
+            $dispute->isRoomClosed()
+            &&
+            !$request->boolean('record')
+        ) {
+
+            return redirect(
+                $transactionUrl
+            )->with(
+                'warning',
+                $dispute->room_closed_message
+            );
+        }
+
+
+        $messages =
+            $this
+                ->visibleMessagesQuery(
+                    $dispute,
+                    $role
+                )
+                ->with('sender')
+                ->latest('id')
+                ->limit(100)
+                ->get()
+                ->reverse()
+                ->values();
 
 
         $layout =
@@ -102,6 +136,12 @@ class DisputeRoomController extends Controller
 
                 'messages' =>
                     $messages,
+
+                'transactionUrl' =>
+                    $transactionUrl,
+
+                'recordMode' =>
+                    $request->boolean('record'),
             ]
         );
     }
@@ -157,9 +197,18 @@ class DisputeRoomController extends Controller
                     ) =>
                         $this->serializeMessage(
                             $message,
-                            $dispute
+                            $dispute,
+                            $role
                         )
                 );
+
+
+        $freshDispute =
+            $dispute->fresh();
+
+
+        $roomClosed =
+            $freshDispute->isRoomClosed();
 
 
         return response()->json([
@@ -167,7 +216,27 @@ class DisputeRoomController extends Controller
                 $messages,
 
             'resolved' =>
-                $dispute->fresh()->isResolved(),
+                $freshDispute->isResolved(),
+
+            'room_closed' =>
+                $roomClosed,
+
+            'close_message' =>
+                $roomClosed
+                    ? $freshDispute->room_closed_message
+                    : null,
+
+            'redirect_url' =>
+                $roomClosed
+                &&
+                $role !== TransactionDisputeMessage::ROLE_ADMIN
+
+                    ? $this->participantTransactionUrl(
+                        $freshDispute,
+                        $role
+                    )
+
+                    : null,
         ]);
     }
 
@@ -191,28 +260,37 @@ class DisputeRoomController extends Controller
             );
 
 
-        if (
-            !$dispute->isRoomActive()
-        ) {
+        if ($dispute->isRoomClosed()) {
+
+            return response()->json(
+                [
+                    'message' =>
+                        $dispute->room_closed_message,
+
+                    'room_closed' =>
+                        true,
+
+                    'redirect_url' =>
+                        $role !== TransactionDisputeMessage::ROLE_ADMIN
+
+                            ? $this->participantTransactionUrl(
+                                $dispute,
+                                $role
+                            )
+
+                            : null,
+                ],
+                409
+            );
+        }
+
+
+        if (!$dispute->isRoomActivated()) {
 
             return response()->json(
                 [
                     'message' =>
                         'Midpoint Support has not activated this dispute room yet.',
-                ],
-                422
-            );
-        }
-
-
-        if (
-            $dispute->isResolved()
-        ) {
-
-            return response()->json(
-                [
-                    'message' =>
-                        'This dispute has already been resolved. The room is now read-only.',
                 ],
                 422
             );
@@ -307,7 +385,9 @@ class DisputeRoomController extends Controller
         */
 
         $visibility =
-            TransactionDisputeMessage::VISIBILITY_ALL;
+            TransactionDisputeMessage::participantVisibility(
+                $role
+            );
 
 
         if (
@@ -319,7 +399,7 @@ class DisputeRoomController extends Controller
             $visibility =
                 $validated['visibility']
                 ??
-                TransactionDisputeMessage::VISIBILITY_ALL;
+                TransactionDisputeMessage::VISIBILITY_BUYER;
         }
 
 
@@ -392,37 +472,111 @@ class DisputeRoomController extends Controller
 
 
         $roomMessage =
-            TransactionDisputeMessage::create([
-
-                'transaction_dispute_id' =>
-                    $dispute->id,
-
-                'secure_transaction_id' =>
-                    $dispute->secure_transaction_id,
-
-                'sender_id' =>
-                    $request->user()->id,
-
-                'sender_role' =>
+            DB::transaction(
+                function () use (
+                    $dispute,
+                    $request,
                     $role,
-
-                'visibility' =>
                     $visibility,
+                    $messageText,
+                    $attachments
+                ) {
 
-                'message' =>
-                    $messageText !== ''
-                        ? $messageText
-                        : null,
+                    $lockedDispute =
+                        TransactionDispute::query()
+                            ->whereKey(
+                                $dispute->id
+                            )
+                            ->lockForUpdate()
+                            ->firstOrFail();
 
-                'attachments' =>
-                    $attachments !== []
-                        ? $attachments
-                        : null,
 
-                'is_system' =>
-                    false,
+                    if (!$lockedDispute->isRoomActive()) {
+                        return null;
+                    }
 
-            ]);
+
+                    return TransactionDisputeMessage::create([
+
+                        'transaction_dispute_id' =>
+                            $lockedDispute->id,
+
+                        'secure_transaction_id' =>
+                            $lockedDispute->secure_transaction_id,
+
+                        'sender_id' =>
+                            $request->user()->id,
+
+                        'sender_role' =>
+                            $role,
+
+                        'visibility' =>
+                            $visibility,
+
+                        'message' =>
+                            $messageText !== ''
+                                ? $messageText
+                                : null,
+
+                        'attachments' =>
+                            $attachments !== []
+                                ? $attachments
+                                : null,
+
+                        'is_system' =>
+                            false,
+
+                    ]);
+                }
+            );
+
+
+        if (!$roomMessage) {
+
+            foreach ($attachments as $attachment) {
+
+                $path =
+                    (string)
+                    (
+                        $attachment['path']
+                        ??
+                        ''
+                    );
+
+
+                if ($path !== '') {
+                    Storage::disk('local')->delete(
+                        $path
+                    );
+                }
+            }
+
+
+            $freshDispute =
+                $dispute->fresh();
+
+
+            return response()->json(
+                [
+                    'message' =>
+                        $freshDispute->room_closed_message,
+
+                    'room_closed' =>
+                        true,
+
+                    'redirect_url' =>
+                        $role !== TransactionDisputeMessage::ROLE_ADMIN
+
+                            ? $this->participantTransactionUrl(
+                                $freshDispute,
+                                $role
+                            )
+
+                            : null,
+                ],
+                409
+            );
+        }
 
 
         $roomMessage->load(
@@ -456,7 +610,8 @@ class DisputeRoomController extends Controller
             'room_message' =>
                 $this->serializeMessage(
                     $roomMessage,
-                    $dispute
+                    $dispute,
+                    $role
                 ),
         ]);
     }
@@ -621,42 +776,13 @@ class DisputeRoomController extends Controller
                 ->where(
                     'transaction_dispute_id',
                     $dispute->id
+                )
+                ->visibleToRole(
+                    $role
                 );
 
 
-        if (
-            $role
-            ===
-            TransactionDisputeMessage::ROLE_ADMIN
-        ) {
-
-            return $query;
-        }
-
-
-        if (
-            $role
-            ===
-            TransactionDisputeMessage::ROLE_BUYER
-        ) {
-
-            return $query->whereIn(
-                'visibility',
-                [
-                    TransactionDisputeMessage::VISIBILITY_ALL,
-                    TransactionDisputeMessage::VISIBILITY_BUYER,
-                ]
-            );
-        }
-
-
-        return $query->whereIn(
-            'visibility',
-            [
-                TransactionDisputeMessage::VISIBILITY_ALL,
-                TransactionDisputeMessage::VISIBILITY_SELLER,
-            ]
-        );
+        return $query;
     }
 
 
@@ -665,40 +791,8 @@ class DisputeRoomController extends Controller
         string $role
     ): bool {
 
-        if (
+        return $message->isVisibleToRole(
             $role
-            ===
-            TransactionDisputeMessage::ROLE_ADMIN
-        ) {
-
-            return true;
-        }
-
-
-        if (
-            $role
-            ===
-            TransactionDisputeMessage::ROLE_BUYER
-        ) {
-
-            return in_array(
-                $message->visibility,
-                [
-                    TransactionDisputeMessage::VISIBILITY_ALL,
-                    TransactionDisputeMessage::VISIBILITY_BUYER,
-                ],
-                true
-            );
-        }
-
-
-        return in_array(
-            $message->visibility,
-            [
-                TransactionDisputeMessage::VISIBILITY_ALL,
-                TransactionDisputeMessage::VISIBILITY_SELLER,
-            ],
-            true
         );
     }
 
@@ -711,7 +805,8 @@ class DisputeRoomController extends Controller
 
     protected function serializeMessage(
         TransactionDisputeMessage $message,
-        TransactionDispute $dispute
+        TransactionDispute $dispute,
+        string $viewerRole
     ): array {
 
         $attachments =
@@ -784,24 +879,36 @@ class DisputeRoomController extends Controller
                     ? 'Midpoint'
 
                     : (
-                        $message->sender?->name
-                        ?:
-                        match (
-                            $message->sender_role
-                        ) {
+                        $message->sender_role
+                        ===
+                        TransactionDisputeMessage::ROLE_ADMIN
+                        &&
+                        $viewerRole
+                        !==
+                        TransactionDisputeMessage::ROLE_ADMIN
 
-                            TransactionDisputeMessage::ROLE_ADMIN =>
-                                'Midpoint Support',
+                            ? 'Midpoint Support'
 
-                            TransactionDisputeMessage::ROLE_BUYER =>
-                                'Buyer',
+                            : (
+                                $message->sender?->name
+                                ?:
+                                match (
+                                    $message->sender_role
+                                ) {
 
-                            TransactionDisputeMessage::ROLE_SELLER =>
-                                'Seller',
+                                    TransactionDisputeMessage::ROLE_ADMIN =>
+                                        'Midpoint Support',
 
-                            default =>
-                                'Midpoint',
-                        }
+                                    TransactionDisputeMessage::ROLE_BUYER =>
+                                        'Buyer',
+
+                                    TransactionDisputeMessage::ROLE_SELLER =>
+                                        'Seller',
+
+                                    default =>
+                                        'Midpoint',
+                                }
+                            )
                     ),
 
             'visibility' =>
@@ -823,5 +930,51 @@ class DisputeRoomController extends Controller
                         'd M Y, h:i A'
                     ),
         ];
+    }
+
+
+    protected function participantTransactionUrl(
+        TransactionDispute $dispute,
+        string $role
+    ): string {
+
+        $dispute->loadMissing(
+            'transaction'
+        );
+
+
+        $transaction =
+            $dispute->transaction;
+
+
+        abort_unless(
+            $transaction,
+            404
+        );
+
+
+        if (
+            $role
+            ===
+            TransactionDisputeMessage::ROLE_SELLER
+        ) {
+
+            return route(
+                'seller.transactions.show',
+                [
+                    'secureTransaction' =>
+                        $transaction->public_token,
+                ]
+            );
+        }
+
+
+        return route(
+            'buyer.transactions.show',
+            [
+                'secureTransaction' =>
+                    $transaction->public_token,
+            ]
+        );
     }
 }

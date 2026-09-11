@@ -78,6 +78,13 @@ class TransactionDispute extends Model
         'completed';
 
 
+    public const ROOM_CLOSE_MANUAL =
+        'manual';
+
+    public const ROOM_CLOSE_FINAL_DECISION =
+        'final_decision';
+
+
     protected $fillable = [
 
         'secure_transaction_id',
@@ -106,11 +113,21 @@ class TransactionDispute extends Model
 
         'room_activated_by',
 
+        'room_closed_at',
+
+        'room_closed_by',
+
+        'room_close_type',
+
+        'room_close_reason',
+
         'resolution_type',
 
         'resolution_status',
 
         'refund_amount',
+
+        'refund_amount_subunit',
 
         'seller_settlement_amount',
 
@@ -129,6 +146,10 @@ class TransactionDispute extends Model
         'paystack_refund_reference',
 
         'paystack_refund_status',
+
+        'paystack_refund_amount_subunit',
+
+        'paystack_refund_requested_at',
 
         'refund_expected_at',
 
@@ -151,6 +172,9 @@ class TransactionDispute extends Model
         'room_activated_at' =>
             'datetime',
 
+        'room_closed_at' =>
+            'datetime',
+
         'resolution_initiated_at' =>
             'datetime',
 
@@ -159,6 +183,15 @@ class TransactionDispute extends Model
 
         'refund_processed_at' =>
             'datetime',
+
+        'paystack_refund_requested_at' =>
+            'datetime',
+
+        'refund_amount_subunit' =>
+            'integer',
+
+        'paystack_refund_amount_subunit' =>
+            'integer',
 
         'opened_at' =>
             'datetime',
@@ -213,6 +246,15 @@ class TransactionDispute extends Model
         return $this->belongsTo(
             User::class,
             'room_activated_by'
+        );
+    }
+
+
+    public function roomCloser()
+    {
+        return $this->belongsTo(
+            User::class,
+            'room_closed_by'
         );
     }
 
@@ -307,6 +349,51 @@ class TransactionDispute extends Model
     }
 
 
+    public function getResolutionStatusLabelAttribute(): ?string
+    {
+        if (!$this->resolution_status) {
+            return null;
+        }
+
+
+        return match ($this->resolution_status) {
+
+            self::RESOLUTION_STATUS_INITIATING =>
+                'Decision recorded',
+
+            self::RESOLUTION_STATUS_REFUND_PENDING =>
+                'Refund pending',
+
+            self::RESOLUTION_STATUS_REFUND_PROCESSING =>
+                'Refund processing',
+
+            self::RESOLUTION_STATUS_REFUND_NEEDS_ATTENTION =>
+                'Refund needs attention',
+
+            self::RESOLUTION_STATUS_REFUND_FAILED =>
+                'Refund failed',
+
+            self::RESOLUTION_STATUS_REFUND_SYNC_REQUIRED =>
+                'Refund reconciliation required',
+
+            self::RESOLUTION_STATUS_REFUND_PROCESSED =>
+                'Refund processed',
+
+            self::RESOLUTION_STATUS_COMPLETED =>
+                'Completed',
+
+            default =>
+                ucwords(
+                    str_replace(
+                        '_',
+                        ' ',
+                        $this->resolution_status
+                    )
+                ),
+        };
+    }
+
+
     public function isResolved(): bool
     {
         return
@@ -319,8 +406,42 @@ class TransactionDispute extends Model
     public function isRoomActive(): bool
     {
         return
+            $this->isRoomActivated()
+            &&
+            !$this->isRoomClosed();
+    }
+
+
+    public function isRoomActivated(): bool
+    {
+        return !is_null(
+            $this->room_activated_at
+        );
+    }
+
+
+    public function isRoomClosed(): bool
+    {
+        return
             !is_null(
-                $this->room_activated_at
+                $this->room_closed_at
+            )
+            ||
+            $this->isResolved();
+    }
+
+
+    public function getRoomClosedMessageAttribute(): string
+    {
+        return
+            trim(
+                (string) $this->room_close_reason
+            )
+            ?:
+            (
+                $this->resolution_type
+                    ? 'Midpoint made the final dispute decision. This room is closed; review the decision on the transaction page.'
+                    : 'Midpoint Support closed this dispute room. Review the latest dispute status on the transaction page.'
             );
     }
 

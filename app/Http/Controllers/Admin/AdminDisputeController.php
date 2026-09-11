@@ -392,6 +392,8 @@ class AdminDisputeController extends Controller
 
             'roomActivator',
 
+            'roomCloser',
+
             'resolver',
 
             'transaction.successfulPayment',
@@ -1129,7 +1131,7 @@ class AdminDisputeController extends Controller
                             TransactionDisputeMessage::VISIBILITY_ALL,
 
                         'message' =>
-                            'Midpoint Support opened this dispute resolution room. Buyer, seller and Midpoint Support can now exchange messages and proof here. Seller payout remains locked while the case is active.',
+                            'Midpoint Support opened this dispute resolution room. The buyer and seller each have a private conversation with Midpoint Support and cannot see each other\'s messages. Seller payout remains locked while the case is active.',
 
                         'attachments' =>
                             null,
@@ -1178,6 +1180,186 @@ class AdminDisputeController extends Controller
 
     /*
     |--------------------------------------------------------------------------
+    | Close Resolution Room Manually
+    |--------------------------------------------------------------------------
+    */
+
+    public function closeRoom(
+        Request $request,
+        TransactionDispute $dispute,
+        DisputeRoomCommunicationService $communications
+    ) {
+
+        $validated =
+            $request->validate([
+                'close_reason' => [
+                    'nullable',
+                    'string',
+                    'max:2000',
+                ],
+            ]);
+
+
+        $dispute->loadMissing([
+            'transaction.buyer',
+            'transaction.seller',
+        ]);
+
+
+        abort_unless(
+            $dispute->transaction
+            &&
+            $dispute->transaction->payment_status
+            ===
+            SecureTransaction::PAYMENT_PAID,
+            404
+        );
+
+
+        if (!$dispute->isRoomActivated()) {
+
+            return back()->with(
+                'error',
+                'The dispute resolution room has not been activated.'
+            );
+        }
+
+
+        $reason =
+            trim(
+                (string)
+                (
+                    $validated['close_reason']
+                    ??
+                    ''
+                )
+            );
+
+
+        if ($reason === '') {
+            $reason =
+                'Midpoint Support closed this room. Any final decision or further status update will appear on the transaction page.';
+        }
+
+
+        $closedNow =
+            DB::transaction(
+                function () use (
+                    $request,
+                    $dispute,
+                    $reason
+                ) {
+
+                    $lockedDispute =
+                        TransactionDispute::query()
+                            ->whereKey($dispute->id)
+                            ->lockForUpdate()
+                            ->firstOrFail();
+
+
+                    if ($lockedDispute->isRoomClosed()) {
+                        return false;
+                    }
+
+
+                    $lockedTransaction =
+                        SecureTransaction::query()
+                            ->whereKey(
+                                $lockedDispute->secure_transaction_id
+                            )
+                            ->lockForUpdate()
+                            ->firstOrFail();
+
+
+                    $lockedDispute->forceFill([
+                        'room_closed_at' =>
+                            now(),
+
+                        'room_closed_by' =>
+                            $request->user()->id,
+
+                        'room_close_type' =>
+                            TransactionDispute::ROOM_CLOSE_MANUAL,
+
+                        'room_close_reason' =>
+                            $reason,
+                    ])->save();
+
+
+                    if (!$lockedDispute->isResolved()) {
+
+                        $lockedTransaction->forceFill([
+                            'status' =>
+                                SecureTransaction::STATUS_DISPUTED,
+
+                            'payout_status' =>
+                                SecureTransaction::PAYOUT_LOCKED,
+
+                            'auto_complete_at' =>
+                                null,
+                        ])->save();
+                    }
+
+
+                    TransactionDisputeMessage::create([
+                        'transaction_dispute_id' =>
+                            $lockedDispute->id,
+
+                        'secure_transaction_id' =>
+                            $lockedDispute->secure_transaction_id,
+
+                        'sender_id' =>
+                            null,
+
+                        'sender_role' =>
+                            TransactionDisputeMessage::ROLE_SYSTEM,
+
+                        'visibility' =>
+                            TransactionDisputeMessage::VISIBILITY_ALL,
+
+                        'message' =>
+                            $reason,
+
+                        'attachments' =>
+                            null,
+
+                        'is_system' =>
+                            true,
+                    ]);
+
+
+                    return true;
+                }
+            );
+
+
+        if ($closedNow) {
+
+            $communications->roomClosed(
+                $dispute->fresh([
+                    'transaction.buyer',
+                    'transaction.seller',
+                ])
+            );
+        }
+
+
+        return redirect()
+            ->route(
+                'admin.disputes.show',
+                $dispute
+            )
+            ->with(
+                'success',
+                $closedNow
+                    ? 'The dispute room was closed. Buyer and seller were redirected to the transaction.'
+                    : 'The dispute room is already closed.'
+            );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
     | Final Resolution
     |--------------------------------------------------------------------------
     */
@@ -1203,8 +1385,10 @@ class AdminDisputeController extends Controller
 
                 'refund_amount' => [
                     'nullable',
+                    'required_if:resolution_type,partial_refund',
                     'numeric',
                     'min:0.01',
+                    'regex:/^\d+(?:\.\d{1,2})?$/',
                 ],
 
                 'resolution_note' => [
@@ -1226,7 +1410,7 @@ class AdminDisputeController extends Controller
                     isset(
                         $validated['refund_amount']
                     )
-                        ? (float)
+                        ? (string)
                         $validated['refund_amount']
                         : null,
                     trim(
