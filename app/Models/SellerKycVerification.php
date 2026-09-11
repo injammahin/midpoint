@@ -37,6 +37,12 @@ class SellerKycVerification extends Model
 
         'id_number',
 
+        'identity_fingerprint',
+
+        'reused_from_kyc_id',
+
+        'identity_reused_at',
+
         'document_front_path',
 
         'document_back_path',
@@ -165,7 +171,8 @@ class SellerKycVerification extends Model
 
         'identity_date_of_birth' =>
             'date',
-
+        
+        'identity_reused_at' => 'datetime',
 
         'liveness_passed' =>
             'boolean',
@@ -281,7 +288,13 @@ class SellerKycVerification extends Model
         );
     }
 
-
+    public function reusedFromVerification()
+    {
+        return $this->belongsTo(
+            self::class,
+            'reused_from_kyc_id'
+        );
+    }
     /*
     |--------------------------------------------------------------------------
     | Encrypt BVN

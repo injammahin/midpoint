@@ -222,7 +222,8 @@ class SellerKycController extends Controller
     */
 
     public function status(
-        Request $request
+        Request $request,
+        PaystackSellerKycService $kycService
     ) {
 
         $kyc =
@@ -260,6 +261,13 @@ class SellerKycController extends Controller
                     null,
 
             ]);
+        }if (
+            $kyc->status
+            ===
+            SellerKycVerification::STATUS_PROCESSING
+        ) {
+            $kyc =
+                $kycService->releaseIfStale($kyc);
         }
 
 

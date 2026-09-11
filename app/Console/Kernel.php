@@ -16,7 +16,11 @@ class Kernel extends ConsoleKernel
             )
             ->everyFiveMinutes()
             ->withoutOverlapping();
-
+            
+        $schedule
+            ->command('seller-kyc:release-stale')
+            ->everyFiveMinutes()
+            ->withoutOverlapping();
         /*
         |--------------------------------------------------------------------------
         | Secure Transaction Processor

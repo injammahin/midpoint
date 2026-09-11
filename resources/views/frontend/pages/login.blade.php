@@ -6,395 +6,332 @@
 
 @section('content')
 
-<div class="mp-page">
+    <div class="mp-page">
 
-    <div class="mp-auth">
+        <div class="mp-auth">
 
-        {{-- =========================================
+            {{-- =========================================
             LEFT SIDE
-        ========================================== --}}
-        <section class="mp-auth-art">
+            ========================================== --}}
+            <section class="mp-auth-art">
 
-            <a
-                href="{{ route('home') }}"
+                <a href="{{ route('home') }}" class="
+                            mb-auto
+                            flex
+                            items-center
+                            gap-[9px]
+                            font-['Bricolage_Grotesque']
+                            text-[20px]
+                            font-extrabold
+                        ">
 
-                class="
-                    mb-auto
-                    flex
-                    items-center
-                    gap-[9px]
-                    font-['Bricolage_Grotesque']
-                    text-[20px]
-                    font-extrabold
-                "
-            >
+                    <img class="h-12 w-auto" src="{{ asset('logo/logo.png') }}" alt="Midpoint Logo">
 
-                <x-midpoint-brand variant="auth" />
-
-            </a>
+                </a>
 
 
-            <div>
+                <div>
 
-                <h1
-                    class="mb-3
-                           max-w-[520px]
-                           font-['Bricolage_Grotesque']
-                           text-[34px]
-                           font-extrabold
-                           text-white"
-                >
-                    Welcome back to the safe middle.
-                </h1>
+                    <h1 class="mb-3
+                                   max-w-[520px]
+                                   font-['Bricolage_Grotesque']
+                                   text-[34px]
+                                   font-extrabold
+                                   text-white">
+                        Welcome back to the safe middle.
+                    </h1>
 
 
-                <p
-                    class="max-w-[380px]
-                           text-[#C8DAD2]"
-                >
-                    Your transactions, payouts and inspections —
-                    all exactly where you left them.
-                </p>
+                    <p class="max-w-[380px]
+                                   text-[#C8DAD2]">
+                        Your transactions, payouts and inspections —
+                        all exactly where you left them.
+                    </p>
 
-            </div>
+                </div>
 
 
-            <div
-                class="mp-small mt-auto
-                       text-[#9DBBAF]"
-            >
-                "Buy with confidence. Sell with confidence."
-            </div>
+                <div class="mp-small mt-auto
+                               text-[#9DBBAF]">
+                    "Buy with confidence. Sell with confidence."
+                </div>
 
-        </section>
+            </section>
 
 
-        {{-- =========================================
+            {{-- =========================================
             LOGIN
-        ========================================== --}}
-        <section class="mp-auth-form">
+            ========================================== --}}
+            <section class="mp-auth-form">
 
-            <div class="mp-card mp-auth-card">
+                <div class="mp-card mp-auth-card">
 
-                <h2
-                    class="mb-1
-                           font-['Bricolage_Grotesque']
-                           text-[22px]
-                           font-bold"
-                >
-                    Log in
-                </h2>
+                    <h2 class="mb-1
+                                   font-['Bricolage_Grotesque']
+                                   text-[22px]
+                                   font-bold">
+                        Log in
+                    </h2>
 
 
-                <p class="mp-small mp-muted mb-5">
+                    <p class="mp-small mp-muted mb-5">
 
-                    New to Midpoint?
+                        New to Midpoint?
 
-                    <a
-                        href="{{
-                            route(
-                                'register',
-                                request()->filled('redirect')
-                                    ? [
-                                        'redirect' =>
-                                            request('redirect')
-                                    ]
-                                    : []
-                            )
-                        }}"
-                        class="font-semibold
-                               text-[#7A5AF8]"
-                    >
-                        Create an account
-                    </a>
+                        <a href="{{
+        route(
+            'register',
+            request()->filled('redirect')
+            ? [
+                'redirect' =>
+                    request('redirect')
+            ]
+            : []
+        )
+                                }}" class="font-semibold
+                                       text-[#7A5AF8]">
+                            Create an account
+                        </a>
 
-                </p>
+                    </p>
 
 
-                <form
-                    method="POST"
-                    action="{{ route('login.attempt') }}"
-                    autocomplete="on"
-                >
-                    @csrf
+                    <form method="POST" action="{{ route('login.attempt') }}" autocomplete="on">
+                        @csrf
 
-                    @if(session('status'))
+                        @if(session('status'))
 
-                        <div
-                            class="mb-4 rounded-xl
-                                border border-[#ABEFC6]
-                                bg-[#ECFDF3]
-                                px-4 py-3
-                                text-[13px]
-                                leading-[1.55]
-                                text-[#067647]"
-                        >
+                            <div class="mb-4 rounded-xl
+                                            border border-[#ABEFC6]
+                                            bg-[#ECFDF3]
+                                            px-4 py-3
+                                            text-[13px]
+                                            leading-[1.55]
+                                            text-[#067647]">
 
-                            <div class="flex items-start gap-2">
+                                <div class="flex items-start gap-2">
 
-                                <i
-                                    class="fa-solid
-                                        fa-circle-check
-                                        mt-[3px]"
-                                ></i>
+                                    <i class="fa-solid
+                                                    fa-circle-check
+                                                    mt-[3px]"></i>
 
 
-                                <span>
+                                    <span>
 
-                                    {{ session('status') }}
+                                        {{ session('status') }}
 
-                                </span>
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+                        @endif
+
+                        @if ($errors->any())
+
+                            <div class="mb-4 rounded-xl
+                                            border border-red-200
+                                            bg-red-50
+                                            px-4 py-3
+                                            text-[13px]
+                                            text-red-600">
+
+                                {{ $errors->first() }}
+
+                            </div>
+
+                        @endif
+
+
+                        <div class="mp-field">
+
+                            <label for="login">
+                                Email or username
+                            </label>
+
+                            <input id="login" type="text" name="login" value="{{ old('login') }}"
+                                placeholder="Email or admin username" autocomplete="username" required autofocus>
+
+                        </div>
+
+
+                        <div class="mp-field">
+
+                            <label for="password">
+                                Password
+                            </label>
+
+                            <div class="relative">
+
+                                <input id="password" type="password" name="password" placeholder="••••••••"
+                                    autocomplete="current-password" class="!pr-[52px]" required>
+
+                                <button type="button" id="toggleLoginPassword" class="
+                                            absolute
+                                            right-[12px]
+                                            top-1/2
+                                            flex
+                                            h-[34px]
+                                            w-[34px]
+                                            -translate-y-1/2
+                                            items-center
+                                            justify-center
+                                            rounded-lg
+                                            text-[#77827C]
+                                            transition
+                                            hover:bg-[#F1F4F2]
+                                            hover:text-[#0B3D2E]
+                                            focus:outline-none
+                                            focus:ring-2
+                                            focus:ring-[#12B76A]/25
+                                        " aria-label="Show password" aria-pressed="false">
+                                    <i class="fa-regular fa-eye text-[15px]" aria-hidden="true"></i>
+                                </button>
 
                             </div>
 
                         </div>
 
-                    @endif
 
-                    @if ($errors->any())
+                        <div class="mb-[18px]
+                                    flex items-center
+                                    justify-between gap-4">
 
-                        <div
-                            class="mb-4 rounded-xl
-                                border border-red-200
-                                bg-red-50
-                                px-4 py-3
-                                text-[13px]
-                                text-red-600"
-                        >
+                            <label class="flex items-center
+                                        gap-[7px]
+                                        text-[13px]">
 
-                            {{ $errors->first() }}
+                                <input type="checkbox" name="remember" value="1">
 
-                        </div>
+                                Remember me
 
-                    @endif
+                            </label>
 
 
-                    <div class="mp-field">
-
-                        <label for="login">
-                            Email or username
-                        </label>
-
-                        <input
-                            id="login"
-                            type="text"
-                            name="login"
-                            value="{{ old('login') }}"
-                            placeholder="Email or admin username"
-                            autocomplete="username"
-                            required
-                            autofocus
-                        >
-
-                    </div>
-
-
-                    <div class="mp-field">
-
-                        <label for="password">
-                            Password
-                        </label>
-
-                        <div class="relative">
-
-                            <input
-                                id="password"
-                                type="password"
-                                name="password"
-                                placeholder="••••••••"
-                                autocomplete="current-password"
-                                class="!pr-[52px]"
-                                required
-                            >
-
-                            <button
-                                type="button"
-                                id="toggleLoginPassword"
-                                class="
-                                    absolute
-                                    right-[12px]
-                                    top-1/2
-                                    flex
-                                    h-[34px]
-                                    w-[34px]
-                                    -translate-y-1/2
-                                    items-center
-                                    justify-center
-                                    rounded-lg
-                                    text-[#77827C]
-                                    transition
-                                    hover:bg-[#F1F4F2]
-                                    hover:text-[#0B3D2E]
-                                    focus:outline-none
-                                    focus:ring-2
-                                    focus:ring-[#12B76A]/25
-                                "
-                                aria-label="Show password"
-                                aria-pressed="false"
-                            >
-                                <i
-                                    class="fa-regular fa-eye text-[15px]"
-                                    aria-hidden="true"
-                                ></i>
-                            </button>
+                            <a href="{{ route('password.request') }}" class="text-[13px]
+                                        font-semibold
+                                        text-[#12B76A]
+                                        transition
+                                        hover:text-[#0B3D2E]">
+                                Forgot password?
+                            </a>
 
                         </div>
 
-                    </div>
 
+                        <button type="submit" class="mp-btn
+                                    mp-btn-primary
+                                    mp-btn-lg
+                                    w-full">
+                            Log in
+                        </button>
 
-                    <div
-                        class="mb-[18px]
-                            flex items-center
-                            justify-between gap-4"
-                    >
+                    </form>
 
-                        <label
-                            class="flex items-center
-                                gap-[7px]
-                                text-[13px]"
-                        >
+                </div>
 
-                            <input
-                                type="checkbox"
-                                name="remember"
-                                value="1"
-                            >
+            </section>
 
-                            Remember me
-
-                        </label>
-
-
-                        <a
-                            href="{{ route('password.request') }}"
-                            class="text-[13px]
-                                font-semibold
-                                text-[#12B76A]
-                                transition
-                                hover:text-[#0B3D2E]"
-                        >
-                            Forgot password?
-                        </a>
-
-                    </div>
-
-
-                    <button
-                        type="submit"
-                        class="mp-btn
-                            mp-btn-primary
-                            mp-btn-lg
-                            w-full"
-                    >
-                        Log in
-                    </button>
-
-                </form>
-
-            </div>
-
-        </section>
+        </div>
 
     </div>
 
-</div>
+
+    @push('scripts')
+
+        <script>
+
+            document.addEventListener(
+                'DOMContentLoaded',
+                function () {
+
+                    const passwordInput =
+                        document.getElementById(
+                            'password'
+                        );
 
 
-@push('scripts')
-
-<script>
-
-document.addEventListener(
-    'DOMContentLoaded',
-    function () {
-
-        const passwordInput =
-            document.getElementById(
-                'password'
-            );
+                    const toggleButton =
+                        document.getElementById(
+                            'toggleLoginPassword'
+                        );
 
 
-        const toggleButton =
-            document.getElementById(
-                'toggleLoginPassword'
-            );
+                    if (
+                        !passwordInput
+                        ||
+                        !toggleButton
+                    ) {
+
+                        return;
+                    }
 
 
-        if (
-            !passwordInput
-            ||
-            !toggleButton
-        ) {
+                    toggleButton.addEventListener(
+                        'click',
+                        function () {
 
-            return;
-        }
-
-
-        toggleButton.addEventListener(
-            'click',
-            function () {
-
-                const isHidden =
-                    passwordInput.type
-                    ===
-                    'password';
+                            const isHidden =
+                                passwordInput.type
+                                ===
+                                'password';
 
 
-                passwordInput.type =
-                    isHidden
-                        ? 'text'
-                        : 'password';
+                            passwordInput.type =
+                                isHidden
+                                    ? 'text'
+                                    : 'password';
 
 
-                const icon =
-                    toggleButton.querySelector(
-                        'i'
+                            const icon =
+                                toggleButton.querySelector(
+                                    'i'
+                                );
+
+
+                            if (
+                                icon
+                            ) {
+
+                                icon.classList.toggle(
+                                    'fa-eye',
+                                    !isHidden
+                                );
+
+
+                                icon.classList.toggle(
+                                    'fa-eye-slash',
+                                    isHidden
+                                );
+                            }
+
+
+                            toggleButton.setAttribute(
+                                'aria-label',
+                                isHidden
+                                    ? 'Hide password'
+                                    : 'Show password'
+                            );
+
+
+                            toggleButton.setAttribute(
+                                'aria-pressed',
+                                isHidden
+                                    ? 'true'
+                                    : 'false'
+                            );
+
+
+                            passwordInput.focus();
+                        }
                     );
 
-
-                if (
-                    icon
-                ) {
-
-                    icon.classList.toggle(
-                        'fa-eye',
-                        !isHidden
-                    );
-
-
-                    icon.classList.toggle(
-                        'fa-eye-slash',
-                        isHidden
-                    );
                 }
+            );
 
+        </script>
 
-                toggleButton.setAttribute(
-                    'aria-label',
-                    isHidden
-                        ? 'Hide password'
-                        : 'Show password'
-                );
-
-
-                toggleButton.setAttribute(
-                    'aria-pressed',
-                    isHidden
-                        ? 'true'
-                        : 'false'
-                );
-
-
-                passwordInput.focus();
-            }
-        );
-
-    }
-);
-
-</script>
-
-@endpush
+    @endpush
 
 @endsection
