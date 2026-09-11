@@ -426,6 +426,14 @@ class PaystackTransferApprovalController extends Controller
                 'status',
                 SellerKycVerification::STATUS_APPROVED
             )
+            ->where(
+                'seller_withdrawal_account_id',
+                $withdrawal->seller_withdrawal_account_id
+            )
+            ->where(
+                'bank_name_match',
+                true
+            )
             ->exists();
 
         if (!$kycApproved) {

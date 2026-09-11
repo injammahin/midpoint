@@ -121,14 +121,12 @@ class SellerWalletController extends Controller
                 ->first();
 
 
-        $kycApproved =
+        $kycStatusApproved =
             $kyc
-
             &&
-
             $kyc->status
-            ===
-            SellerKycVerification::STATUS_APPROVED;
+                ===
+                SellerKycVerification::STATUS_APPROVED;
 
 
         /*
@@ -138,37 +136,19 @@ class SellerWalletController extends Controller
         */
 
         $bankIdentityMatches =
-            $kycApproved
-
+            $kycStatusApproved
             &&
-
-            $activeAccount
-
-            &&
-
-            /*
-            * Paystack BVN verification is tied to one exact
-            * withdrawal bank account.
-            */
-
-            (int)
             $kyc
-                ->seller_withdrawal_account_id
+                ->isApprovedForWithdrawalAccount(
+                    $activeAccount
+                );
 
-            ===
 
-            (int)
-            $activeAccount
-                ->id
-
-            &&
-
-            $kyc
-                ->bank_name_match
-
-            ===
-
-            true;
+        /*
+         * The public "KYC verified" state is always bank-bound.
+         */
+        $kycApproved =
+            $bankIdentityMatches;
 
 
         /*
@@ -330,9 +310,7 @@ class SellerWalletController extends Controller
         }
 
 
-        if (
-            !$kycApproved
-        ) {
+        if (!$kycStatusApproved) {
 
             $withdrawalBlockers[] =
                 'Complete automated identity verification.';

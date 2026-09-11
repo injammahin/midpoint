@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Seller;
 
 use App\Http\Controllers\Controller;
 use App\Models\SellerKycVerification;
+use App\Models\SellerWithdrawalAccount;
 use App\Services\PaystackSellerKycService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -261,19 +262,87 @@ class SellerKycController extends Controller
                     null,
 
             ]);
-        }if (
+        }
+
+
+        /*
+         * Prevent a missed Paystack webhook from leaving the seller in an
+         * endless processing state. A late signed webhook remains valid and
+         * can still approve the record after it has been released for retry.
+         */
+        if (
             $kyc->status
             ===
             SellerKycVerification::STATUS_PROCESSING
         ) {
+
             $kyc =
-                $kycService->releaseIfStale($kyc);
+                $kycService
+                    ->releaseIfStale(
+                        $kyc
+                    );
+        }
+
+
+        $activeAccount =
+            SellerWithdrawalAccount::query()
+                ->where(
+                    'seller_id',
+                    $request->user()->id
+                )
+                ->where(
+                    'is_verified',
+                    true
+                )
+                ->where(
+                    'is_active',
+                    true
+                )
+                ->first();
+
+
+        $approvedForActiveBank =
+            $kyc
+                ->isApprovedForWithdrawalAccount(
+                    $activeAccount
+                );
+
+
+        $effectiveStatus =
+            $kyc->status;
+
+
+        $effectiveStatusLabel =
+            $kyc->status_label;
+
+
+        $message =
+            $kyc->failure_message;
+
+
+        if (
+            $kyc->status
+                ===
+                SellerKycVerification::STATUS_APPROVED
+            && !$approvedForActiveBank
+        ) {
+
+            $effectiveStatus =
+                SellerKycVerification::STATUS_PENDING;
+
+
+            $effectiveStatusLabel =
+                'Not verified';
+
+
+            $message =
+                'Verify your identity for the current active withdrawal bank account.';
         }
 
 
         $completed =
             in_array(
-                $kyc->status,
+                $effectiveStatus,
                 [
 
                     SellerKycVerification::STATUS_APPROVED,
@@ -290,12 +359,11 @@ class SellerKycController extends Controller
         return response()->json([
 
             'status' =>
-                $kyc->status,
+                $effectiveStatus,
 
 
             'status_label' =>
-                $kyc
-                    ->status_label,
+                $effectiveStatusLabel,
 
 
             'completed' =>
@@ -303,14 +371,11 @@ class SellerKycController extends Controller
 
 
             'approved' =>
-                $kyc->status
-                ===
-                SellerKycVerification::STATUS_APPROVED,
+                $approvedForActiveBank,
 
 
             'message' =>
-                $kyc
-                    ->failure_message,
+                $message,
 
         ]);
     }

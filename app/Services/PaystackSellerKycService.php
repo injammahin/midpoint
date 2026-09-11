@@ -772,6 +772,123 @@ class PaystackSellerKycService
         } catch (
             Throwable $exception
         ) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | Reconcile An Already-Identified Paystack Customer Safely
+            |--------------------------------------------------------------------------
+            |
+            | Paystack may return HTTP 400 when this customer was identified before
+            | Midpoint received the success webhook. Never trust the customer-level
+            | `identified` flag by itself. Recovery is allowed only when Paystack's
+            | stored identification contains the exact submitted BVN and the verified
+            | bank-account holder name matches the identified customer's name.
+            |
+            */
+
+            if (
+                $this
+                    ->isAlreadyValidatedWithSameCredentials(
+                        $exception
+                    )
+            ) {
+
+                $reconciled =
+                    $this
+                        ->reconcileAlreadyValidatedCustomer(
+                            $seller,
+                            $activeBank,
+                            $kyc,
+                            $customerCode,
+                            $bvn,
+                            $firstName,
+                            $lastName
+                        );
+
+
+                if ($reconciled) {
+                    return $reconciled;
+                }
+
+
+                $message =
+                    'Paystack has an existing identity for this email, but it does not exactly match the submitted BVN and verified bank account. Use the correct BVN or contact support to reset the old Paystack customer.';
+
+
+                $kyc
+                    ->forceFill([
+
+                        'status' =>
+                            SellerKycVerification::STATUS_PROVIDER_ERROR,
+
+
+                        'provider_status' =>
+                            'existing_identity_mismatch',
+
+
+                        'paystack_identification_status' =>
+                            'existing_identity_mismatch',
+
+
+                        'name_match' =>
+                            false,
+
+
+                        'bank_name_match' =>
+                            false,
+
+
+                        'approved_at' =>
+                            null,
+
+
+                        'auto_verified_at' =>
+                            null,
+
+
+                        'paystack_identification_completed_at' =>
+                            null,
+
+
+                        'failure_code' =>
+                            'paystack_existing_identity_mismatch',
+
+
+                        'failure_message' =>
+                            $message,
+
+
+                        'rejection_reason' =>
+                            null,
+
+                    ])
+                    ->save();
+
+
+                Log::warning(
+                    'Rejected unsafe recovery of an already-identified Paystack customer.',
+                    [
+                        'seller_id' =>
+                            $seller->id,
+
+                        'kyc_id' =>
+                            $kyc->id,
+
+                        'customer_code' =>
+                            $customerCode,
+                    ]
+                );
+
+
+                throw ValidationException::withMessages([
+
+                    'bvn' =>
+                        $message,
+
+                ]);
+            }
+
+
             Log::warning(
                 'Paystack seller identity verification request failed.',
                 [
@@ -837,6 +954,550 @@ class PaystackSellerKycService
 
             ]);
         }
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Already Validated Paystack Response
+    |--------------------------------------------------------------------------
+    */
+
+    protected function isAlreadyValidatedWithSameCredentials(
+        Throwable $exception
+    ): bool {
+
+        $message = strtolower(
+            trim(
+                $exception
+                    ->getMessage()
+            )
+        );
+
+
+        return
+            str_contains(
+                $message,
+                'customer already validated using the same credentials'
+            )
+            &&
+            str_contains(
+                $message,
+                '[http 400]'
+            );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Reconcile An Exact Stored Paystack Identity
+    |--------------------------------------------------------------------------
+    |
+    | This deliberately fails closed. Paystack must return the full 11-digit
+    | stored BVN in the authenticated customer response. An opaque, masked, or
+    | mismatching value is not sufficient for approval.
+    |
+    */
+
+    protected function reconcileAlreadyValidatedCustomer(
+        User $seller,
+        SellerWithdrawalAccount $activeBank,
+        SellerKycVerification $kyc,
+        string $customerCode,
+        string $bvn,
+        string $firstName,
+        string $lastName
+    ): ?SellerKycVerification {
+
+        try {
+
+            $customer =
+                $this
+                    ->paystack
+                    ->fetchCustomer(
+                        $customerCode
+                    );
+
+        } catch (
+            Throwable $exception
+        ) {
+
+            Log::warning(
+                'Could not fetch an already-identified Paystack customer for strict reconciliation.',
+                [
+                    'seller_id' =>
+                        $seller->id,
+
+                    'kyc_id' =>
+                        $kyc->id,
+
+                    'customer_code' =>
+                        $customerCode,
+
+                    'error' =>
+                        $exception
+                            ->getMessage(),
+                ]
+            );
+
+
+            return null;
+        }
+
+
+        if (
+            !$customer
+            || !((bool) ($customer['identified'] ?? false))
+            || !$this
+                ->paystackCustomerMatchesSeller(
+                    $customer,
+                    $seller,
+                    $kyc,
+                    $customerCode
+                )
+            || !$this
+                ->paystackCustomerNameMatches(
+                    $customer,
+                    $firstName,
+                    $lastName
+                )
+            || !$this
+                ->paystackCustomerHasExactBvn(
+                    $customer,
+                    $bvn
+                )
+            || !$this
+                ->activeBankMatchesCustomerName(
+                    $activeBank,
+                    $customer,
+                    $seller
+                )
+        ) {
+
+            return null;
+        }
+
+
+        $verifiedFirstName = trim(
+            (string) ($customer['first_name'] ?? '')
+        );
+
+
+        $verifiedLastName = trim(
+            (string) ($customer['last_name'] ?? '')
+        );
+
+
+        DB::transaction(
+            function () use (
+                $seller,
+                $activeBank,
+                $kyc,
+                $customer,
+                $customerCode,
+                $verifiedFirstName,
+                $verifiedLastName
+            ) {
+
+                $locked =
+                    SellerKycVerification::query()
+                        ->whereKey(
+                            $kyc->id
+                        )
+                        ->where(
+                            'seller_id',
+                            $seller->id
+                        )
+                        ->lockForUpdate()
+                        ->firstOrFail();
+
+
+                $locked
+                    ->forceFill([
+
+                        'status' =>
+                            SellerKycVerification::STATUS_APPROVED,
+
+
+                        'verification_method' =>
+                            'paystack_stored_identity_match',
+
+
+                        'provider_status' =>
+                            'reconciled_exact_stored_identity',
+
+
+                        'paystack_customer_id' =>
+                            (string) (
+                                $customer['id']
+                                ??
+                                $locked->paystack_customer_id
+                            ),
+
+
+                        'paystack_identification_status' =>
+                            'success',
+
+
+                        'identity_first_name' =>
+                            $verifiedFirstName,
+
+
+                        'identity_middle_name' =>
+                            null,
+
+
+                        'identity_last_name' =>
+                            $verifiedLastName,
+
+
+                        'name_match' =>
+                            true,
+
+
+                        'bank_name_match' =>
+                            true,
+
+
+                        'failure_code' =>
+                            null,
+
+
+                        'failure_message' =>
+                            null,
+
+
+                        'rejection_reason' =>
+                            null,
+
+
+                        'approved_at' =>
+                            now(),
+
+
+                        'auto_verified_at' =>
+                            now(),
+
+
+                        'rejected_at' =>
+                            null,
+
+
+                        'paystack_identification_completed_at' =>
+                            now(),
+
+
+                        'provider_response' =>
+                            array_merge(
+                                $locked->provider_response
+                                ??
+                                [],
+                                [
+                                    'status' =>
+                                        'success',
+
+                                    'customer_code' =>
+                                        $customerCode,
+
+                                    'customer_identified' =>
+                                        true,
+
+                                    'reconciliation' =>
+                                        'exact_stored_bvn_and_bank_name',
+
+                                    'verification_source' =>
+                                        'authenticated_customer_lookup',
+
+                                    'stored_bvn_exact_match' =>
+                                        true,
+
+                                    'verified_bank_name_match' =>
+                                        true,
+                                ]
+                            ),
+
+                    ])
+                    ->save();
+
+            },
+            3
+        );
+
+
+        Log::notice(
+            'Reconciled an already-identified Paystack customer using an exact stored BVN and verified bank-name match.',
+            [
+                'seller_id' =>
+                    $seller->id,
+
+                'kyc_id' =>
+                    $kyc->id,
+
+                'customer_code' =>
+                    $customerCode,
+            ]
+        );
+
+
+        return $kyc->fresh();
+    }
+
+
+    protected function paystackCustomerMatchesSeller(
+        array $customer,
+        User $seller,
+        SellerKycVerification $kyc,
+        string $customerCode
+    ): bool {
+
+        $returnedCode = trim(
+            (string) ($customer['customer_code'] ?? '')
+        );
+
+
+        $returnedEmail = strtolower(
+            trim(
+                (string) ($customer['email'] ?? '')
+            )
+        );
+
+
+        $sellerEmail = strtolower(
+            trim(
+                (string) $seller->email
+            )
+        );
+
+
+        $storedCustomerId = trim(
+            (string) $kyc->paystack_customer_id
+        );
+
+
+        $returnedCustomerId = trim(
+            (string) ($customer['id'] ?? '')
+        );
+
+
+        return
+            $returnedCode !== ''
+            && hash_equals(
+                $customerCode,
+                $returnedCode
+            )
+            && $sellerEmail !== ''
+            && $returnedEmail !== ''
+            && hash_equals(
+                $sellerEmail,
+                $returnedEmail
+            )
+            && (
+                $storedCustomerId === ''
+                || (
+                    $returnedCustomerId !== ''
+                    && hash_equals(
+                        $storedCustomerId,
+                        $returnedCustomerId
+                    )
+                )
+            );
+    }
+
+
+    protected function paystackCustomerNameMatches(
+        array $customer,
+        string $firstName,
+        string $lastName
+    ): bool {
+
+        $verifiedFirstName = $this
+            ->normalizeName(
+                (string) ($customer['first_name'] ?? '')
+            );
+
+
+        $verifiedLastName = $this
+            ->normalizeName(
+                (string) ($customer['last_name'] ?? '')
+            );
+
+
+        return
+            $verifiedFirstName !== ''
+            && $verifiedLastName !== ''
+            && hash_equals(
+                $verifiedFirstName,
+                $this->normalizeName($firstName)
+            )
+            && hash_equals(
+                $verifiedLastName,
+                $this->normalizeName($lastName)
+            );
+    }
+
+
+    protected function paystackCustomerHasExactBvn(
+        array $customer,
+        string $bvn
+    ): bool {
+
+        $submittedBvn = (string) preg_replace(
+            '/\D+/',
+            '',
+            $bvn
+        );
+
+
+        if (strlen($submittedBvn) !== 11) {
+            return false;
+        }
+
+
+        $rawIdentifications =
+            $customer['identifications']
+            ??
+            [];
+
+
+        if (!is_array($rawIdentifications)) {
+            return false;
+        }
+
+
+        $identifications = array_is_list(
+            $rawIdentifications
+        )
+            ? $rawIdentifications
+            : [$rawIdentifications];
+
+
+        foreach ($identifications as $identification) {
+
+            if (!is_array($identification)) {
+                continue;
+            }
+
+
+            if (
+                strtoupper(
+                    trim(
+                        (string) ($identification['country'] ?? '')
+                    )
+                )
+                !==
+                'NG'
+                || strtolower(
+                    trim(
+                        (string) ($identification['type'] ?? '')
+                    )
+                )
+                !==
+                'bank_account'
+            ) {
+                continue;
+            }
+
+
+            $storedBvn = (string) preg_replace(
+                '/\D+/',
+                '',
+                (string) ($identification['value'] ?? '')
+            );
+
+
+            if (
+                strlen($storedBvn) === 11
+                && hash_equals(
+                    $submittedBvn,
+                    $storedBvn
+                )
+            ) {
+                return true;
+            }
+        }
+
+
+        return false;
+    }
+
+
+    protected function activeBankMatchesCustomerName(
+        SellerWithdrawalAccount $activeBank,
+        array $customer,
+        User $seller
+    ): bool {
+
+        if (
+            (int) $activeBank->seller_id
+                !==
+                (int) $seller->id
+            || !$activeBank->is_verified
+            || !$activeBank->is_active
+            || strlen(
+                (string) preg_replace(
+                    '/\D+/',
+                    '',
+                    (string) $activeBank->account_number
+                )
+            ) !== 10
+        ) {
+            return false;
+        }
+
+
+        $accountName = $this
+            ->normalizeName(
+                (string) $activeBank->account_name
+            );
+
+
+        $verifiedFirstName = $this
+            ->normalizeName(
+                (string) ($customer['first_name'] ?? '')
+            );
+
+
+        $verifiedLastName = $this
+            ->normalizeName(
+                (string) ($customer['last_name'] ?? '')
+            );
+
+
+        return
+            $accountName !== ''
+            && $verifiedFirstName !== ''
+            && $verifiedLastName !== ''
+            && str_contains(
+                $accountName,
+                $verifiedFirstName
+            )
+            && str_contains(
+                $accountName,
+                $verifiedLastName
+            );
+    }
+
+
+    protected function normalizeName(
+        string $value
+    ): string {
+
+        $transliterated = iconv(
+            'UTF-8',
+            'ASCII//TRANSLIT//IGNORE',
+            trim($value)
+        );
+
+
+        return strtolower(
+            (string) preg_replace(
+                '/[^a-z0-9]+/i',
+                '',
+                $transliterated !== false
+                    ? $transliterated
+                    : $value
+            )
+        );
     }
 
 
@@ -943,8 +1604,8 @@ class PaystackSellerKycService
                 fn (SellerKycVerification $candidate) =>
                     data_get(
                         $candidate->provider_response,
-                        'reconciliation'
-                    ) !== 'already_validated_same_credentials'
+                        'verification_source'
+                    ) === 'signed_webhook'
                     && $candidate->paystack_identification_status === 'success'
                     && $candidate->paystack_identification_completed_at !== null
                     && $this
@@ -1916,6 +2577,10 @@ class PaystackSellerKycService
                                     $data,
                                     'success',
                                     [
+
+                                        'verification_source' =>
+                                            'signed_webhook',
+
 
                                         'verified_first_name' =>
                                             $verifiedFirstName !== ''

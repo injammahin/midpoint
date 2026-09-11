@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Seller;
 
 use App\Http\Controllers\Controller;
+use App\Models\SellerKycVerification;
 use App\Models\SellerWithdrawal;
 use App\Models\SellerWithdrawalAccount;
 use App\Models\User;
@@ -1202,6 +1203,112 @@ class SellerWithdrawalAccountController extends Controller
                     (bool)
                     $withdrawalAccount
                         ->is_active;
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Invalidate KYC Bound To The Deleted Bank
+                |--------------------------------------------------------------------------
+                |
+                | The database foreign key is null-on-delete, so deleting the bank alone
+                | would otherwise leave a misleading global `approved` KYC status.
+                |
+                */
+
+                $kyc =
+                    SellerKycVerification::query()
+                        ->where(
+                            'seller_id',
+                            $request
+                                ->user()
+                                ->id
+                        )
+                        ->where(
+                            'seller_withdrawal_account_id',
+                            $withdrawalAccount->id
+                        )
+                        ->lockForUpdate()
+                        ->first();
+
+
+                if ($kyc) {
+
+                    $kyc
+                        ->forceFill([
+
+                            'status' =>
+                                SellerKycVerification::STATUS_PENDING,
+
+
+                            'provider_status' =>
+                                'invalidated_bank_deleted',
+
+
+                            'paystack_identification_status' =>
+                                'invalidated_bank_deleted',
+
+
+                            'seller_withdrawal_account_id' =>
+                                null,
+
+
+                            'name_match' =>
+                                null,
+
+
+                            'bank_name_match' =>
+                                null,
+
+
+                            'approved_at' =>
+                                null,
+
+
+                            'auto_verified_at' =>
+                                null,
+
+
+                            'paystack_identification_completed_at' =>
+                                null,
+
+
+                            'reused_from_kyc_id' =>
+                                null,
+
+
+                            'identity_reused_at' =>
+                                null,
+
+
+                            'failure_code' =>
+                                'verified_bank_deleted',
+
+
+                            'failure_message' =>
+                                'The bank account linked to this KYC verification was deleted. Add an active verified bank and verify your identity again.',
+
+
+                            'rejection_reason' =>
+                                null,
+
+
+                            'provider_response' =>
+                                array_merge(
+                                    $kyc->provider_response
+                                    ??
+                                    [],
+                                    [
+                                        'local_invalidation' =>
+                                            'verified_bank_deleted',
+
+                                        'invalidated_at' =>
+                                            now()->toIso8601String(),
+                                    ]
+                                ),
+
+                        ])
+                        ->save();
+                }
 
 
                 /*

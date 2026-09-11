@@ -171,8 +171,7 @@ class SellerKycVerification extends Model
 
         'identity_date_of_birth' =>
             'date',
-        
-        'identity_reused_at' => 'datetime',
+
 
         'liveness_passed' =>
             'boolean',
@@ -241,6 +240,10 @@ class SellerKycVerification extends Model
         'paystack_identification_completed_at' =>
             'datetime',
 
+
+        'identity_reused_at' =>
+            'datetime',
+
     ];
 
 
@@ -288,6 +291,7 @@ class SellerKycVerification extends Model
         );
     }
 
+
     public function reusedFromVerification()
     {
         return $this->belongsTo(
@@ -295,6 +299,8 @@ class SellerKycVerification extends Model
             'reused_from_kyc_id'
         );
     }
+
+
     /*
     |--------------------------------------------------------------------------
     | Encrypt BVN
@@ -402,6 +408,38 @@ class SellerKycVerification extends Model
             : (string)
                 $this
                     ->legal_name;
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Bank-Bound Approval
+    |--------------------------------------------------------------------------
+    |
+    | A KYC approval is usable only for the exact verified withdrawal account
+    | that Paystack checked. A global `approved` status is never sufficient.
+    |
+    */
+
+    public function isApprovedForWithdrawalAccount(
+        ?SellerWithdrawalAccount $account
+    ): bool {
+
+        return
+            $this->status
+                ===
+                self::STATUS_APPROVED
+            && $account !== null
+            && $account->is_verified
+            && (int) $account->seller_id
+                ===
+                (int) $this->seller_id
+            && (int) $this->seller_withdrawal_account_id
+                ===
+                (int) $account->id
+            && $this->bank_name_match
+                ===
+                true;
     }
 
 

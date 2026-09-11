@@ -16,28 +16,10 @@ PAYSTACK IDENTITY VERIFICATION
 
         &&
 
-        $activeAccount
-
-        &&
-
-        (int) 
         $kyc
-            ->seller_withdrawal_account_id
-
-        ===
-
-        (int) 
-        $activeAccount
-            ->id
-
-        &&
-
-        $kyc
-            ->bank_name_match
-
-        ===
-
-        true;
+            ->isApprovedForWithdrawalAccount(
+                $activeAccount
+            );
 
 
     /*
@@ -49,12 +31,6 @@ PAYSTACK IDENTITY VERIFICATION
     $kycFullyVerified =
 
         $kyc
-
-        &&
-
-        $kyc->status
-        ===
-        \App\Models\SellerKycVerification::STATUS_APPROVED
 
         &&
 

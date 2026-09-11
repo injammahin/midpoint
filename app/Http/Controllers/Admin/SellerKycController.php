@@ -104,6 +104,27 @@ class SellerKycController extends Controller
         }
 
 
+        /*
+        |--------------------------------------------------------------------------
+        | Never Manually Approve Automated Paystack KYC
+        |--------------------------------------------------------------------------
+        |
+        | An administrator cannot prove that the submitted BVN belongs to the
+        | selected bank account. Automated Paystack KYC must be approved only by
+        | the strict provider result handled by PaystackSellerKycService.
+        |
+        */
+
+        if ($kyc->provider === 'paystack') {
+
+            return back()
+                ->with(
+                    'error',
+                    'Paystack KYC cannot be approved manually. A matching verified Paystack result is required.'
+                );
+        }
+
+
         $kyc->forceFill([
             'status' =>
                 SellerKycVerification::STATUS_APPROVED,
