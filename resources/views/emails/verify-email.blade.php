@@ -303,7 +303,7 @@
 
                                         <a
                                             href="{{ route('home') }}"
-                                            aria-label="Visit MidPoint"
+                                            aria-label="Visit Midpoint"
                                             style="
                                                 display: inline-block;
                                             "
@@ -313,7 +313,7 @@
 
                                                 <img
                                                     src="{{ $logoUrl }}"
-                                                    alt="MidPoint"
+                                                    alt="Midpoint"
                                                     width="190"
                                                     style="
                                                         display: block;
@@ -650,7 +650,7 @@
                                                 text-align: center;
                                             "
                                         >
-                                            If you did not create a MidPoint
+                                            If you did not create a Midpoint
                                             account, you can safely ignore
                                             this email.
 
