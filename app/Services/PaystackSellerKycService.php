@@ -5,12 +5,13 @@ namespace App\Services;
 use App\Models\SellerKycVerification;
 use App\Models\SellerWithdrawalAccount;
 use App\Models\User;
+use App\Support\KycIdentityFingerprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use RuntimeException;
 use Throwable;
-use App\Support\KycIdentityFingerprint;
+
 class PaystackSellerKycService
 {
     public function __construct(
@@ -211,34 +212,59 @@ class PaystackSellerKycService
             ]);
         }
 
-    $fingerprint =
-        $this->identityFingerprint->make($bvn);
 
-    $reusableVerification =
-        $this->findReusableVerification(
-            $seller,
-            $activeBank,
-            $fingerprint,
-            $firstName,
-            $middleName,
-            $lastName,
-            (string) $data['date_of_birth']
-        );
+        $fingerprint =
+            $this
+                ->identityFingerprint
+                ->make(
+                    $bvn
+                );
 
-    if ($reusableVerification) {
-        return $this->approveFromReusableVerification(
-            $seller,
-            $existing,
-            $activeBank,
-            $reusableVerification,
-            $data,
-            $firstName,
-            $middleName,
-            $lastName,
-            $bvn,
-            $fingerprint
-        );
-    }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Reuse A Previous Successful Verification
+        |--------------------------------------------------------------------------
+        |
+        | Paystack identifies customers asynchronously and may reject repeated
+        | submissions of the same identity. When explicitly enabled, Midpoint
+        | can reuse a previous successful Paystack verification. Reuse requires
+        | an exact identity fingerprint, DOB, first/last name, bank code, and
+        | account-number match.
+        |
+        */
+
+        $reusableVerification =
+            $this
+                ->findReusableVerification(
+                    $seller,
+                    $activeBank,
+                    $fingerprint,
+                    $firstName,
+                    $middleName,
+                    $lastName,
+                    (string) $data['date_of_birth']
+                );
+
+
+        if ($reusableVerification) {
+
+            return $this
+                ->approveFromReusableVerification(
+                    $seller,
+                    $existing,
+                    $activeBank,
+                    $reusableVerification,
+                    $data,
+                    $firstName,
+                    $middleName,
+                    $lastName,
+                    $bvn,
+                    $fingerprint
+                );
+        }
+
+
         /*
         |--------------------------------------------------------------------------
         | Ensure Paystack Customer Exists
@@ -295,18 +321,17 @@ class PaystackSellerKycService
         $kyc =
             DB::transaction(
                 function () use (
-                $seller,
-                $existing,
-                $activeBank,
-                $data,
-                $firstName,
-                $middleName,
-                $lastName,
-                $bvn,
-                $fingerprint,
-                $customerCode,
-                $customerId
-
+                    $seller,
+                    $existing,
+                    $activeBank,
+                    $data,
+                    $firstName,
+                    $middleName,
+                    $lastName,
+                    $bvn,
+                    $fingerprint,
+                    $customerCode,
+                    $customerId
                 ) {
 
                     $record =
@@ -367,14 +392,19 @@ class PaystackSellerKycService
                         'id_number' =>
                             $bvn,
 
-                    'identity_fingerprint' =>
-                        $fingerprint,
 
-                    'reused_from_kyc_id' =>
-                        null,
+                        'identity_fingerprint' =>
+                            $fingerprint,
 
-                    'identity_reused_at' =>
-                        null,
+
+                        'reused_from_kyc_id' =>
+                            null,
+
+
+                        'identity_reused_at' =>
+                            null,
+
+
                         /*
                         |--------------------------------------------------------------------------
                         | Legacy Columns
@@ -543,6 +573,20 @@ class PaystackSellerKycService
 
                             'submitted_name' =>
                                 $legalName,
+
+
+                            'submitted_first_name' =>
+                                $firstName,
+
+
+                            'submitted_middle_name' =>
+                                $middleName !== ''
+                                    ? $middleName
+                                    : null,
+
+
+                            'submitted_last_name' =>
+                                $lastName,
 
                         ],
 
@@ -728,42 +772,6 @@ class PaystackSellerKycService
         } catch (
             Throwable $exception
         ) {
-
-            /*
-            |------------------------------------------------------------------
-            | Recover An Already-Validated Paystack Customer
-            |------------------------------------------------------------------
-            |
-            | Paystack returns HTTP 400 when the same customer is submitted
-            | again with credentials that it has already validated. This can
-            | happen when our local record was reset, a previous webhook was
-            | missed, or the seller retries after the first verification.
-            |
-            | Do not approve from the error text alone. Fetch the customer and
-            | require Paystack's authoritative `identified` flag as well.
-            |
-            */
-
-            if (
-                $this
-                    ->isAlreadyValidatedWithSameCredentials(
-                        $exception
-                    )
-            ) {
-
-                $recovered =
-                    $this
-                        ->recoverAlreadyValidatedCustomer(
-                            $kyc,
-                            $customerCode
-                        );
-
-
-                if ($recovered) {
-                    return $recovered;
-                }
-            }
-
             Log::warning(
                 'Paystack seller identity verification request failed.',
                 [
@@ -834,747 +842,587 @@ class PaystackSellerKycService
 
     /*
     |--------------------------------------------------------------------------
-    | Already Validated Response
+    | Find A Reusable Successful Verification
     |--------------------------------------------------------------------------
-    |
-    | This must stay deliberately narrow. Other HTTP 400 responses may mean
-    | invalid or mismatched KYC details and must continue through the normal
-    | provider-error path.
-    |
     */
 
-
     protected function findReusableVerification(
-    User $seller,
-    SellerWithdrawalAccount $activeBank,
-    string $fingerprint,
-    string $firstName,
-    string $middleName,
-    string $lastName,
-    string $dateOfBirth
-): ?SellerKycVerification {
-    if (
-        !config(
-            'midpoint.kyc.allow_verified_identity_reuse',
-            false
-        )
-    ) {
-        return null;
-    }
+        User $seller,
+        SellerWithdrawalAccount $activeBank,
+        string $fingerprint,
+        string $firstName,
+        string $middleName,
+        string $lastName,
+        string $dateOfBirth
+    ): ?SellerKycVerification {
 
-    $accountHash = trim(
-        (string) $activeBank->account_number_hash
-    );
-
-    if ($accountHash === '') {
-        return null;
-    }
-
-    $candidates =
-        SellerKycVerification::query()
-            ->with('withdrawalAccount')
-            ->where('seller_id', '!=', $seller->id)
-            ->where(
-                'status',
-                SellerKycVerification::STATUS_APPROVED
+        if (
+            !config(
+                'midpoint.kyc.allow_verified_identity_reuse',
+                false
             )
-            /*
-             * Always reuse from an original Paystack result,
-             * not from another reused result.
-             */
-            ->where('provider', 'paystack')
-            ->where(
-                'provider_environment',
-                (string) config(
-                    'services.paystack.mode',
-                    'test'
-                )
-            )
-            ->where(
-                'identity_fingerprint',
-                $fingerprint
-            )
-            ->where('bank_name_match', true)
-            ->whereDate(
-                'date_of_birth',
-                $dateOfBirth
-            )
-            ->whereHas(
-                'withdrawalAccount',
-                function ($query) use (
-                    $activeBank,
-                    $accountHash
-                ) {
-                    $query
-                        ->where(
-                            'bank_code',
-                            $activeBank->bank_code
-                        )
-                        ->where(
-                            'account_number_hash',
-                            $accountHash
-                        )
-                        ->where(
-                            'is_verified',
-                            true
-                        );
-                }
-            )
-            ->latest('approved_at')
-            ->limit(20)
-            ->get();
-
-    return $candidates->first(
-        fn (SellerKycVerification $candidate) =>
-            $this->identityFingerprint
-                ->submittedNameMatches(
-                    $candidate,
-                    $firstName,
-                    $middleName,
-                    $lastName
-                )
-    );
-}
-
-protected function approveFromReusableVerification(
-    User $seller,
-    ?SellerKycVerification $existing,
-    SellerWithdrawalAccount $activeBank,
-    SellerKycVerification $source,
-    array $data,
-    string $firstName,
-    string $middleName,
-    string $lastName,
-    string $bvn,
-    string $fingerprint
-): SellerKycVerification {
-    $legalName = trim(
-        implode(
-            ' ',
-            array_filter([
-                $firstName,
-                $middleName,
-                $lastName,
-            ])
-        )
-    );
-
-    $kyc = DB::transaction(
-        function () use (
-            $seller,
-            $existing,
-            $activeBank,
-            $source,
-            $data,
-            $firstName,
-            $middleName,
-            $lastName,
-            $legalName,
-            $bvn,
-            $fingerprint
         ) {
-            $record =
-                SellerKycVerification::query()
-                    ->where(
-                        'seller_id',
-                        $seller->id
-                    )
-                    ->lockForUpdate()
-                    ->first()
-                ??
-                $existing
-                ??
-                new SellerKycVerification();
+            return null;
+        }
 
-            $record->fill([
-                'seller_id' =>
-                    $seller->id,
 
-                'legal_name' =>
-                    $legalName,
+        $activeAccountHash = trim(
+            (string) $activeBank->account_number_hash
+        );
 
-                'date_of_birth' =>
-                    $data['date_of_birth'],
 
-                'country_code' =>
-                    'NG',
+        if ($activeAccountHash === '') {
+            return null;
+        }
 
-                'id_type' =>
-                    'bvn',
 
-                'id_number' =>
-                    $bvn,
-
-                'identity_fingerprint' =>
-                    $fingerprint,
-
-                'reused_from_kyc_id' =>
-                    $source->id,
-
-                'identity_reused_at' =>
-                    now(),
-
-                'document_front_path' =>
-                    $record->document_front_path ?: '',
-
-                'document_back_path' =>
-                    null,
-
-                'selfie_path' =>
-                    $record->selfie_path ?: '',
-
-                'status' =>
-                    SellerKycVerification::STATUS_APPROVED,
-
-                'verification_method' =>
-                    'paystack_identity_reuse',
-
-                /*
-                 * Paystack verified the source record.
-                 * Midpoint reused that verification locally.
-                 */
-                'provider' =>
-                    'midpoint',
-
-                'provider_environment' =>
+        $candidates =
+            SellerKycVerification::query()
+                ->with('withdrawalAccount')
+                ->where(
+                    'seller_id',
+                    '!=',
+                    $seller->id
+                )
+                ->where(
+                    'status',
+                    SellerKycVerification::STATUS_APPROVED
+                )
+                ->where(
+                    'provider',
+                    'paystack'
+                )
+                ->where(
+                    'provider_environment',
                     (string) config(
                         'services.paystack.mode',
                         'test'
-                    ),
-
-                'provider_status' =>
-                    'reused_verified_identity',
-
-                /*
-                 * Never copy the original Paystack customer code.
-                 * Otherwise a webhook could update the wrong seller.
-                 */
-                'paystack_customer_code' =>
-                    null,
-
-                'paystack_customer_id' =>
-                    null,
-
-                'paystack_identification_status' =>
-                    'reused',
-
-                'paystack_identification_requested_at' =>
-                    null,
-
-                'paystack_identification_completed_at' =>
-                    now(),
-
-                'identity_first_name' =>
-                    $source->identity_first_name
-                    ?: $firstName,
-
-                'identity_middle_name' =>
-                    $source->identity_middle_name
-                    ?: (
-                        $middleName !== ''
-                            ? $middleName
-                            : null
-                    ),
-
-                'identity_last_name' =>
-                    $source->identity_last_name
-                    ?: $lastName,
-
-                'identity_date_of_birth' =>
-                    $source->identity_date_of_birth,
-
-                'name_match' =>
-                    true,
-
-                'bank_name_match' =>
-                    true,
-
-                'seller_withdrawal_account_id' =>
-                    $activeBank->id,
-
-                'failure_code' =>
-                    null,
-
-                'failure_message' =>
-                    null,
-
-                'rejection_reason' =>
-                    null,
-
-                'provider_response' => [
-                    'status' =>
-                        'success',
-
-                    'verification_source' =>
-                        'existing_paystack_verification',
-
-                    'source_kyc_id' =>
-                        $source->id,
-
-                    'matched_controls' => [
-                        'bvn_fingerprint',
-                        'full_legal_name',
-                        'date_of_birth',
-                        'bank_code',
-                        'bank_account',
-                    ],
-                ],
-
-                'verification_attempts' =>
-                    ((int) $record->verification_attempts) + 1,
-
-                'last_verification_attempt_at' =>
-                    now(),
-
-                'submitted_at' =>
-                    now(),
-
-                'reviewed_by' =>
-                    null,
-
-                'reviewed_at' =>
-                    null,
-
-                'approved_at' =>
-                    now(),
-
-                'rejected_at' =>
-                    null,
-
-                'auto_verified_at' =>
-                    now(),
-            ]);
-
-            $record->save();
-
-            return $record->fresh();
-        },
-        3
-    );
-
-    Log::notice(
-        'Reused Paystack verification for another seller account.',
-        [
-            'seller_id' => $seller->id,
-            'kyc_id' => $kyc->id,
-            'source_kyc_id' => $source->id,
-        ]
-    );
-
-    return $kyc;
-}
-
-public function releaseIfStale(
-    SellerKycVerification $kyc
-): SellerKycVerification {
-    $timeoutMinutes = max(
-        15,
-        (int) config(
-            'midpoint.kyc.processing_timeout_minutes',
-            30
-        )
-    );
-
-    return DB::transaction(
-        function () use (
-            $kyc,
-            $timeoutMinutes
-        ) {
-            $locked =
-                SellerKycVerification::query()
-                    ->whereKey($kyc->id)
-                    ->lockForUpdate()
-                    ->first();
-
-            if (
-                !$locked
-                ||
-                $locked->status
-                    !== SellerKycVerification::STATUS_PROCESSING
-            ) {
-                return $locked ?: $kyc;
-            }
-
-            $startedAt =
-                $locked->paystack_identification_requested_at
-                ?: $locked->submitted_at
-                ?: $locked->updated_at;
-
-            if (
-                !$startedAt
-                ||
-                $startedAt->gt(
-                    now()->subMinutes($timeoutMinutes)
+                    )
                 )
-            ) {
-                return $locked;
-            }
-
-            $locked->forceFill([
-                'status' =>
-                    SellerKycVerification::STATUS_PROVIDER_ERROR,
-
-                'provider_status' =>
-                    'result_timeout',
-
-                'paystack_identification_status' =>
-                    'result_timeout',
-
-                'failure_code' =>
-                    'paystack_result_timeout',
-
-                'failure_message' =>
-                    'Paystack did not return the final verification result in time. Please submit the verification again.',
-            ])->save();
-
-            Log::warning(
-                'Released stale Paystack KYC for retry.',
-                [
-                    'kyc_id' => $locked->id,
-                    'seller_id' => $locked->seller_id,
-                ]
-            );
-
-            return $locked->fresh();
-        },
-        3
-    );
-}
-
-public function releaseStaleProcessing(
-    int $limit = 100
-): int {
-    $timeoutMinutes = max(
-        15,
-        (int) config(
-            'midpoint.kyc.processing_timeout_minutes',
-            30
-        )
-    );
-
-    $records =
-        SellerKycVerification::query()
-            ->where(
-                'status',
-                SellerKycVerification::STATUS_PROCESSING
-            )
-            ->where(
-                'paystack_identification_requested_at',
-                '<=',
-                now()->subMinutes($timeoutMinutes)
-            )
-            ->oldest('id')
-            ->limit(
-                max(1, min($limit, 500))
-            )
-            ->get();
-
-    $released = 0;
-
-    foreach ($records as $record) {
-        $updated =
-            $this->releaseIfStale($record);
-
-        if (
-            $updated->status
-            ===
-            SellerKycVerification::STATUS_PROVIDER_ERROR
-        ) {
-            $released++;
-        }
-    }
-
-    return $released;
-}
-
-    protected function isAlreadyValidatedWithSameCredentials(
-        Throwable $exception
-    ): bool {
-
-        $message =
-            strtolower(
-                trim(
-                    $exception
-                        ->getMessage()
+                ->where(
+                    'identity_fingerprint',
+                    $fingerprint
                 )
-            );
+                ->where(
+                    'bank_name_match',
+                    true
+                )
+                ->whereDate(
+                    'date_of_birth',
+                    $dateOfBirth
+                )
+                ->whereHas(
+                    'withdrawalAccount',
+                    function ($query) use (
+                        $activeBank,
+                        $activeAccountHash
+                    ) {
+
+                        $query
+                            ->where(
+                                'bank_code',
+                                $activeBank->bank_code
+                            )
+                            ->where(
+                                'account_number_hash',
+                                $activeAccountHash
+                            )
+                            ->where(
+                                'is_verified',
+                                true
+                            );
+                    }
+                )
+                ->latest('approved_at')
+                ->limit(20)
+                ->get();
 
 
-        return
-            str_contains(
-                $message,
-                'customer already validated using the same credentials'
-            )
-            &&
-            str_contains(
-                $message,
-                '[http 400]'
+        return $candidates
+            ->first(
+                fn (SellerKycVerification $candidate) =>
+                    data_get(
+                        $candidate->provider_response,
+                        'reconciliation'
+                    ) !== 'already_validated_same_credentials'
+                    && $candidate->paystack_identification_status === 'success'
+                    && $candidate->paystack_identification_completed_at !== null
+                    && $this
+                        ->identityFingerprint
+                        ->submittedNameMatches(
+                            $candidate,
+                            $firstName,
+                            $middleName,
+                            $lastName
+                        )
             );
     }
 
 
     /*
     |--------------------------------------------------------------------------
-    | Reconcile An Existing Paystack Validation
+    | Approve From A Reusable Successful Verification
     |--------------------------------------------------------------------------
     */
 
-    protected function recoverAlreadyValidatedCustomer(
-        SellerKycVerification $kyc,
-        string $customerCode
-    ): ?SellerKycVerification {
+    protected function approveFromReusableVerification(
+        User $seller,
+        ?SellerKycVerification $existing,
+        SellerWithdrawalAccount $activeBank,
+        SellerKycVerification $source,
+        array $data,
+        string $firstName,
+        string $middleName,
+        string $lastName,
+        string $bvn,
+        string $fingerprint
+    ): SellerKycVerification {
 
-        try {
-
-            $customer =
-                $this
-                    ->paystack
-                    ->fetchCustomer(
-                        $customerCode
-                    );
-
-
-        } catch (
-            Throwable $exception
-        ) {
-
-            Log::warning(
-                'Could not fetch an already-validated Paystack customer.',
-                [
-
-                    'kyc_id' =>
-                        $kyc->id,
-
-
-                    'customer_code' =>
-                        $customerCode,
-
-
-                    'error' =>
-                        $exception
-                            ->getMessage(),
-
-                ]
-            );
-
-
-            return null;
-        }
-
-
-        if (
-            !$customer
-            ||
-            !(
-                (bool) (
-                    $customer[
-                        'identified'
-                    ]
-                    ??
-                    false
-                )
+        $legalName = trim(
+            implode(
+                ' ',
+                array_filter([
+                    $firstName,
+                    $middleName,
+                    $lastName,
+                ])
             )
-        ) {
-
-            Log::warning(
-                'Paystack reported duplicate validation but the customer is not identified.',
-                [
-
-                    'kyc_id' =>
-                        $kyc->id,
+        );
 
 
-                    'customer_code' =>
-                        $customerCode,
+        $kyc = DB::transaction(
+            function () use (
+                $seller,
+                $existing,
+                $activeBank,
+                $source,
+                $data,
+                $firstName,
+                $middleName,
+                $lastName,
+                $legalName,
+                $bvn,
+                $fingerprint
+            ) {
 
-                ]
-            );
-
-
-            return null;
-        }
-
-
-        $verifiedFirstName =
-            trim(
-                (string) (
-                    $customer[
-                        'first_name'
-                    ]
+                $record =
+                    SellerKycVerification::query()
+                        ->where(
+                            'seller_id',
+                            $seller->id
+                        )
+                        ->lockForUpdate()
+                        ->first()
                     ??
-                    ''
-                )
-            );
-
-
-        $verifiedLastName =
-            trim(
-                (string) (
-                    $customer[
-                        'last_name'
-                    ]
+                    $existing
                     ??
-                    ''
-                )
-            );
+                    new SellerKycVerification();
 
 
-        DB::transaction(
+                $record->fill([
+
+                    'seller_id' =>
+                        $seller->id,
+
+
+                    'legal_name' =>
+                        $legalName,
+
+
+                    'date_of_birth' =>
+                        $data['date_of_birth'],
+
+
+                    'country_code' =>
+                        'NG',
+
+
+                    'id_type' =>
+                        'bvn',
+
+
+                    'id_number' =>
+                        $bvn,
+
+
+                    'identity_fingerprint' =>
+                        $fingerprint,
+
+
+                    'reused_from_kyc_id' =>
+                        $source->id,
+
+
+                    'identity_reused_at' =>
+                        now(),
+
+
+                    'document_front_path' =>
+                        $record->document_front_path ?: '',
+
+
+                    'document_back_path' =>
+                        null,
+
+
+                    'selfie_path' =>
+                        $record->selfie_path ?: '',
+
+
+                    'status' =>
+                        SellerKycVerification::STATUS_APPROVED,
+
+
+                    'verification_method' =>
+                        'paystack_identity_reuse',
+
+
+                    'provider' =>
+                        'midpoint',
+
+
+                    'provider_environment' =>
+                        (string) config(
+                            'services.paystack.mode',
+                            'test'
+                        ),
+
+
+                    'provider_status' =>
+                        'reused_verified_identity',
+
+
+                    /*
+                     * Do not copy the source Paystack customer code. A webhook
+                     * for that customer belongs to the original verification.
+                     */
+                    'paystack_customer_code' =>
+                        null,
+
+
+                    'paystack_customer_id' =>
+                        null,
+
+
+                    'paystack_identification_status' =>
+                        'reused',
+
+
+                    'paystack_identification_requested_at' =>
+                        null,
+
+
+                    'paystack_identification_completed_at' =>
+                        now(),
+
+
+                    'identity_first_name' =>
+                        $source->identity_first_name
+                        ?: $firstName,
+
+
+                    'identity_middle_name' =>
+                        $source->identity_middle_name
+                        ?: ($middleName !== '' ? $middleName : null),
+
+
+                    'identity_last_name' =>
+                        $source->identity_last_name
+                        ?: $lastName,
+
+
+                    'identity_date_of_birth' =>
+                        $source->identity_date_of_birth,
+
+
+                    'liveness_passed' =>
+                        $source->liveness_passed,
+
+
+                    'liveness_probability' =>
+                        $source->liveness_probability,
+
+
+                    'face_match' =>
+                        $source->face_match,
+
+
+                    'face_confidence' =>
+                        $source->face_confidence,
+
+
+                    'name_match' =>
+                        true,
+
+
+                    'dob_match' =>
+                        $source->dob_match,
+
+
+                    'bank_name_match' =>
+                        true,
+
+
+                    'seller_withdrawal_account_id' =>
+                        $activeBank->id,
+
+
+                    'failure_code' =>
+                        null,
+
+
+                    'failure_message' =>
+                        null,
+
+
+                    'rejection_reason' =>
+                        null,
+
+
+                    'provider_response' => [
+
+                        'status' =>
+                            'success',
+
+
+                        'verification_source' =>
+                            'existing_paystack_verification',
+
+
+                        'source_kyc_id' =>
+                            $source->id,
+
+
+                        'matched_controls' => [
+                            'bvn_fingerprint',
+                            'date_of_birth',
+                            'first_name',
+                            'last_name',
+                            'bank_code',
+                            'bank_account',
+                        ],
+
+                    ],
+
+
+                    'verification_attempts' =>
+                        ((int) $record->verification_attempts) + 1,
+
+
+                    'last_verification_attempt_at' =>
+                        now(),
+
+
+                    'submitted_at' =>
+                        now(),
+
+
+                    'reviewed_by' =>
+                        null,
+
+
+                    'reviewed_at' =>
+                        null,
+
+
+                    'approved_at' =>
+                        now(),
+
+
+                    'rejected_at' =>
+                        null,
+
+
+                    'auto_verified_at' =>
+                        now(),
+
+                ]);
+
+
+                $record->save();
+
+
+                return $record->fresh();
+            },
+            3
+        );
+
+
+        Log::notice(
+            'Reused a successful Paystack identity verification for another authorised seller account.',
+            [
+                'seller_id' =>
+                    $seller->id,
+
+                'kyc_id' =>
+                    $kyc->id,
+
+                'source_kyc_id' =>
+                    $source->id,
+            ]
+        );
+
+
+        return $kyc;
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Release A Stale Processing Record
+    |--------------------------------------------------------------------------
+    |
+    | A late valid Paystack webhook can still approve this record. Until then,
+    | changing it to provider_error makes the form available for a safe retry.
+    |
+    */
+
+    public function releaseIfStale(
+        SellerKycVerification $kyc
+    ): SellerKycVerification {
+
+        $timeoutMinutes = max(
+            15,
+            (int) config(
+                'midpoint.kyc.processing_timeout_minutes',
+                30
+            )
+        );
+
+
+        return DB::transaction(
             function () use (
                 $kyc,
-                $customer,
-                $customerCode,
-                $verifiedFirstName,
-                $verifiedLastName
+                $timeoutMinutes
             ) {
 
                 $locked =
                     SellerKycVerification::query()
-                        ->whereKey(
-                            $kyc->id
-                        )
+                        ->whereKey($kyc->id)
                         ->lockForUpdate()
-                        ->firstOrFail();
+                        ->first();
+
+
+                if (
+                    !$locked
+                    || $locked->status
+                        !== SellerKycVerification::STATUS_PROCESSING
+                ) {
+                    return $locked ?: $kyc;
+                }
+
+
+                $startedAt =
+                    $locked->paystack_identification_requested_at
+                    ?: $locked->submitted_at
+                    ?: $locked->updated_at;
+
+
+                if (
+                    !$startedAt
+                    || $startedAt->gt(
+                        now()->subMinutes($timeoutMinutes)
+                    )
+                ) {
+                    return $locked;
+                }
 
 
                 $locked
                     ->forceFill([
 
                         'status' =>
-                            SellerKycVerification::STATUS_APPROVED,
+                            SellerKycVerification::STATUS_PROVIDER_ERROR,
 
 
                         'provider_status' =>
-                            'success',
-
-
-                        'paystack_customer_id' =>
-                            isset(
-                                $customer['id']
-                            )
-                                ? (string) $customer['id']
-                                : $locked
-                                    ->paystack_customer_id,
+                            'result_timeout',
 
 
                         'paystack_identification_status' =>
-                            'success',
-
-
-                        'identity_first_name' =>
-                            $verifiedFirstName !== ''
-                                ? $verifiedFirstName
-                                : null,
-
-
-                        'identity_middle_name' =>
-                            null,
-
-
-                        'identity_last_name' =>
-                            $verifiedLastName !== ''
-                                ? $verifiedLastName
-                                : null,
-
-
-                        'name_match' =>
-                            true,
-
-
-                        'bank_name_match' =>
-                            true,
+                            'result_timeout',
 
 
                         'failure_code' =>
-                            null,
+                            'paystack_result_timeout',
 
 
                         'failure_message' =>
-                            null,
-
-
-                        'rejection_reason' =>
-                            null,
-
-
-                        'approved_at' =>
-                            now(),
-
-
-                        'auto_verified_at' =>
-                            now(),
-
-
-                        'rejected_at' =>
-                            null,
-
-
-                        'paystack_identification_completed_at' =>
-                            now(),
-
-
-                        'provider_response' =>
-                            array_merge(
-                                $locked
-                                    ->provider_response
-                                ??
-                                [],
-                                [
-
-                                    'status' =>
-                                        'success',
-
-
-                                    'customer_code' =>
-                                        $customerCode,
-
-
-                                    'customer_identified' =>
-                                        true,
-
-
-                                    'reconciliation' =>
-                                        'already_validated_same_credentials',
-
-
-                                    'verified_first_name' =>
-                                        $verifiedFirstName !== ''
-                                            ? $verifiedFirstName
-                                            : null,
-
-
-                                    'verified_last_name' =>
-                                        $verifiedLastName !== ''
-                                            ? $verifiedLastName
-                                            : null,
-
-                                ]
-                            ),
+                            'Paystack did not return the final verification result in time. Please submit the verification again.',
 
                     ])
                     ->save();
 
+
+                Log::warning(
+                    'Released a stale Paystack seller KYC verification for retry.',
+                    [
+                        'kyc_id' =>
+                            $locked->id,
+
+                        'seller_id' =>
+                            $locked->seller_id,
+
+                        'requested_at' =>
+                            optional($startedAt)->toIso8601String(),
+                    ]
+                );
+
+
+                return $locked->fresh();
             },
             3
         );
+    }
 
 
-        Log::info(
-            'Recovered an already-validated Paystack seller KYC record.',
-            [
+    public function releaseStaleProcessing(
+        int $limit = 100
+    ): int {
 
-                'kyc_id' =>
-                    $kyc->id,
-
-
-                'customer_code' =>
-                    $customerCode,
-
-            ]
+        $timeoutMinutes = max(
+            15,
+            (int) config(
+                'midpoint.kyc.processing_timeout_minutes',
+                30
+            )
         );
 
 
-        return $kyc->fresh();
+        $records =
+            SellerKycVerification::query()
+                ->where(
+                    'status',
+                    SellerKycVerification::STATUS_PROCESSING
+                )
+                ->where(
+                    'paystack_identification_requested_at',
+                    '<=',
+                    now()->subMinutes($timeoutMinutes)
+                )
+                ->oldest('id')
+                ->limit(max(1, min($limit, 500)))
+                ->get();
+
+
+        $released = 0;
+
+
+        foreach ($records as $record) {
+
+            if (
+                $this
+                    ->releaseIfStale($record)
+                    ->status
+                ===
+                SellerKycVerification::STATUS_PROVIDER_ERROR
+            ) {
+                $released++;
+            }
+        }
+
+
+        return $released;
     }
 
 
@@ -1641,9 +1489,10 @@ public function releaseStaleProcessing(
 
         $kyc =
             SellerKycVerification::query()
-                ->with(
-                    'withdrawalAccount'
-                )
+                ->with([
+                    'withdrawalAccount',
+                    'seller',
+                ])
                 ->where(
                     'provider',
                     'paystack'
@@ -1652,6 +1501,7 @@ public function releaseStaleProcessing(
                     'paystack_customer_code',
                     $customerCode
                 )
+                ->latest('id')
                 ->first();
 
 
@@ -2293,6 +2143,77 @@ public function releaseStaleProcessing(
         }
 
 
+        if (!$kyc->seller) {
+            return false;
+        }
+
+
+        $eventCustomerCode = trim(
+            (string) ($data['customer_code'] ?? '')
+        );
+
+
+        if (
+            $eventCustomerCode === ''
+            || !hash_equals(
+                (string) $kyc->paystack_customer_code,
+                $eventCustomerCode
+            )
+        ) {
+            return false;
+        }
+
+
+        $eventCustomerId = trim(
+            (string) ($data['customer_id'] ?? '')
+        );
+
+
+        if ($eventCustomerId === '') {
+            return false;
+        }
+
+
+        if (
+            trim((string) $kyc->paystack_customer_id) !== ''
+            && !hash_equals(
+                (string) $kyc->paystack_customer_id,
+                $eventCustomerId
+            )
+        ) {
+            return false;
+        }
+
+
+        $eventEmail = strtolower(
+            trim((string) ($data['email'] ?? ''))
+        );
+
+
+        $sellerEmail = strtolower(
+            trim((string) $kyc->seller->email)
+        );
+
+
+        if (
+            $sellerEmail === ''
+            || $eventEmail === ''
+            || !hash_equals($sellerEmail, $eventEmail)
+        ) {
+            return false;
+        }
+
+
+        if (
+            strtoupper(trim((string) ($identification['country'] ?? '')))
+                !== 'NG'
+            || strtolower(trim((string) ($identification['type'] ?? '')))
+                !== 'bank_account'
+        ) {
+            return false;
+        }
+
+
         /*
         |--------------------------------------------------------------------------
         | Bank Code
@@ -2312,13 +2233,11 @@ public function releaseStaleProcessing(
 
 
         if (
-            $eventBankCode !== ''
-            &&
-            $eventBankCode
-            !==
-            (string)
-            $account
-                ->bank_code
+            $eventBankCode === ''
+            || !hash_equals(
+                (string) $account->bank_code,
+                $eventBankCode
+            )
         ) {
 
             return false;
@@ -2336,48 +2255,14 @@ public function releaseStaleProcessing(
         |
         */
 
-        $eventAccountDigits =
-            preg_replace(
-                '/\D+/',
-                '',
-                (string) (
-                    $identification[
-                        'account_number'
-                    ]
-                    ??
-                    ''
-                )
-            );
-
-
         if (
-            $eventAccountDigits !== ''
+            !$this->paystackMaskedNumberMatches(
+                (string) ($identification['account_number'] ?? ''),
+                (string) $account->account_number,
+                10
+            )
         ) {
-
-            $eventLast3 =
-                substr(
-                    $eventAccountDigits,
-                    -3
-                );
-
-
-            $localLast3 =
-                substr(
-                    (string)
-                    $account
-                        ->account_number_last4,
-                    -3
-                );
-
-
-            if (
-                $eventLast3
-                !==
-                $localLast3
-            ) {
-
-                return false;
-            }
+            return false;
         }
 
 
@@ -2387,52 +2272,54 @@ public function releaseStaleProcessing(
         |--------------------------------------------------------------------------
         */
 
-        $eventBvnDigits =
-            preg_replace(
-                '/\D+/',
-                '',
-                (string) (
-                    $identification[
-                        'bvn'
-                    ]
-                    ??
-                    ''
-                )
-            );
-
-
         if (
-            $eventBvnDigits !== ''
+            !$this->paystackMaskedNumberMatches(
+                (string) ($identification['bvn'] ?? ''),
+                (string) $kyc->id_number,
+                11
+            )
         ) {
-
-            $eventLast3 =
-                substr(
-                    $eventBvnDigits,
-                    -3
-                );
-
-
-            $localLast3 =
-                substr(
-                    (string)
-                    $kyc
-                        ->id_number_last4,
-                    -3
-                );
-
-
-            if (
-                $eventLast3
-                !==
-                $localLast3
-            ) {
-
-                return false;
-            }
+            return false;
         }
 
 
         return true;
+    }
+
+
+    protected function paystackMaskedNumberMatches(
+        string $masked,
+        string $plain,
+        int $expectedLength
+    ): bool {
+
+        $plain = (string) preg_replace(
+            '/\D+/',
+            '',
+            $plain
+        );
+
+
+        if (strlen($plain) !== $expectedLength) {
+            return false;
+        }
+
+
+        if (
+            preg_match(
+                '/^(\d{3})\D+(\d{3})$/u',
+                trim($masked),
+                $parts
+            ) !== 1
+        ) {
+            return false;
+        }
+
+
+        return hash_equals(
+            substr($plain, 0, 3) . substr($plain, -3),
+            $parts[1] . $parts[2]
+        );
     }
 
 

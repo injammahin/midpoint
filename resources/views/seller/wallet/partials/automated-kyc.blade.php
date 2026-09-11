@@ -1,5 +1,5 @@
 {{-- ================================================================
-    PAYSTACK IDENTITY VERIFICATION
+PAYSTACK IDENTITY VERIFICATION
 ================================================================= --}}
 
 @php
@@ -20,13 +20,13 @@
 
         &&
 
-        (int)
+        (int) 
         $kyc
             ->seller_withdrawal_account_id
 
         ===
 
-        (int)
+        (int) 
         $activeAccount
             ->id
 
@@ -83,15 +83,23 @@
 
         &&
 
-        (int)
+        (int) 
         $kyc
             ->seller_withdrawal_account_id
 
         ===
 
-        (int)
+        (int) 
         $activeAccount
             ->id;
+
+
+    $kycWasReused =
+        $kycFullyVerified
+        &&
+        !empty(
+        $kyc->reused_from_kyc_id
+    );
 
 
     /*
@@ -103,8 +111,8 @@
     $sourceName =
         trim(
             $kyc
-                ? $kyc->legal_name
-                : $seller->name
+            ? $kyc->legal_name
+            : $seller->name
         );
 
 
@@ -132,15 +140,15 @@
         >
         1
 
-            ? $nameParts[
-                count(
-                    $nameParts
-                )
-                -
-                1
-            ]
+        ? $nameParts[
+            count(
+                $nameParts
+            )
+            -
+            1
+        ]
 
-            : '';
+        : '';
 
 
     $defaultMiddleName =
@@ -151,27 +159,24 @@
         >
         2
 
-            ? implode(
-                ' ',
-                array_slice(
-                    $nameParts,
-                    1,
-                    -1
-                )
+        ? implode(
+            ' ',
+            array_slice(
+                $nameParts,
+                1,
+                -1
             )
+        )
 
-            : '';
+        : '';
 
 @endphp
 
 
-<section
-    id="kyc"
-    class="wallet-card"
->
+<section id="kyc" class="wallet-card">
 
     {{-- ============================================================
-        HEADER
+    HEADER
     ============================================================= --}}
 
     <div class="wallet-card-header">
@@ -219,12 +224,12 @@
 
 
         @elseif(
-            $kyc
-            &&
-            $kyc->status
-            ===
-            \App\Models\SellerKycVerification::STATUS_REJECTED
-        )
+                $kyc
+                &&
+                $kyc->status
+                ===
+                \App\Models\SellerKycVerification::STATUS_REJECTED
+            )
 
             <span class="wallet-badge wallet-badge-danger">
 
@@ -236,12 +241,12 @@
 
 
         @elseif(
-            $kyc
-            &&
-            $kyc->status
-            ===
-            \App\Models\SellerKycVerification::STATUS_PROVIDER_ERROR
-        )
+                $kyc
+                &&
+                $kyc->status
+                ===
+                \App\Models\SellerKycVerification::STATUS_PROVIDER_ERROR
+            )
 
             <span class="wallet-badge wallet-badge-warning">
 
@@ -267,7 +272,7 @@
 
 
     {{-- ============================================================
-        SUCCESS
+    SUCCESS
     ============================================================= --}}
 
     @if($kycFullyVerified)
@@ -280,15 +285,24 @@
             <div>
 
                 <strong>
-                    Identity and bank ownership verified by Paystack
+                    @if($kycWasReused)
+                        Existing verified identity securely matched
+                    @else
+                        Identity and bank ownership verified by Paystack
+                    @endif
                 </strong>
 
 
                 <br>
 
 
-                Your BVN was successfully validated against your
-                active withdrawal bank account.
+                @if($kycWasReused)
+                    Your submitted identity and active bank details matched
+                    a previous successful Paystack verification.
+                @else
+                    Your BVN was successfully validated against your
+                    active withdrawal bank account.
+                @endif
 
                 Withdrawals are now unlocked.
 
@@ -298,48 +312,40 @@
 
 
 
-        <div
-            style="
-                display:grid;
-                grid-template-columns:
-                    repeat(
-                        auto-fit,
-                        minmax(170px,1fr)
-                    );
-                gap:10px;
-                margin-top:15px;
-            "
-        >
+        <div style="
+                    display:grid;
+                    grid-template-columns:
+                        repeat(
+                            auto-fit,
+                            minmax(170px,1fr)
+                        );
+                    gap:10px;
+                    margin-top:15px;
+                ">
 
 
             {{-- Verified identity --}}
 
-            <div
-                style="
-                    padding:12px;
-                    background:#f7faf8;
-                    border:1px solid #e4ebe7;
-                    border-radius:11px;
-                "
-            >
+            <div style="
+                        padding:12px;
+                        background:#f7faf8;
+                        border:1px solid #e4ebe7;
+                        border-radius:11px;
+                    ">
 
-                <small
-                    style="
-                        display:block;
-                        color:#7a8781;
-                        margin-bottom:5px;
-                    "
-                >
+                <small style="
+                            display:block;
+                            color:#7a8781;
+                            margin-bottom:5px;
+                        ">
                     Verified identity
                 </small>
 
 
-                <strong
-                    style="
-                        font-size:11px;
-                        color:#183529;
-                    "
-                >
+                <strong style="
+                            font-size:11px;
+                            color:#183529;
+                        ">
 
                     {{ $kyc->verified_full_name }}
 
@@ -351,32 +357,26 @@
 
             {{-- BVN --}}
 
-            <div
-                style="
-                    padding:12px;
-                    background:#f7faf8;
-                    border:1px solid #e4ebe7;
-                    border-radius:11px;
-                "
-            >
+            <div style="
+                        padding:12px;
+                        background:#f7faf8;
+                        border:1px solid #e4ebe7;
+                        border-radius:11px;
+                    ">
 
-                <small
-                    style="
-                        display:block;
-                        color:#7a8781;
-                        margin-bottom:5px;
-                    "
-                >
+                <small style="
+                            display:block;
+                            color:#7a8781;
+                            margin-bottom:5px;
+                        ">
                     BVN
                 </small>
 
 
-                <strong
-                    style="
-                        font-size:11px;
-                        color:#183529;
-                    "
-                >
+                <strong style="
+                            font-size:11px;
+                            color:#183529;
+                        ">
 
                     •••••••{{ $kyc->id_number_last4 }}
 
@@ -388,32 +388,26 @@
 
             {{-- Verified Bank --}}
 
-            <div
-                style="
-                    padding:12px;
-                    background:#f7faf8;
-                    border:1px solid #e4ebe7;
-                    border-radius:11px;
-                "
-            >
+            <div style="
+                        padding:12px;
+                        background:#f7faf8;
+                        border:1px solid #e4ebe7;
+                        border-radius:11px;
+                    ">
 
-                <small
-                    style="
-                        display:block;
-                        color:#7a8781;
-                        margin-bottom:5px;
-                    "
-                >
+                <small style="
+                            display:block;
+                            color:#7a8781;
+                            margin-bottom:5px;
+                        ">
                     Verified bank
                 </small>
 
 
-                <strong
-                    style="
-                        font-size:11px;
-                        color:#087443;
-                    "
-                >
+                <strong style="
+                            font-size:11px;
+                            color:#087443;
+                        ">
 
                     <i class="fa-solid fa-circle-check"></i>
 
@@ -429,36 +423,34 @@
 
             {{-- Provider --}}
 
-            <div
-                style="
-                    padding:12px;
-                    background:#f7faf8;
-                    border:1px solid #e4ebe7;
-                    border-radius:11px;
-                "
-            >
+            <div style="
+                        padding:12px;
+                        background:#f7faf8;
+                        border:1px solid #e4ebe7;
+                        border-radius:11px;
+                    ">
 
-                <small
-                    style="
-                        display:block;
-                        color:#7a8781;
-                        margin-bottom:5px;
-                    "
-                >
+                <small style="
+                            display:block;
+                            color:#7a8781;
+                            margin-bottom:5px;
+                        ">
                     Provider
                 </small>
 
 
-                <strong
-                    style="
-                        font-size:11px;
-                        color:#087443;
-                    "
-                >
+                <strong style="
+                            font-size:11px;
+                            color:#087443;
+                        ">
 
                     <i class="fa-solid fa-circle-check"></i>
 
-                    Paystack verified
+                    {{
+            $kycWasReused
+            ? 'Paystack verification reused'
+            : 'Paystack verified'
+                        }}
 
                 </strong>
 
@@ -470,13 +462,11 @@
 
         @if($kyc->auto_verified_at)
 
-            <div
-                style="
-                    margin-top:14px;
-                    color:#7b8781;
-                    font-size:10px;
-                "
-            >
+            <div style="
+                            margin-top:14px;
+                            color:#7b8781;
+                            font-size:10px;
+                        ">
 
                 Verified automatically on
 
@@ -486,7 +476,7 @@
                         ->format(
                             'd M Y, h:i A'
                         )
-                }}
+                        }}
 
             </div>
 
@@ -494,9 +484,9 @@
 
 
 
-    {{-- ============================================================
+        {{-- ============================================================
         NO ACTIVE BANK
-    ============================================================= --}}
+        ============================================================= --}}
 
     @elseif(!$activeAccount)
 
@@ -522,13 +512,10 @@
                 <br><br>
 
 
-                <a
-                    href="#bank-accounts"
-                    style="
-                        color:#0b6947;
-                        font-weight:800;
-                    "
-                >
+                <a href="#bank-accounts" style="
+                            color:#0b6947;
+                            font-weight:800;
+                        ">
 
                     Add bank account →
 
@@ -540,16 +527,13 @@
 
 
 
-    {{-- ============================================================
+        {{-- ============================================================
         PROCESSING
-    ============================================================= --}}
+        ============================================================= --}}
 
     @elseif($kycProcessing)
 
-        <div
-            class="wallet-alert wallet-alert-info"
-            id="paystackKycProcessingBox"
-        >
+        <div class="wallet-alert wallet-alert-info" id="paystackKycProcessingBox">
 
             <i class="fa-solid fa-spinner fa-spin"></i>
 
@@ -589,15 +573,25 @@
                 This page will automatically refresh when Paystack
                 returns the final verification result.
 
+
+                <div id="paystackKycSlowNotice" hidden style="margin-top:12px;">
+                    This is taking longer than usual. Do not submit again.
+                    Midpoint is still waiting for Paystack's signed result.
+                    If no result arrives within
+                    {{ config('midpoint.kyc.processing_timeout_minutes', 30) }}
+                    minutes, this verification will become available for a
+                    safe retry.
+                </div>
+
             </div>
 
         </div>
 
 
 
-    {{-- ============================================================
+        {{-- ============================================================
         FORM
-    ============================================================= --}}
+        ============================================================= --}}
 
     @else
 
@@ -605,14 +599,14 @@
         {{-- Previous KYC belongs to different bank --}}
 
         @if(
-            $kyc
-            &&
-            $kyc->status
-            ===
-            \App\Models\SellerKycVerification::STATUS_APPROVED
-            &&
-            !$kycMatchesActiveBank
-        )
+                $kyc
+                &&
+                $kyc->status
+                ===
+                \App\Models\SellerKycVerification::STATUS_APPROVED
+                &&
+                !$kycMatchesActiveBank
+            )
 
             <div class="wallet-alert wallet-alert-info">
 
@@ -647,12 +641,12 @@
         {{-- Failed --}}
 
         @if(
-            $kyc
-            &&
-            $kyc->status
-            ===
-            \App\Models\SellerKycVerification::STATUS_REJECTED
-        )
+                $kyc
+                &&
+                $kyc->status
+                ===
+                \App\Models\SellerKycVerification::STATUS_REJECTED
+            )
 
             <div class="wallet-kyc-rejection">
 
@@ -668,7 +662,7 @@
                     $kyc->failure_message
                     ?:
                     'Paystack could not verify the submitted BVN and bank account.'
-                }}
+                        }}
 
 
                 <br><br>
@@ -686,12 +680,12 @@
         {{-- Provider Error --}}
 
         @if(
-            $kyc
-            &&
-            $kyc->status
-            ===
-            \App\Models\SellerKycVerification::STATUS_PROVIDER_ERROR
-        )
+                $kyc
+                &&
+                $kyc->status
+                ===
+                \App\Models\SellerKycVerification::STATUS_PROVIDER_ERROR
+            )
 
             <div class="wallet-alert wallet-alert-info">
 
@@ -760,14 +754,10 @@
 
 
         {{-- ========================================================
-            PAYSTACK KYC FORM
+        PAYSTACK KYC FORM
         ========================================================= --}}
 
-        <form
-            method="POST"
-            action="{{ route('seller.wallet.kyc.store') }}"
-            id="paystackKycForm"
-        >
+        <form method="POST" action="{{ route('seller.wallet.kyc.store') }}" id="paystackKycForm">
 
             @csrf
 
@@ -784,21 +774,13 @@
                     </label>
 
 
-                    <input
-                        id="kycFirstName"
-                        type="text"
-                        name="first_name"
-                        value="{{
-                            old(
-                                'first_name',
-                                $defaultFirstName
-                            )
-                        }}"
-                        maxlength="100"
-                        autocomplete="given-name"
-                        placeholder="Exactly as registered on your BVN"
-                        required
-                    >
+                    <input id="kycFirstName" type="text" name="first_name" value="{{
+            old(
+                'first_name',
+                $defaultFirstName
+            )
+                            }}" maxlength="100" autocomplete="given-name" placeholder="Exactly as registered on your BVN"
+                        required>
 
                 </div>
 
@@ -812,32 +794,22 @@
 
                         Middle name
 
-                        <small
-                            style="
-                                font-weight:400;
-                                color:#89958f;
-                            "
-                        >
+                        <small style="
+                                    font-weight:400;
+                                    color:#89958f;
+                                ">
                             Optional
                         </small>
 
                     </label>
 
 
-                    <input
-                        id="kycMiddleName"
-                        type="text"
-                        name="middle_name"
-                        value="{{
-                            old(
-                                'middle_name',
-                                $defaultMiddleName
-                            )
-                        }}"
-                        maxlength="100"
-                        autocomplete="additional-name"
-                        placeholder="If present on your BVN"
-                    >
+                    <input id="kycMiddleName" type="text" name="middle_name" value="{{
+            old(
+                'middle_name',
+                $defaultMiddleName
+            )
+                            }}" maxlength="100" autocomplete="additional-name" placeholder="If present on your BVN">
 
                 </div>
 
@@ -852,21 +824,13 @@
                     </label>
 
 
-                    <input
-                        id="kycLastName"
-                        type="text"
-                        name="last_name"
-                        value="{{
-                            old(
-                                'last_name',
-                                $defaultLastName
-                            )
-                        }}"
-                        maxlength="100"
-                        autocomplete="family-name"
-                        placeholder="Exactly as registered on your BVN"
-                        required
-                    >
+                    <input id="kycLastName" type="text" name="last_name" value="{{
+            old(
+                'last_name',
+                $defaultLastName
+            )
+                            }}" maxlength="100" autocomplete="family-name" placeholder="Exactly as registered on your BVN"
+                        required>
 
                 </div>
 
@@ -881,38 +845,29 @@
                     </label>
 
 
-                    <input
-                        id="kycDateOfBirth"
-                        type="date"
-                        name="date_of_birth"
-                        value="{{
-                            old(
-                                'date_of_birth',
-                                $kyc
-                                &&
-                                $kyc->date_of_birth
-                                    ? $kyc
-                                        ->date_of_birth
-                                        ->format(
-                                            'Y-m-d'
-                                        )
-                                    : ''
-                            )
-                        }}"
-                        max="{{ now()->subDay()->format('Y-m-d') }}"
-                        required
-                    >
+                    <input id="kycDateOfBirth" type="date" name="date_of_birth" value="{{
+            old(
+                'date_of_birth',
+                $kyc
+                &&
+                $kyc->date_of_birth
+                ? $kyc
+                    ->date_of_birth
+                    ->format(
+                        'Y-m-d'
+                    )
+                : ''
+            )
+                            }}" max="{{ now()->subDay()->format('Y-m-d') }}" required>
 
 
-                    <small
-                        style="
-                            display:block;
-                            margin-top:5px;
-                            color:#7c8882;
-                            font-size:9px;
-                            line-height:1.5;
-                        "
-                    >
+                    <small style="
+                                display:block;
+                                margin-top:5px;
+                                color:#7c8882;
+                                font-size:9px;
+                                line-height:1.5;
+                            ">
 
                         Stored as part of your Midpoint KYC record.
 
@@ -934,29 +889,17 @@
                     </label>
 
 
-                    <input
-                        id="kycBvn"
-                        type="password"
-                        name="bvn"
-                        maxlength="11"
-                        minlength="11"
-                        inputmode="numeric"
-                        pattern="[0-9]{11}"
-                        autocomplete="off"
-                        placeholder="Enter your 11-digit BVN"
-                        required
-                    >
+                    <input id="kycBvn" type="password" name="bvn" maxlength="11" minlength="11" inputmode="numeric"
+                        pattern="[0-9]{11}" autocomplete="off" placeholder="Enter your 11-digit BVN" required>
 
 
-                    <small
-                        style="
-                            display:block;
-                            margin-top:6px;
-                            color:#7c8882;
-                            font-size:9px;
-                            line-height:1.55;
-                        "
-                    >
+                    <small style="
+                                display:block;
+                                margin-top:6px;
+                                color:#7c8882;
+                                font-size:9px;
+                                line-height:1.55;
+                            ">
 
                         Your BVN is sent securely from Midpoint's server
                         to Paystack.
@@ -974,25 +917,21 @@
 
             {{-- Checks --}}
 
-            <div
-                style="
-                    margin:4px 0 16px;
-                    padding:13px;
-                    border-radius:11px;
-                    background:#f6f9f7;
-                    color:#53635a;
-                    font-size:10px;
-                    line-height:1.7;
-                "
-            >
+            <div style="
+                        margin:4px 0 16px;
+                        padding:13px;
+                        border-radius:11px;
+                        background:#f6f9f7;
+                        color:#53635a;
+                        font-size:10px;
+                        line-height:1.7;
+                    ">
 
-                <strong
-                    style="
-                        display:block;
-                        margin-bottom:5px;
-                        color:#17372a;
-                    "
-                >
+                <strong style="
+                            display:block;
+                            margin-bottom:5px;
+                            color:#17372a;
+                        ">
 
                     Paystack automatic checks
 
@@ -1019,12 +958,10 @@
                 </div>
 
 
-                <div
-                    style="
-                        margin-top:7px;
-                        color:#7c8882;
-                    "
-                >
+                <div style="
+                            margin-top:7px;
+                            color:#7c8882;
+                        ">
 
                     This Paystack validation flow does not perform
                     selfie or liveness verification, so Midpoint no
@@ -1036,11 +973,7 @@
 
 
 
-            <button
-                type="submit"
-                class="wallet-button"
-                id="submitPaystackKyc"
-            >
+            <button type="submit" class="wallet-button" id="submitPaystackKyc">
 
                 <i class="fa-solid fa-shield-halved"></i>
 
@@ -1057,229 +990,247 @@
 
 
 {{-- ================================================================
-    KYC JAVASCRIPT
+KYC JAVASCRIPT
 ================================================================= --}}
 
 <script>
 
-document.addEventListener(
-    'DOMContentLoaded',
-    function () {
+    document.addEventListener(
+        'DOMContentLoaded',
+        function () {
 
-        const form =
-            document.getElementById(
-                'paystackKycForm'
-            );
-
-
-        const button =
-            document.getElementById(
-                'submitPaystackKyc'
-            );
+            const form =
+                document.getElementById(
+                    'paystackKycForm'
+                );
 
 
-        const bvn =
-            document.getElementById(
-                'kycBvn'
-            );
+            const button =
+                document.getElementById(
+                    'submitPaystackKyc'
+                );
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | BVN Digits Only
-        |--------------------------------------------------------------------------
-        */
-
-        if (bvn) {
-
-            bvn.addEventListener(
-                'input',
-                function () {
-
-                    this.value =
-                        this.value
-                            .replace(
-                                /\D/g,
-                                ''
-                            )
-                            .slice(
-                                0,
-                                11
-                            );
-
-                }
-            );
-        }
+            const bvn =
+                document.getElementById(
+                    'kycBvn'
+                );
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | Submit State
-        |--------------------------------------------------------------------------
-        */
+            /*
+            |--------------------------------------------------------------------------
+            | BVN Digits Only
+            |--------------------------------------------------------------------------
+            */
 
-        if (
-            form
-            &&
-            button
-        ) {
+            if (bvn) {
 
-            form.addEventListener(
-                'submit',
-                function () {
+                bvn.addEventListener(
+                    'input',
+                    function () {
 
-                    if (
-                        bvn
-                        &&
-                        !/^\d{11}$/.test(
-                            bvn.value
-                        )
-                    ) {
+                        this.value =
+                            this.value
+                                .replace(
+                                    /\D/g,
+                                    ''
+                                )
+                                .slice(
+                                    0,
+                                    11
+                                );
 
-                        return;
                     }
+                );
+            }
 
 
-                    button.disabled =
-                        true;
+            /*
+            |--------------------------------------------------------------------------
+            | Submit State
+            |--------------------------------------------------------------------------
+            */
 
+            if (
+                form
+                &&
+                button
+            ) {
 
-                    button.innerHTML =
-                        '<i class="fa-solid fa-spinner fa-spin"></i> Sending to Paystack...';
-
-                }
-            );
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Automatically Poll Local Status
-        |--------------------------------------------------------------------------
-        |
-        | Paystack sends the actual result to our webhook.
-        |
-        | This simply detects when our database has been updated.
-        |
-        */
-
-        @if($kycProcessing)
-
-            let attempts =
-                0;
-
-
-            const maximumAttempts =
-                30;
-
-
-            const pollKycStatus =
-                async function () {
-
-                    attempts++;
-
-
-                    try {
-
-                        const response =
-                            await fetch(
-                                '{{ route('seller.wallet.kyc.status') }}',
-                                {
-
-                                    method:
-                                        'GET',
-
-
-                                    headers: {
-
-                                        'Accept':
-                                            'application/json',
-
-
-                                        'X-Requested-With':
-                                            'XMLHttpRequest',
-
-                                    },
-
-
-                                    credentials:
-                                        'same-origin',
-
-                                }
-                            );
-
+                form.addEventListener(
+                    'submit',
+                    function () {
 
                         if (
-                            response.ok
+                            bvn
+                            &&
+                            !/^\d{11}$/.test(
+                                bvn.value
+                            )
                         ) {
 
-                            const data =
-                                await response.json();
+                            return;
+                        }
+
+
+                        button.disabled =
+                            true;
+
+
+                        button.innerHTML =
+                            '<i class="fa-solid fa-spinner fa-spin"></i> Sending to Paystack...';
+
+                    }
+                );
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Automatically Poll Local Status
+            |--------------------------------------------------------------------------
+            |
+            | Paystack sends the actual result to our webhook.
+            |
+            | This simply detects when our database has been updated.
+            |
+            */
+
+            @if($kycProcessing)
+
+                const kycPollingStartedAt =
+                    Date.now();
+
+
+                const kycSlowNotice =
+                    document.getElementById(
+                        'paystackKycSlowNotice'
+                    );
+
+
+                const pollKycStatus =
+                    async function () {
+
+                        try {
+
+                            const response =
+                                await fetch(
+                                    '{{ route('seller.wallet.kyc.status') }}',
+                                    {
+
+                                        method:
+                                            'GET',
+
+
+                                        headers: {
+
+                                            'Accept':
+                                                'application/json',
+
+
+                                            'X-Requested-With':
+                                                'XMLHttpRequest',
+
+                                        },
+
+
+                                        credentials:
+                                            'same-origin',
+
+
+                                        cache:
+                                            'no-store',
+
+                                    }
+                                );
 
 
                             if (
-                                data.status
-                                ===
-                                'approved'
-
-                                ||
-
-                                data.status
-                                ===
-                                'rejected'
-
-                                ||
-
-                                data.status
-                                ===
-                                'provider_error'
+                                response.ok
                             ) {
 
-                                window
-                                    .location
-                                    .reload();
+                                const data =
+                                    await response.json();
 
 
-                                return;
+                                if (
+                                    data.status
+                                    ===
+                                    'approved'
+
+                                    ||
+
+                                    data.status
+                                    ===
+                                    'rejected'
+
+                                    ||
+
+                                    data.status
+                                    ===
+                                    'provider_error'
+                                ) {
+
+                                    window
+                                        .location
+                                        .reload();
+
+
+                                    return;
+                                }
                             }
+
+                        } catch (
+                        error
+                        ) {
+
+                            /*
+                             * Ignore polling errors.
+                             *
+                             * Paystack webhook remains the source of truth.
+                             */
+
                         }
 
-                    } catch (
-                        error
-                    ) {
 
-                        /*
-                         * Ignore polling errors.
-                         *
-                         * Paystack webhook remains the source of truth.
-                         */
-
-                    }
+                        const elapsed =
+                            Date.now()
+                            -
+                            kycPollingStartedAt;
 
 
-                    if (
-                        attempts
-                        <
-                        maximumAttempts
-                    ) {
+                        if (
+                            elapsed >= 120000
+                            && kycSlowNotice
+                        ) {
+                            kycSlowNotice.hidden = false;
+                        }
+
+
+                        const nextDelay =
+                            elapsed < 120000
+                                ? 4000
+                                : elapsed < 600000
+                                    ? 15000
+                                    : 30000;
+
 
                         window.setTimeout(
                             pollKycStatus,
-                            4000
+                            nextDelay
                         );
-                    }
 
-                };
+                    };
 
 
-            window.setTimeout(
-                pollKycStatus,
-                3000
-            );
+                window.setTimeout(
+                    pollKycStatus,
+                    3000
+                );
 
-        @endif
+            @endif
 
     }
-);
+    );
 
 </script>
