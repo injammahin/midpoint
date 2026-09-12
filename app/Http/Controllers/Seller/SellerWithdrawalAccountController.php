@@ -1298,6 +1298,9 @@ class SellerWithdrawalAccountController extends Controller
                                     ??
                                     [],
                                     [
+                                        'exact_bvn_confirmed' =>
+                                            false,
+
                                         'local_invalidation' =>
                                             'verified_bank_deleted',
 

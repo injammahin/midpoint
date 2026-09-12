@@ -8,14 +8,12 @@ return [
         ),
 
     'kyc' => [
+        /*
+         * Cross-account identity reuse is intentionally disabled. Each seller
+         * and active bank must receive its own signed Paystack result.
+         */
         'allow_verified_identity_reuse' =>
-            filter_var(
-                env(
-                    'MIDPOINT_KYC_ALLOW_VERIFIED_IDENTITY_REUSE',
-                    false
-                ),
-                FILTER_VALIDATE_BOOL
-            ),
+            false,
 
         'fingerprint_key' =>
             env('MIDPOINT_KYC_FINGERPRINT_KEY')

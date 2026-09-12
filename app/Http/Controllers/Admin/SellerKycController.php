@@ -1,382 +1,226 @@
 <?php
 
-namespace App\Http\Controllers\Seller;
+namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\SellerKycVerification;
-use App\Models\SellerWithdrawalAccount;
-use App\Services\PaystackSellerKycService;
 use Illuminate\Http\Request;
-use Illuminate\Validation\ValidationException;
-use Throwable;
+use Illuminate\Support\Facades\Storage;
 
 class SellerKycController extends Controller
 {
-    /*
-    |--------------------------------------------------------------------------
-    | Start Paystack KYC
-    |--------------------------------------------------------------------------
-    */
+    public function index(Request $request)
+    {
+        $status = $request->get('status');
 
-    public function store(
-        Request $request,
-        PaystackSellerKycService $kycService
-    ) {
-
-        $seller =
-            $request->user();
-
-
-        $validated =
-            $request->validate([
-
-                'first_name' => [
-                    'required',
-                    'string',
-                    'min:2',
-                    'max:100',
-                ],
-
-
-                'middle_name' => [
-                    'nullable',
-                    'string',
-                    'max:100',
-                ],
-
-
-                'last_name' => [
-                    'required',
-                    'string',
-                    'min:2',
-                    'max:100',
-                ],
-
-
-                /*
-                 * Kept for Midpoint's KYC record.
-                 *
-                 * Paystack's customer identification endpoint itself
-                 * validates BVN + bank account + name.
-                 */
-
-                'date_of_birth' => [
-                    'required',
-                    'date',
-                    'before:today',
-                ],
-
-
-                'bvn' => [
-                    'required',
-                    'regex:/^[0-9]{11}$/',
-                ],
-
-            ]);
-
-
-        try {
-
-            $kyc =
-                $kycService
-                    ->startVerification(
-                        $seller,
-                        $validated
-                    );
-
-
-        } catch (
-            ValidationException $exception
-        ) {
-
-            throw $exception;
-
-
-        } catch (
-            Throwable $exception
-        ) {
-
-            report(
-                $exception
-            );
-
-
-            return redirect()
-                ->route(
-                    'seller.wallet'
-                )
-                ->withInput(
-                    $request
-                        ->except(
-                            'bvn'
-                        )
-                )
-                ->with(
-                    'error',
-                    'Identity verification could not be started. '
-                    .
-                    $exception
-                        ->getMessage()
-                );
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Already Approved
-        |--------------------------------------------------------------------------
-        */
-
-        if (
-            $kyc->status
-            ===
-            SellerKycVerification::STATUS_APPROVED
-        ) {
-
-            return redirect()
-                ->route(
-                    'seller.wallet'
-                )
-                ->with(
-                    'success',
-                    'Your identity and active withdrawal bank account are already verified.'
-                );
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Async Processing
-        |--------------------------------------------------------------------------
-        */
-
-        if (
-            $kyc->status
-            ===
-            SellerKycVerification::STATUS_PROCESSING
-        ) {
-
-            return redirect()
-                ->route(
-                    'seller.wallet'
-                )
-                ->with(
-                    'success',
-                    'Identity verification has been submitted to Paystack. It will complete automatically when Paystack sends the verification result.'
-                );
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Rejected
-        |--------------------------------------------------------------------------
-        */
-
-        if (
-            $kyc->status
-            ===
-            SellerKycVerification::STATUS_REJECTED
-        ) {
-
-            return redirect()
-                ->route(
-                    'seller.wallet'
-                )
-                ->with(
-                    'error',
-                    $kyc
-                        ->failure_message
-                    ?:
-                    'Paystack could not verify your BVN and bank-account details.'
-                );
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Provider Error
-        |--------------------------------------------------------------------------
-        */
-
-        return redirect()
-            ->route(
-                'seller.wallet'
+        $kycs = SellerKycVerification::query()
+            ->with([
+                'seller',
+                'reviewer',
+                'withdrawalAccount',
+            ])
+            ->when(
+                in_array(
+                    $status,
+                    [
+                        SellerKycVerification::STATUS_PENDING,
+                        SellerKycVerification::STATUS_PROCESSING,
+                        SellerKycVerification::STATUS_APPROVED,
+                        SellerKycVerification::STATUS_REJECTED,
+                        SellerKycVerification::STATUS_PROVIDER_ERROR,
+                    ],
+                    true
+                ),
+                fn ($query) => $query->where('status', $status)
             )
-            ->with(
-                'error',
-                $kyc
-                    ->failure_message
-                ?:
-                'Paystack identity verification is temporarily unavailable. Please try again.'
-            );
+            ->latest('id')
+            ->paginate(20)
+            ->withQueryString();
+
+        return view(
+            'admin.kyc.index',
+            compact('kycs', 'status')
+        );
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | AJAX KYC Status
-    |--------------------------------------------------------------------------
-    |
-    | The wallet UI polls this while waiting for Paystack's webhook.
-    |
-    */
+    public function show(SellerKycVerification $kyc)
+    {
+        $kyc->load([
+            'seller',
+            'reviewer',
+            'withdrawalAccount',
+        ]);
 
-    public function status(
+        return view(
+            'admin.kyc.show',
+            compact('kyc')
+        );
+    }
+
+
+    public function approve(
         Request $request,
-        PaystackSellerKycService $kycService
+        SellerKycVerification $kyc
     ) {
-
-        $kyc =
-            SellerKycVerification::query()
-                ->where(
-                    'seller_id',
-                    $request
-                        ->user()
-                        ->id
-                )
-                ->first();
-
-
-        if (!$kyc) {
-
-            return response()->json([
-
-                'status' =>
-                    SellerKycVerification::STATUS_PENDING,
-
-
-                'status_label' =>
-                    'Not verified',
-
-
-                'completed' =>
-                    false,
-
-
-                'approved' =>
-                    false,
-
-
-                'message' =>
-                    null,
-
-            ]);
-        }
-
-
-        /*
-         * Prevent a missed Paystack webhook from leaving the seller in an
-         * endless processing state. A late signed webhook remains valid and
-         * can still approve the record after it has been released for retry.
-         */
         if (
-            $kyc->status
-            ===
-            SellerKycVerification::STATUS_PROCESSING
+            $kyc->provider === 'paystack'
+            || $kyc->verification_method === 'paystack_bvn_bank_account'
         ) {
-
-            $kyc =
-                $kycService
-                    ->releaseIfStale(
-                        $kyc
-                    );
+            return back()->with(
+                'error',
+                'Paystack KYC cannot be approved manually. A matching signed Paystack verification webhook is required.'
+            );
         }
 
+        if ($kyc->status !== SellerKycVerification::STATUS_PENDING) {
+            return back()->with(
+                'error',
+                'Only pending non-Paystack KYC submissions can be approved.'
+            );
+        }
 
-        $activeAccount =
-            SellerWithdrawalAccount::query()
-                ->where(
-                    'seller_id',
-                    $request->user()->id
-                )
-                ->where(
-                    'is_verified',
-                    true
-                )
-                ->where(
-                    'is_active',
-                    true
-                )
-                ->first();
+        if (!$kyc->withdrawalAccount || !$kyc->withdrawalAccount->is_verified) {
+            return back()->with(
+                'error',
+                'The KYC record is not connected to a verified withdrawal account.'
+            );
+        }
+
+        $kyc->forceFill([
+            'status' =>
+                SellerKycVerification::STATUS_APPROVED,
+
+            'rejection_reason' =>
+                null,
+
+            'reviewed_by' =>
+                $request->user()->id,
+
+            'reviewed_at' =>
+                now(),
+
+            'approved_at' =>
+                now(),
+
+            'rejected_at' =>
+                null,
+        ])->save();
+
+        return back()->with(
+            'success',
+            'Seller KYC verified successfully.'
+        );
+    }
 
 
-        $approvedForActiveBank =
-            $kyc
-                ->isApprovedForWithdrawalAccount(
-                    $activeAccount
-                );
-
-
-        $effectiveStatus =
-            $kyc->status;
-
-
-        $effectiveStatusLabel =
-            $kyc->status_label;
-
-
-        $message =
-            $kyc->failure_message;
-
-
+    public function reject(
+        Request $request,
+        SellerKycVerification $kyc
+    ) {
         if (
-            $kyc->status
-                ===
-                SellerKycVerification::STATUS_APPROVED
-            && !$approvedForActiveBank
-        ) {
-
-            $effectiveStatus =
-                SellerKycVerification::STATUS_PENDING;
-
-
-            $effectiveStatusLabel =
-                'Not verified';
-
-
-            $message =
-                'Verify your identity for the current active withdrawal bank account.';
-        }
-
-
-        $completed =
-            in_array(
-                $effectiveStatus,
+            !in_array(
+                $kyc->status,
                 [
-
-                    SellerKycVerification::STATUS_APPROVED,
-
-                    SellerKycVerification::STATUS_REJECTED,
-
+                    SellerKycVerification::STATUS_PENDING,
+                    SellerKycVerification::STATUS_PROCESSING,
                     SellerKycVerification::STATUS_PROVIDER_ERROR,
-
                 ],
                 true
+            )
+        ) {
+            return back()->with(
+                'error',
+                'This KYC record cannot be rejected in its current state.'
             );
+        }
 
-
-        return response()->json([
-
-            'status' =>
-                $effectiveStatus,
-
-
-            'status_label' =>
-                $effectiveStatusLabel,
-
-
-            'completed' =>
-                $completed,
-
-
-            'approved' =>
-                $approvedForActiveBank,
-
-
-            'message' =>
-                $message,
-
+        $validated = $request->validate([
+            'rejection_reason' => [
+                'required',
+                'string',
+                'min:5',
+                'max:2000',
+            ],
         ]);
+
+        $response = is_array($kyc->provider_response)
+            ? $kyc->provider_response
+            : [];
+
+        $response['exact_bvn_confirmed'] = false;
+        $response['admin_rejected_at'] = now()->toIso8601String();
+
+        $kyc->forceFill([
+            'status' =>
+                SellerKycVerification::STATUS_REJECTED,
+
+            'provider_status' =>
+                'admin_rejected',
+
+            'paystack_identification_status' =>
+                $kyc->provider === 'paystack'
+                    ? 'admin_rejected'
+                    : $kyc->paystack_identification_status,
+
+            'name_match' =>
+                null,
+
+            'bank_name_match' =>
+                null,
+
+            'failure_code' =>
+                'admin_rejected',
+
+            'failure_message' =>
+                $validated['rejection_reason'],
+
+            'rejection_reason' =>
+                $validated['rejection_reason'],
+
+            'reviewed_by' =>
+                $request->user()->id,
+
+            'reviewed_at' =>
+                now(),
+
+            'approved_at' =>
+                null,
+
+            'auto_verified_at' =>
+                null,
+
+            'rejected_at' =>
+                now(),
+
+            'provider_response' =>
+                $response,
+        ])->save();
+
+        return back()->with(
+            'success',
+            'Seller KYC rejected. The seller may submit a new verification.'
+        );
+    }
+
+
+    public function document(
+        SellerKycVerification $kyc,
+        string $type
+    ) {
+        $path = match ($type) {
+            'front' => $kyc->document_front_path,
+            'back' => $kyc->document_back_path,
+            'selfie' => $kyc->selfie_path,
+            default => null,
+        };
+
+        abort_unless(
+            $path
+            && Storage::disk('local')->exists($path),
+            404
+        );
+
+        return Storage::disk('local')->download($path);
     }
 }

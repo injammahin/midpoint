@@ -429,6 +429,9 @@ class SellerKycVerification extends Model
             $this->status
                 ===
                 self::STATUS_APPROVED
+            && $this->provider === 'paystack'
+            && $this->paystack_identification_status === 'success'
+            && $this->paystack_identification_completed_at !== null
             && $account !== null
             && $account->is_verified
             && (int) $account->seller_id
@@ -439,7 +442,15 @@ class SellerKycVerification extends Model
                 (int) $account->id
             && $this->bank_name_match
                 ===
-                true;
+                true
+            && data_get(
+                $this->provider_response,
+                'verification_source'
+            ) === 'signed_webhook'
+            && data_get(
+                $this->provider_response,
+                'exact_bvn_confirmed'
+            ) === true;
     }
 
 

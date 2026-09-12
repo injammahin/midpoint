@@ -427,11 +427,30 @@ class PaystackTransferApprovalController extends Controller
                 SellerKycVerification::STATUS_APPROVED
             )
             ->where(
+                'provider',
+                'paystack'
+            )
+            ->where(
                 'seller_withdrawal_account_id',
                 $withdrawal->seller_withdrawal_account_id
             )
             ->where(
                 'bank_name_match',
+                true
+            )
+            ->where(
+                'paystack_identification_status',
+                'success'
+            )
+            ->whereNotNull(
+                'paystack_identification_completed_at'
+            )
+            ->where(
+                'provider_response->verification_source',
+                'signed_webhook'
+            )
+            ->where(
+                'provider_response->exact_bvn_confirmed',
                 true
             )
             ->exists();

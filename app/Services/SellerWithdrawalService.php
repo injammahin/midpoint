@@ -736,16 +736,9 @@ class SellerWithdrawalService
 
                         SellerWithdrawal::STATUS_FAILED,
 
-                        (string) (
-                            $data[
-                                'reason'
-                            ]
-                            ??
-                            $data[
-                                'message'
-                            ]
-                            ??
-                            'Paystack transfer was not accepted.'
+                        $this->transferFailureReason(
+                            $data,
+                            'Paystack rejected the transfer. Check the transfer in your Paystack dashboard for the provider reason.'
                         )
                     );
             }
@@ -770,12 +763,9 @@ class SellerWithdrawalService
 
                         SellerWithdrawal::STATUS_REVERSED,
 
-                        (string) (
-                            $data[
-                                'reason'
-                            ]
-                            ??
-                            'Paystack transfer was reversed.'
+                        $this->transferFailureReason(
+                            $data,
+                            'Paystack reversed the transfer.'
                         )
                     );
             }
@@ -1336,16 +1326,10 @@ class SellerWithdrawalService
 
                         SellerWithdrawal::STATUS_FAILED,
 
-                        (string) (
-                            $data[
-                                'reason'
-                            ]
-                            ??
+                        $this->transferFailureReason(
+                            $data,
                             'Paystack transfer ended with status: '
-                            .
-                            $status
-                            .
-                            '.'
+                                . $status . '.'
                         )
                     );
             }
@@ -1370,11 +1354,8 @@ class SellerWithdrawalService
 
                         SellerWithdrawal::STATUS_REVERSED,
 
-                        (string) (
-                            $data[
-                                'reason'
-                            ]
-                            ??
+                        $this->transferFailureReason(
+                            $data,
                             'Paystack transfer was reversed.'
                         )
                     );
@@ -1608,15 +1589,8 @@ class SellerWithdrawalService
 
                         SellerWithdrawal::STATUS_FAILED,
 
-                        (string) (
-                            $data[
-                                'reason'
-                            ]
-                            ??
-                            $data[
-                                'message'
-                            ]
-                            ??
+                        $this->transferFailureReason(
+                            $data,
                             'Paystack transfer failed.'
                         )
                     ),
@@ -1630,15 +1604,8 @@ class SellerWithdrawalService
 
                         SellerWithdrawal::STATUS_REVERSED,
 
-                        (string) (
-                            $data[
-                                'reason'
-                            ]
-                            ??
-                            $data[
-                                'message'
-                            ]
-                            ??
+                        $this->transferFailureReason(
+                            $data,
                             'Paystack transfer was reversed.'
                         )
                     ),
@@ -2299,5 +2266,52 @@ class SellerWithdrawalService
             },
             3
         );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Provider Failure Message
+    |--------------------------------------------------------------------------
+    |
+    | `reason` on a Paystack transfer is the merchant's transfer narration,
+    | not the rejection reason. Using it produced misleading messages such as
+    | "Midpoint seller withdrawal ..." when a transfer failed.
+    |
+    */
+
+    protected function transferFailureReason(
+        array $data,
+        string $fallback
+    ): string {
+
+        $candidates = [
+            data_get($data, 'failure.message'),
+            data_get($data, 'failure.reason'),
+            data_get($data, 'failures.0.message'),
+            data_get($data, 'failures.0.reason'),
+            data_get($data, 'gateway_response'),
+            data_get($data, 'message'),
+            data_get($data, 'error'),
+        ];
+
+
+        foreach ($candidates as $candidate) {
+
+            if (!is_scalar($candidate)) {
+                continue;
+            }
+
+
+            $message = trim((string) $candidate);
+
+
+            if ($message !== '') {
+                return $message;
+            }
+        }
+
+
+        return $fallback;
     }
 }
