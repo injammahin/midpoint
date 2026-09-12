@@ -502,7 +502,7 @@
         position: absolute;
         z-index: 100;
 
-        left: 50%;
+        left: 90%;
         bottom: calc(100% + 10px);
 
         width: 285px;
