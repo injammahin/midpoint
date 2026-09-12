@@ -450,7 +450,12 @@ class SellerKycVerification extends Model
             && data_get(
                 $this->provider_response,
                 'exact_bvn_confirmed'
-            ) === true;
+            ) === true
+            && (
+                !$account->exists
+                || $account
+                    ->isUniquelyOwnedBySeller()
+            );
     }
 
 

@@ -73,6 +73,41 @@ class SellerWithdrawalAccountController extends Controller
             );
 
 
+        $accountNumberHash = hash(
+            'sha256',
+            $accountNumber
+        );
+
+
+        $otherSellerAlreadyUsesAccount =
+            SellerWithdrawalAccount::query()
+                ->where(
+                    'seller_id',
+                    '!=',
+                    $seller->id
+                )
+                ->where(
+                    'bank_code',
+                    $bankCode
+                )
+                ->where(
+                    'account_number_hash',
+                    $accountNumberHash
+                )
+                ->exists();
+
+
+        if ($otherSellerAlreadyUsesAccount) {
+
+            throw ValidationException::withMessages([
+
+                'account_number' =>
+                    'This bank account is already linked to another Midpoint seller. One withdrawal bank account can belong to only one seller account.',
+
+            ]);
+        }
+
+
         /*
         |--------------------------------------------------------------------------
         | Maximum 2 Accounts
@@ -690,12 +725,6 @@ class SellerWithdrawalAccountController extends Controller
 
         $duplicate =
             SellerWithdrawalAccount::query()
-
-                ->where(
-                    'seller_id',
-                    $seller->id
-                )
-
                 ->where(
                     'bank_code',
                     $validated[
@@ -717,7 +746,7 @@ class SellerWithdrawalAccountController extends Controller
 
             throw ValidationException::withMessages([
                 'account_number' =>
-                    'This bank account is already saved.',
+                    'This bank account is already linked to a Midpoint seller account. One withdrawal bank account can belong to only one seller.',
             ]);
         }
 
@@ -915,12 +944,6 @@ class SellerWithdrawalAccountController extends Controller
 
                 $duplicate =
                     SellerWithdrawalAccount::query()
-
-                        ->where(
-                            'seller_id',
-                            $seller->id
-                        )
-
                         ->where(
                             'bank_code',
                             $validated[
@@ -942,7 +965,7 @@ class SellerWithdrawalAccountController extends Controller
 
                     throw ValidationException::withMessages([
                         'account_number' =>
-                            'This bank account is already saved.',
+                            'This bank account is already linked to a Midpoint seller account. One withdrawal bank account can belong to only one seller.',
                     ]);
                 }
 

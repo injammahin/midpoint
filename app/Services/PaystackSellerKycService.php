@@ -66,6 +66,17 @@ class PaystackSellerKycService
         }
 
 
+        if (!$activeBank->isUniquelyOwnedBySeller()) {
+
+            throw ValidationException::withMessages([
+
+                'bvn' =>
+                    'This withdrawal bank account is linked to another Midpoint seller. KYC cannot be reused across seller accounts. Contact Midpoint Support to remove the duplicate bank account before verifying this seller.',
+
+            ]);
+        }
+
+
         /*
         |--------------------------------------------------------------------------
         | Normalize And Fingerprint The Submitted Identity First

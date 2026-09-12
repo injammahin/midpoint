@@ -134,6 +134,51 @@ class SellerWithdrawalAccount extends Model
 
     /*
     |--------------------------------------------------------------------------
+    | Exclusive Seller Ownership
+    |--------------------------------------------------------------------------
+    |
+    | A withdrawal bank account may belong to only one Midpoint seller. If an
+    | old data set contains the same bank/account hash for multiple sellers,
+    | fail closed until the duplicate account is removed by support.
+    |
+    */
+
+    public function isUniquelyOwnedBySeller(): bool
+    {
+        $accountHash = trim(
+            (string) $this->account_number_hash
+        );
+
+
+        if (
+            $accountHash === ''
+            || trim((string) $this->bank_code) === ''
+            || !$this->seller_id
+        ) {
+            return false;
+        }
+
+
+        return !static::query()
+            ->where(
+                'seller_id',
+                '!=',
+                $this->seller_id
+            )
+            ->where(
+                'bank_code',
+                $this->bank_code
+            )
+            ->where(
+                'account_number_hash',
+                $accountHash
+            )
+            ->exists();
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
     | Encrypt Account Number
     |--------------------------------------------------------------------------
     */
