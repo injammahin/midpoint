@@ -414,12 +414,16 @@ class PaystackSellerKycService
          * submission. Paystack can answer from that customer's historic state,
          * which would not prove the BVN submitted in this request.
          */
-        if ((bool) ($customer['identified'] ?? false)) {
+        if (
+            (bool) ($customer['identified'] ?? false)
+            &&
+            $this->hasPaystackBvnEvidence($customer)
+        ) {
 
             throw ValidationException::withMessages([
 
                 'bvn' =>
-                    'This customer has a previous Paystack identity, but no matching trusted BVN/bank evidence is available here. Ask support to import the original verified KYC evidence or arrange a fresh authoritative verification.'
+                    'This customer already has verified BVN identity evidence in Paystack.'
 
             ]);
         }
@@ -717,7 +721,7 @@ class PaystackSellerKycService
 
 
                             'customer_identified_before_submission' =>
-                                false,
+                                (bool) ($customer['identified'] ?? false),
 
 
                             'exact_bvn_confirmed' =>
@@ -2284,12 +2288,16 @@ class PaystackSellerKycService
         |
         */
 
-        if ((bool) ($customer['identified'] ?? false)) {
+        if (
+            (bool) ($customer['identified'] ?? false)
+            &&
+            $this->hasPaystackBvnEvidence($customer)
+        ) {
 
             throw ValidationException::withMessages([
 
                 'bvn' =>
-                    'This customer has a previous Paystack identity, but no matching trusted BVN/bank evidence is available here. Ask support to import the original verified KYC evidence or arrange a fresh authoritative verification.'
+                    'This customer already has verified BVN identity evidence in Paystack.'
 
             ]);
         }
@@ -2558,10 +2566,14 @@ class PaystackSellerKycService
                 $kyc->provider_response,
                 'verification_source'
             ) !== 'pending_signed_webhook'
-            || data_get(
-                $kyc->provider_response,
-                'customer_identified_before_submission'
-            ) !== false
+            || !in_array(
+                    data_get(
+                        $kyc->provider_response,
+                        'customer_identified_before_submission'
+                    ),
+                    [true, false],
+                    true
+                )
             || data_get(
                 $kyc->provider_response,
                 'exact_bvn_confirmed'
@@ -2925,4 +2937,44 @@ class PaystackSellerKycService
             $extra
         );
     }
+
+    /**
+ * Check whether Paystack already has BVN identity evidence.
+ *
+ * identified=true alone is not enough.
+ * Bank account verification and BVN verification are different.
+ */
+private function hasPaystackBvnEvidence(array $customer): bool
+{
+    $identifications = $customer['identifications'] ?? [];
+
+    if (!is_array($identifications)) {
+        return false;
+    }
+
+    foreach ($identifications as $identity) {
+
+        if (!is_array($identity)) {
+            continue;
+        }
+
+        $type = strtolower(
+            trim(
+                (string) ($identity['type'] ?? '')
+            )
+        );
+
+        if (
+            $type === 'bvn'
+            ||
+            $type === 'bank_verification'
+            ||
+            $type === 'identity'
+        ) {
+            return true;
+        }
+    }
+
+    return false;
+}
 }
