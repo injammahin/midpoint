@@ -425,37 +425,7 @@ class SellerKycVerification extends Model
         ?SellerWithdrawalAccount $account
     ): bool {
 
-        return
-            $this->status
-                ===
-                self::STATUS_APPROVED
-            && $this->provider === 'paystack'
-            && $this->paystack_identification_status === 'success'
-            && $this->paystack_identification_completed_at !== null
-            && $account !== null
-            && $account->is_verified
-            && (int) $account->seller_id
-                ===
-                (int) $this->seller_id
-            && (int) $this->seller_withdrawal_account_id
-                ===
-                (int) $account->id
-            && $this->bank_name_match
-                ===
-                true
-            && data_get(
-                $this->provider_response,
-                'verification_source'
-            ) === 'signed_webhook'
-            && data_get(
-                $this->provider_response,
-                'exact_bvn_confirmed'
-            ) === true
-            && (
-                !$account->exists
-                || $account
-                    ->isUniquelyOwnedBySeller()
-            );
+        return app(\App\Services\TrustedKycRegistry::class)->isApproved($this, $account);
     }
 
 
