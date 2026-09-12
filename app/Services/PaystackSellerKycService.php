@@ -107,6 +107,27 @@ class PaystackSellerKycService
         }
 
 
+        /*
+         * Reject obvious placeholder values locally. This is only an early
+         * sanity check; genuine BVN ownership must still be established by
+         * the matching signed Paystack webhook below.
+         */
+        if (
+            preg_match(
+                '/^(\d)\1{10}$/',
+                $bvn
+            ) === 1
+        ) {
+
+            throw ValidationException::withMessages([
+
+                'bvn' =>
+                    'Enter your valid 11-digit BVN. Repeated placeholder numbers are not accepted.',
+
+            ]);
+        }
+
+
         $fingerprint =
             $this
                 ->identityFingerprint
@@ -323,7 +344,7 @@ class PaystackSellerKycService
             throw ValidationException::withMessages([
 
                 'bvn' =>
-                    'Paystack could not create a fresh verification customer for this attempt. The existing customer is already identified, so Midpoint refused to reuse its old result. Contact support to reset the Paystack customer.',
+                    'Your Paystack customer is already identified, but Midpoint does not have signed proof that the BVN entered now is the verified BVN. For your protection, verification has been stopped. Do not submit again. Contact Midpoint Support and ask for a Paystack identity reset.',
 
             ]);
         }
@@ -946,6 +967,19 @@ class PaystackSellerKycService
             );
 
 
+            /*
+             * Never expose Paystack's raw integration error to the seller.
+             * Keep the raw message in the application log and store a safe,
+             * actionable message on the KYC record instead.
+             */
+            $failure =
+                $this
+                    ->paystackRequestFailureDetails(
+                        $exception,
+                        $kyc
+                    );
+
+
             $kyc
                 ->forceFill([
 
@@ -954,24 +988,46 @@ class PaystackSellerKycService
 
 
                     'provider_status' =>
-                        'request_failed',
+                        $failure[
+                            'provider_status'
+                        ],
 
 
                     'paystack_identification_status' =>
-                        'request_failed',
+                        $failure[
+                            'provider_status'
+                        ],
 
 
                     'failure_code' =>
-                        'paystack_request_failed',
+                        $failure[
+                            'failure_code'
+                        ],
 
 
                     'failure_message' =>
-                        $exception
-                            ->getMessage(),
+                        $failure[
+                            'message'
+                        ],
 
 
                     'rejection_reason' =>
                         null,
+
+
+                    'provider_response' =>
+                        array_merge(
+                            $kyc->provider_response ?? [],
+                            [
+                                'exact_bvn_confirmed' =>
+                                    false,
+
+                                'last_request_failure_code' =>
+                                    $failure[
+                                        'failure_code'
+                                    ],
+                            ]
+                        ),
 
                 ])
                 ->save();
@@ -980,13 +1036,75 @@ class PaystackSellerKycService
             throw ValidationException::withMessages([
 
                 'bvn' =>
-                    $exception
-                        ->getMessage()
-                    ?:
-                    'Paystack could not start identity verification. Please try again.',
+                    $failure[
+                        'message'
+                    ],
 
             ]);
         }
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Safe Seller-Facing Paystack Error
+    |--------------------------------------------------------------------------
+    */
+
+    protected function paystackRequestFailureDetails(
+        Throwable $exception,
+        SellerKycVerification $kyc
+    ): array {
+
+        $rawMessage = strtolower(
+            trim(
+                $exception->getMessage()
+            )
+        );
+
+
+        if (
+            str_contains(
+                $rawMessage,
+                'bvn has been used by too many customers'
+            )
+            || str_contains(
+                $rawMessage,
+                'bvn has been used by too many customer'
+            )
+        ) {
+
+            return [
+                'provider_status' =>
+                    'bvn_customer_limit',
+
+                'failure_code' =>
+                    'paystack_bvn_customer_limit',
+
+                'message' =>
+                    'We could not complete this BVN verification because Paystack has reached its customer-use limit for this BVN. Your BVN is not necessarily incorrect. Do not submit it again. Please contact Midpoint Support and provide KYC reference #'
+                    .
+                    $kyc->id
+                    .
+                    '.',
+            ];
+        }
+
+
+        return [
+            'provider_status' =>
+                'request_failed',
+
+            'failure_code' =>
+                'paystack_request_failed',
+
+            'message' =>
+                'Paystack could not start identity verification. Please try again later. If the problem continues, contact Midpoint Support and provide KYC reference #'
+                .
+                $kyc->id
+                .
+                '.',
+        ];
     }
 
 
@@ -2769,16 +2887,55 @@ class PaystackSellerKycService
 
         /*
         |--------------------------------------------------------------------------
-        | Search By Seller Email
+        | Reuse One Durable Paystack Customer
         |--------------------------------------------------------------------------
+        |
+        | Repeatedly creating customer records for the same BVN can trigger
+        | Paystack's customer-use limit. Prefer the customer already attached
+        | to this seller's KYC record; otherwise look it up by the seller email.
+        | A previous failed attempt may safely reuse an unidentified customer
+        | because every final webhook is matched against the current masked BVN
+        | and bank account before approval.
         */
+
+        $storedCustomerCode = trim(
+            (string) (
+                $existing?->paystack_customer_code
+                ??
+                ''
+            )
+        );
+
+
+        $customerLookup =
+            $storedCustomerCode !== ''
+                ? $storedCustomerCode
+                : (string) $seller->email;
 
         $customer =
             $this
                 ->paystack
                 ->fetchCustomer(
-                    $seller->email
+                    $customerLookup
                 );
+
+
+        /*
+         * If an old locally stored customer code no longer exists at Paystack,
+         * fall back to the seller's real email before attempting creation.
+         */
+        if (
+            !$customer
+            && $storedCustomerCode !== ''
+        ) {
+
+            $customer =
+                $this
+                    ->paystack
+                    ->fetchCustomer(
+                        (string) $seller->email
+                    );
+        }
 
 
         /*
@@ -2795,7 +2952,7 @@ class PaystackSellerKycService
                     $firstName,
                     $lastName,
                     $attemptId,
-                    $existing?->paystack_customer_code
+                    null
                 );
         }
 
@@ -2824,35 +2981,24 @@ class PaystackSellerKycService
 
         /*
         |--------------------------------------------------------------------------
-        | Use A Fresh Customer For Every New Verification Cycle
+        | Never Replace An Already-Identified Customer Automatically
         |--------------------------------------------------------------------------
         |
-        | Paystack customer-identification webhooks do not carry a merchant attempt
-        | reference. Reusing a customer that was identified before, or one that had
-        | an earlier unfinished request, can associate an old result with a newly
-        | submitted BVN. Creating a fresh customer code gives this attempt an exact
-        | provider-side correlation key while keeping the seller's real email.
+        | Paystack may refuse to validate an identified customer again. Creating
+        | aliases and more customer records is not a safe workaround because the
+        | same BVN can reach Paystack's customer-use limit. Only Paystack support
+        | can reset an unproven already-identified customer.
         |
         */
 
-        $hasPriorAttempt =
-            $existing
-            && $existing->paystack_identification_requested_at !== null;
+        if ((bool) ($customer['identified'] ?? false)) {
 
+            throw ValidationException::withMessages([
 
-        if (
-            (bool) ($customer['identified'] ?? false)
-            || $hasPriorAttempt
-        ) {
+                'bvn' =>
+                    'Your Paystack customer is already identified, but Midpoint does not have signed proof that the BVN entered now is the verified BVN. For your protection, verification has been stopped. Do not submit again. Contact Midpoint Support and ask for a Paystack identity reset.',
 
-            return $this
-                ->createFreshPaystackCustomer(
-                    $seller,
-                    $firstName,
-                    $lastName,
-                    $attemptId,
-                    $customerCode
-                );
+            ]);
         }
 
 
@@ -3046,15 +3192,12 @@ class PaystackSellerKycService
 
     /*
     |--------------------------------------------------------------------------
-    | Verification-Only Customer Email
+    | Verification Customer Email
     |--------------------------------------------------------------------------
     |
-    | Paystack does not attach a merchant attempt reference to customer-
-    | identification webhooks. A previously identified customer therefore
-    | cannot safely be reused for another submitted BVN. For a retry we create
-    | a new Paystack customer using a plus-address alias. Gmail delivers this
-    | alias to the same inbox, while Paystack gives the attempt a new customer
-    | code that can be matched to exactly one signed webhook.
+    | Never create plus-address aliases for retries. Paystack can count every
+    | alias as another customer using the same BVN and eventually reject the
+    | BVN for exceeding its customer-use limit. One seller keeps one customer.
     |
     */
 
@@ -3074,51 +3217,12 @@ class PaystackSellerKycService
         }
 
 
-        $parts = explode(
-            '@',
-            $sellerEmail,
-            2
-        );
+        throw ValidationException::withMessages([
 
+            'bvn' =>
+                'This seller already has a Paystack customer. Midpoint will not create another customer for the same BVN. Contact Midpoint Support if Paystack must reset the existing identity.',
 
-        if (
-            count($parts) !== 2
-            || $parts[0] === ''
-            || !in_array(
-                $parts[1],
-                [
-                    'gmail.com',
-                    'googlemail.com',
-                ],
-                true
-            )
-        ) {
-
-            throw ValidationException::withMessages([
-
-                'bvn' =>
-                    'This Paystack customer was already identified. For non-Gmail accounts, contact support so Paystack can reset the customer before another BVN verification.',
-
-            ]);
-        }
-
-
-        $mailbox = explode(
-            '+',
-            $parts[0],
-            2
-        )[0];
-
-
-        return $mailbox
-            .
-            '+midpoint-kyc-'
-            .
-            substr($attemptId, 0, 16)
-            .
-            '@'
-            .
-            $parts[1];
+        ]);
     }
 
 
