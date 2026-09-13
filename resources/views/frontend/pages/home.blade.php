@@ -3,7 +3,7 @@
 
 @section(
     'title',
-    'Midpoint — Buy with confidence. Sell with confidence.'
+    'Midpoint - Buy with confidence. Sell with confidence.'
 )
 
 
