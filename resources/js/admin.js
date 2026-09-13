@@ -5,9 +5,13 @@
 */
 
 import '@fortawesome/fontawesome-free/css/all.min.css';
+import QRCode from 'qrcode';
 import './live-support-admin';
 import './admin-notifications';
 import '../css/live-support.css';
+
+window.MidpointQRCode =
+    QRCode;
 
 document.addEventListener('DOMContentLoaded', () => {
 

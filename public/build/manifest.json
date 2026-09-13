@@ -1,5 +1,5 @@
 {
-  "_live-support-52361d42.js": {
+  "_live-support-deb71514.js": {
     "assets": [
       "assets/fa-brands-400-ff66d1cf.woff2",
       "assets/fa-regular-400-f4722d10.woff2",
@@ -9,7 +9,7 @@
     "css": [
       "assets/live-support-36a99985.css"
     ],
-    "file": "assets/live-support-52361d42.js"
+    "file": "assets/live-support-deb71514.js"
   },
   "live-support.css": {
     "file": "assets/live-support-36a99985.css",
@@ -52,17 +52,17 @@
     "src": "resources/js/account-dashboard.js"
   },
   "resources/js/admin.js": {
-    "file": "assets/admin-69cb4e39.js",
+    "file": "assets/admin-184194c7.js",
     "imports": [
-      "_live-support-52361d42.js"
+      "_live-support-deb71514.js"
     ],
     "isEntry": true,
     "src": "resources/js/admin.js"
   },
   "resources/js/app.js": {
-    "file": "assets/app-6308428d.js",
+    "file": "assets/app-8dc32b45.js",
     "imports": [
-      "_live-support-52361d42.js"
+      "_live-support-deb71514.js"
     ],
     "isEntry": true,
     "src": "resources/js/app.js"

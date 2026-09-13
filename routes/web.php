@@ -94,6 +94,7 @@ use App\Http\Controllers\Admin\AdminDisputeController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\StaffDashboardController;
 use App\Http\Controllers\Admin\WebsiteSettingsController;
+use App\Http\Controllers\Admin\AdminTwoFactorController;
 use App\Http\Controllers\Admin\SupportInquiryController;
 use App\Http\Controllers\Admin\ContactMessageController;
 use App\Http\Controllers\Admin\AdminNotificationController;
@@ -2351,6 +2352,56 @@ Route::prefix(
                 )->name(
                     'app-settings.logo.destroy'
                 );
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Administrator Google Authenticator
+                |--------------------------------------------------------------------------
+                */
+
+                Route::post(
+                    '/app-settings/two-factor/setup',
+                    [
+                        AdminTwoFactorController::class,
+                        'setup',
+                    ]
+                )
+                    ->middleware('throttle:6,1')
+                    ->name('app-settings.two-factor.setup');
+
+
+                Route::post(
+                    '/app-settings/two-factor/confirm',
+                    [
+                        AdminTwoFactorController::class,
+                        'confirm',
+                    ]
+                )
+                    ->middleware('throttle:10,1')
+                    ->name('app-settings.two-factor.confirm');
+
+
+                Route::post(
+                    '/app-settings/two-factor/recovery-codes',
+                    [
+                        AdminTwoFactorController::class,
+                        'regenerateRecoveryCodes',
+                    ]
+                )
+                    ->middleware('throttle:6,1')
+                    ->name('app-settings.two-factor.recovery-codes');
+
+
+                Route::delete(
+                    '/app-settings/two-factor',
+                    [
+                        AdminTwoFactorController::class,
+                        'disable',
+                    ]
+                )
+                    ->middleware('throttle:6,1')
+                    ->name('app-settings.two-factor.disable');
 
 
                 /*
