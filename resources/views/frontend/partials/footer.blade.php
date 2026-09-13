@@ -356,14 +356,6 @@
                         Escrow Policy
                     </a>
 
-                    <a href="{{ route('faqs') }}" class="py-1
-                               text-[13.5px]
-                               text-[#8E9B94]
-                               transition
-                               hover:text-[#7EF0B6]">
-                        FAQs
-                    </a>
-
                 </div>
 
             </div>
@@ -385,20 +377,20 @@
                     @guest
 
                         <a href="{{ route('login') }}" class="group
-                                                                   flex items-center gap-[8px]
-                                                                   py-1.5
-                                                                   text-[13.5px]
-                                                                   text-[#8E9B94]
-                                                                   transition
-                                                                   hover:text-[#7EF0B6]">
+                                                                       flex items-center gap-[8px]
+                                                                       py-1.5
+                                                                       text-[13.5px]
+                                                                       text-[#8E9B94]
+                                                                       transition
+                                                                       hover:text-[#7EF0B6]">
 
                             <i class="fa-solid
-                                                                       fa-arrow-right-to-bracket
-                                                                       w-[15px]
-                                                                       text-[11px]
-                                                                       text-[#66756D]
-                                                                       transition
-                                                                       group-hover:text-[#7EF0B6]"></i>
+                                                                           fa-arrow-right-to-bracket
+                                                                           w-[15px]
+                                                                           text-[11px]
+                                                                           text-[#66756D]
+                                                                           transition
+                                                                           group-hover:text-[#7EF0B6]"></i>
 
                             <span>
                                 Log in
@@ -408,20 +400,20 @@
 
 
                         <a href="{{ route('register') }}" class="group
-                                                                   flex items-center gap-[8px]
-                                                                   py-1.5
-                                                                   text-[13.5px]
-                                                                   text-[#8E9B94]
-                                                                   transition
-                                                                   hover:text-[#7EF0B6]">
+                                                                       flex items-center gap-[8px]
+                                                                       py-1.5
+                                                                       text-[13.5px]
+                                                                       text-[#8E9B94]
+                                                                       transition
+                                                                       hover:text-[#7EF0B6]">
 
                             <i class="fa-solid
-                                                                       fa-user-plus
-                                                                       w-[15px]
-                                                                       text-[11px]
-                                                                       text-[#66756D]
-                                                                       transition
-                                                                       group-hover:text-[#7EF0B6]"></i>
+                                                                           fa-user-plus
+                                                                           w-[15px]
+                                                                           text-[11px]
+                                                                           text-[#66756D]
+                                                                           transition
+                                                                           group-hover:text-[#7EF0B6]"></i>
 
                             <span>
                                 Register
@@ -432,20 +424,20 @@
                     @else
 
                         <a href="{{ route('seller.dashboard') }}" class="group
-                                                                   flex items-center gap-[8px]
-                                                                   py-1.5
-                                                                   text-[13.5px]
-                                                                   text-[#8E9B94]
-                                                                   transition
-                                                                   hover:text-[#7EF0B6]">
+                                                                       flex items-center gap-[8px]
+                                                                       py-1.5
+                                                                       text-[13.5px]
+                                                                       text-[#8E9B94]
+                                                                       transition
+                                                                       hover:text-[#7EF0B6]">
 
                             <i class="fa-solid
-                                                                       fa-store
-                                                                       w-[15px]
-                                                                       text-[11px]
-                                                                       text-[#66756D]
-                                                                       transition
-                                                                       group-hover:text-[#7EF0B6]"></i>
+                                                                           fa-store
+                                                                           w-[15px]
+                                                                           text-[11px]
+                                                                           text-[#66756D]
+                                                                           transition
+                                                                           group-hover:text-[#7EF0B6]"></i>
 
                             <span>
                                 Seller dashboard
@@ -455,20 +447,20 @@
 
 
                         <a href="{{ route('buyer.dashboard') }}" class="group
-                                                                   flex items-center gap-[8px]
-                                                                   py-1.5
-                                                                   text-[13.5px]
-                                                                   text-[#8E9B94]
-                                                                   transition
-                                                                   hover:text-[#7EF0B6]">
+                                                                       flex items-center gap-[8px]
+                                                                       py-1.5
+                                                                       text-[13.5px]
+                                                                       text-[#8E9B94]
+                                                                       transition
+                                                                       hover:text-[#7EF0B6]">
 
                             <i class="fa-solid
-                                                                       fa-bag-shopping
-                                                                       w-[15px]
-                                                                       text-[11px]
-                                                                       text-[#66756D]
-                                                                       transition
-                                                                       group-hover:text-[#7EF0B6]"></i>
+                                                                           fa-bag-shopping
+                                                                           w-[15px]
+                                                                           text-[11px]
+                                                                           text-[#66756D]
+                                                                           transition
+                                                                           group-hover:text-[#7EF0B6]"></i>
 
                             <span>
                                 Buyer dashboard
@@ -485,25 +477,25 @@
                             @csrf
 
                             <button type="submit" class="group
-                                                                       flex w-full
-                                                                       items-center gap-[8px]
-                                                                       border-0
-                                                                       bg-transparent
-                                                                       py-1.5
-                                                                       text-left
-                                                                       font-inherit
-                                                                       text-[13.5px]
-                                                                       text-[#8E9B94]
-                                                                       transition
-                                                                       hover:text-[#7EF0B6]">
+                                                                           flex w-full
+                                                                           items-center gap-[8px]
+                                                                           border-0
+                                                                           bg-transparent
+                                                                           py-1.5
+                                                                           text-left
+                                                                           font-inherit
+                                                                           text-[13.5px]
+                                                                           text-[#8E9B94]
+                                                                           transition
+                                                                           hover:text-[#7EF0B6]">
 
                                 <i class="fa-solid
-                                                                           fa-arrow-right-from-bracket
-                                                                           w-[15px]
-                                                                           text-[11px]
-                                                                           text-[#66756D]
-                                                                           transition
-                                                                           group-hover:text-[#7EF0B6]"></i>
+                                                                               fa-arrow-right-from-bracket
+                                                                               w-[15px]
+                                                                               text-[11px]
+                                                                               text-[#66756D]
+                                                                               transition
+                                                                               group-hover:text-[#7EF0B6]"></i>
 
                                 <span>
                                     Log out
