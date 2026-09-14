@@ -437,7 +437,56 @@ class SellerSecureTransactionController extends Controller
             $subtotal + $deliveryFee,
             2
         );
+/*
+|--------------------------------------------------------------------------
+| Calculate Seller Fees
+|--------------------------------------------------------------------------
+*/
 
+$serviceFeeRate = max(
+    0,
+    (float) config(
+        'secure_transactions.service_fee_percent',
+        5
+    )
+);
+
+
+$vatRate = max(
+    0,
+    (float) config(
+        'secure_transactions.fee_vat_percent',
+        7.5
+    )
+);
+
+
+$serviceFeeAmount = round(
+    $totalAmount *
+    (
+        $serviceFeeRate / 100
+    ),
+    2
+);
+
+
+$vatAmount = round(
+    $serviceFeeAmount *
+    (
+        $vatRate / 100
+    ),
+    2
+);
+
+
+$sellerNetAmount = round(
+    $totalAmount
+    -
+    $serviceFeeAmount
+    -
+    $vatAmount,
+    2
+);
 
         /*
         |--------------------------------------------------------------------------
@@ -503,7 +552,12 @@ class SellerSecureTransactionController extends Controller
                     $unitPrice,
                     $subtotal,
                     $deliveryFee,
-                    $totalAmount
+                    $totalAmount,
+                    $serviceFeeRate,
+                    $serviceFeeAmount,
+                    $vatRate,
+                    $vatAmount,
+                    $sellerNetAmount
                 ) {
                     return SecureTransaction::create([
                         'reference' => $reference,
@@ -548,6 +602,23 @@ class SellerSecureTransactionController extends Controller
                         'delivery_fee' => $deliveryFee,
 
                         'total_amount' => $totalAmount,
+                        
+                        'service_fee_rate' =>
+                            $serviceFeeRate,
+
+                        'service_fee_amount' =>
+                            $serviceFeeAmount,
+
+
+                        'vat_rate' =>
+                            $vatRate,
+
+                        'vat_amount' =>
+                            $vatAmount,
+
+
+                        'seller_net_amount' =>
+                            $sellerNetAmount,
 
                         'currency' => 'NGN',
 
