@@ -480,7 +480,7 @@
 /* Auth */
 
 .mp-auth {
-    min-height: calc(100vh - 66px);
+    min-height:100vh;
     display: grid;
     grid-template-columns: 1fr 1fr;
 }
