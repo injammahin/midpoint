@@ -127,9 +127,17 @@ class TransactionDispute extends Model
 
         'refund_amount',
 
+        'approved_refund_amount',
+
+        'refund_gateway_fee_amount',
+
         'refund_amount_subunit',
 
-        'seller_settlement_amount',
+        'approved_refund_amount_subunit',
+
+        'refund_gateway_fee_subunit',
+
+'seller_settlement_amount',
 
         'resolution_service_fee_amount',
 
@@ -190,6 +198,12 @@ class TransactionDispute extends Model
         'refund_amount_subunit' =>
             'integer',
 
+        'approved_refund_amount_subunit' =>
+            'integer',
+
+        'refund_gateway_fee_subunit' =>
+            'integer',
+
         'paystack_refund_amount_subunit' =>
             'integer',
 
@@ -200,6 +214,12 @@ class TransactionDispute extends Model
             'datetime',
 
         'refund_amount' =>
+            'decimal:2',
+
+        'approved_refund_amount' =>
+            'decimal:2',
+
+        'refund_gateway_fee_amount' =>
             'decimal:2',
 
         'seller_settlement_amount' =>

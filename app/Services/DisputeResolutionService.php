@@ -228,7 +228,20 @@ class DisputeResolutionService
         }
 
 
-        $refundAmountSubunit =
+        /*
+        |--------------------------------------------------------------------------
+        | Gross Refund Approved By Admin
+        |--------------------------------------------------------------------------
+        |
+        | This is the amount selected by Midpoint before deducting Paystack's
+        | original non-refundable processing fee.
+        |
+        | Seller settlement must be calculated using this GROSS approved amount.
+        | It must never use the lower net refund that is sent to Paystack.
+        |
+        */
+
+        $approvedRefundAmountSubunit =
             $fullRefund
                 ? $paidAmountSubunit
                 : DisputeRefundAllocation::majorToSubunit(
@@ -240,9 +253,9 @@ class DisputeResolutionService
             !$fullRefund
             &&
             (
-                $refundAmountSubunit <= 0
+                $approvedRefundAmountSubunit <= 0
                 ||
-                $refundAmountSubunit >= $paidAmountSubunit
+                $approvedRefundAmountSubunit >= $paidAmountSubunit
             )
         ) {
 
@@ -254,7 +267,7 @@ class DisputeResolutionService
 
 
         if (
-            $refundAmountSubunit
+            $approvedRefundAmountSubunit
             >
             $paidAmountSubunit
         ) {
@@ -266,10 +279,172 @@ class DisputeResolutionService
         }
 
 
+        /*
+        |--------------------------------------------------------------------------
+        | Verify Original Paystack Payment
+        |--------------------------------------------------------------------------
+        |
+        | We read the REAL processing fee returned by Paystack instead of
+        | hard-coding any percentage or flat charge.
+        |
+        */
+
+        try {
+
+            $verifiedPayment =
+                $this->paystack->verifyTransaction(
+                    $payment->reference
+                );
+
+        } catch (Throwable $exception) {
+
+            throw ValidationException::withMessages([
+                'refund_amount' =>
+                    'The original Paystack transaction could not be verified, so no refund was started. Paystack response: '
+                    .
+                    $exception->getMessage(),
+            ]);
+        }
+
+
+        if (
+            strtolower(
+                trim(
+                    (string)
+                    (
+                        $verifiedPayment['status']
+                        ??
+                        ''
+                    )
+                )
+            )
+            !==
+            'success'
+        ) {
+
+            throw ValidationException::withMessages([
+                'refund_amount' =>
+                    'The original Paystack transaction is not verified as successful, so no refund was started.',
+            ]);
+        }
+
+
+        $verifiedAmountSubunit =
+            (int)
+            (
+                $verifiedPayment['amount']
+                ??
+                0
+            );
+
+
+        if (
+            $verifiedAmountSubunit <= 0
+            ||
+            $verifiedAmountSubunit !== $paidAmountSubunit
+        ) {
+
+            throw ValidationException::withMessages([
+                'refund_amount' =>
+                    'The amount returned by Paystack does not match Midpoint\'s recorded successful payment amount. No refund was started.',
+            ]);
+        }
+
+
+        if (
+            !array_key_exists(
+                'fees',
+                $verifiedPayment
+            )
+            ||
+            $verifiedPayment['fees'] === null
+            ||
+            !is_numeric(
+                $verifiedPayment['fees']
+            )
+        ) {
+
+            throw ValidationException::withMessages([
+                'refund_amount' =>
+                    'Paystack did not return a verifiable processing fee for the original payment. No refund was started.',
+            ]);
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Original Paystack Fee To Recover From Buyer Refund
+        |--------------------------------------------------------------------------
+        |
+        | Example:
+        |
+        | Original payment = ₦5,000
+        | Paystack fee     = ₦175
+        |
+        | Full approved refund    ₦5,000 -> buyer receives ₦4,825
+        | Partial approved refund ₦2,500 -> buyer receives ₦2,325
+        |
+        */
+
+        $refundGatewayFeeSubunit =
+            max(
+                0,
+                (int)
+                $verifiedPayment['fees']
+            );
+
+
+        if (
+            $approvedRefundAmountSubunit
+            <=
+            $refundGatewayFeeSubunit
+        ) {
+
+            throw ValidationException::withMessages([
+                'refund_amount' =>
+                    'The approved refund must be greater than the non-refundable Paystack processing fee of ₦'
+                    .
+                    number_format(
+                        DisputeRefundAllocation::subunitToMajor(
+                            $refundGatewayFeeSubunit
+                        ),
+                        2
+                    )
+                    .
+                    '.',
+            ]);
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Net Refund Actually Sent To Paystack
+        |--------------------------------------------------------------------------
+        */
+
+        $refundAmountSubunit =
+            $approvedRefundAmountSubunit
+            -
+            $refundGatewayFeeSubunit;
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Seller Settlement
+        |--------------------------------------------------------------------------
+        |
+        | IMPORTANT:
+        | Use the GROSS approved refund here, not the net Paystack refund.
+        |
+        | This prevents the withheld gateway fee from accidentally becoming
+        | extra seller money.
+        |
+        */
+
         $settlement =
             DisputeRefundAllocation::calculate(
                 $paidAmountSubunit,
-                $refundAmountSubunit,
+                $approvedRefundAmountSubunit,
                 (float)
                 config(
                     'secure_transactions.service_fee_percent',
@@ -283,8 +458,22 @@ class DisputeResolutionService
             );
 
 
+        $approvedRefundAmount =
+            DisputeRefundAllocation::subunitToMajor(
+                $approvedRefundAmountSubunit
+            );
+
+
+        $refundGatewayFeeAmount =
+            DisputeRefundAllocation::subunitToMajor(
+                $refundGatewayFeeSubunit
+            );
+
+
         $refundAmount =
-            $settlement['refund'];
+            DisputeRefundAllocation::subunitToMajor(
+                $refundAmountSubunit
+            );
 
 
         /*
@@ -303,6 +492,10 @@ class DisputeResolutionService
                 $admin,
                 $dispute,
                 $fullRefund,
+                $approvedRefundAmount,
+                $approvedRefundAmountSubunit,
+                $refundGatewayFeeAmount,
+                $refundGatewayFeeSubunit,
                 $refundAmount,
                 $refundAmountSubunit,
                 $settlement,
@@ -347,11 +540,41 @@ class DisputeResolutionService
                     'resolution_status' =>
                         TransactionDispute::RESOLUTION_STATUS_INITIATING,
 
+                    /*
+                    |------------------------------------------------------------------
+                    | NET amount actually sent to Paystack / buyer
+                    |------------------------------------------------------------------
+                    */
+
                     'refund_amount' =>
                         $refundAmount,
 
                     'refund_amount_subunit' =>
                         $refundAmountSubunit,
+
+                    /*
+                    |------------------------------------------------------------------
+                    | GROSS amount approved by Midpoint admin
+                    |------------------------------------------------------------------
+                    */
+
+                    'approved_refund_amount' =>
+                        $approvedRefundAmount,
+
+                    'approved_refund_amount_subunit' =>
+                        $approvedRefundAmountSubunit,
+
+                    /*
+                    |------------------------------------------------------------------
+                    | Paystack processing fee withheld from approved refund
+                    |------------------------------------------------------------------
+                    */
+
+                    'refund_gateway_fee_amount' =>
+                        $refundGatewayFeeAmount,
+
+                    'refund_gateway_fee_subunit' =>
+                        $refundGatewayFeeSubunit,
 
                     'seller_settlement_amount' =>
                         $settlement['seller_net'],
@@ -394,7 +617,7 @@ class DisputeResolutionService
 
                 $this->createSystemMessage(
                     $lockedDispute,
-                    'Midpoint has made a financial decision on this dispute. A '
+                    'Midpoint approved a '
                     .
                     (
                         $fullRefund
@@ -402,14 +625,28 @@ class DisputeResolutionService
                             : 'partial'
                     )
                     .
-                    ' Paystack refund of ₦'
+                    ' refund of ₦'
+                    .
+                    number_format(
+                        $approvedRefundAmount,
+                        2
+                    )
+                    .
+                    '. Non-refundable Paystack processing fee deducted: ₦'
+                    .
+                    number_format(
+                        $refundGatewayFeeAmount,
+                        2
+                    )
+                    .
+                    '. Net amount being returned to the buyer: ₦'
                     .
                     number_format(
                         $refundAmount,
                         2
                     )
                     .
-                    ' is being initiated. This room is now closed. The case will remain financially locked until Paystack confirms the refund outcome.'
+                    '. This room is now closed. The case will remain financially locked until Paystack confirms the refund outcome.'
                 );
             }
         );
@@ -489,7 +726,7 @@ class DisputeResolutionService
                 ])->save();
 
                 throw new RuntimeException(
-                    'Paystack returned a refund amount that does not exactly match the approved Midpoint amount. Seller settlement remains locked for manual reconciliation.'
+                    'Paystack returned a refund amount that does not exactly match the net refund amount Midpoint submitted. Seller settlement remains locked for manual reconciliation.'
                 );
             }
 
@@ -540,8 +777,12 @@ class DisputeResolutionService
                     'dispute-refund-initiated-'
                     .
                     $dispute->id,
-                    'Midpoint initiated your dispute refund',
-                    'Midpoint has initiated a '
+                    'Midpoint initiated the dispute refund',
+                    'For transaction '
+                    .
+                    $transaction->reference
+                    .
+                    ', Midpoint approved a '
                     .
                     (
                         $fullRefund
@@ -552,13 +793,23 @@ class DisputeResolutionService
                     ' refund of ₦'
                     .
                     number_format(
-                        $refundAmount,
+                        $approvedRefundAmount,
                         2
                     )
                     .
-                    ' through Paystack for transaction '
+                    '. Non-refundable Paystack processing fee deducted from the approved refund: ₦'
                     .
-                    $transaction->reference
+                    number_format(
+                        $refundGatewayFeeAmount,
+                        2
+                    )
+                    .
+                    '. Net refund being returned to the buyer: ₦'
+                    .
+                    number_format(
+                        $refundAmount,
+                        2
+                    )
                     .
                     '. The room is now closed. Paystack says a processed refund can still take up to 10 business days to appear in the buyer\'s bank account. Seller payout remains locked until the refund reaches a final state.',
                     'Refund initiated'
@@ -609,7 +860,13 @@ class DisputeResolutionService
                     'reference' =>
                         $payment->reference,
 
-                    'refund_amount' =>
+                    'approved_refund_amount' =>
+                        $approvedRefundAmount,
+
+                    'refund_gateway_fee_amount' =>
+                        $refundGatewayFeeAmount,
+
+                    'net_refund_amount' =>
                         $refundAmount,
 
                     'error' =>
@@ -1303,7 +1560,7 @@ class DisputeResolutionService
                     .
                     $gatewayAmountSubunit
                     .
-                    ' subunits, but Midpoint approved '
+                    ' subunits, but Midpoint expected net refund '
                     .
                     $expectedAmountSubunit
                     .
@@ -1586,6 +1843,12 @@ class DisputeResolutionService
         array $gatewayData = []
     ): TransactionDispute {
 
+        /*
+        |--------------------------------------------------------------------------
+        | The expected Paystack amount is the NET buyer refund
+        |--------------------------------------------------------------------------
+        */
+
         $expectedAmountSubunit =
             (int)
             (
@@ -1615,9 +1878,10 @@ class DisputeResolutionService
         ) {
 
             throw new RuntimeException(
-                'Refund finalization was blocked because the Paystack amount does not exactly match the approved Midpoint amount.'
+                'Refund finalization was blocked because the Paystack amount does not exactly match the net refund amount Midpoint submitted.'
             );
         }
+
 
         return DB::transaction(
             function () use (
@@ -1731,8 +1995,9 @@ class DisputeResolutionService
                     |--------------------------------------------------------------------------
                     |
                     | Midpoint fees are recalculated ONLY on the amount retained by
-                    | the seller side of the transaction. The refunded amount has no
-                    | Midpoint service fee.
+                    | the seller side of the transaction. The approved buyer refund
+                    | remains the original gross admin decision, even though the
+                    | Paystack fee is withheld from the buyer's returned amount.
                     |
                     */
 
@@ -1834,9 +2099,27 @@ class DisputeResolutionService
                             'resolution_type' =>
                                 TransactionDispute::RESOLUTION_PARTIAL_REFUND,
 
+                            /* Actual net amount Paystack returned to buyer. */
                             'refund_amount' =>
                                 (float)
                                 $lockedDispute->refund_amount,
+
+                            /* Gross amount originally approved by Midpoint. */
+                            'approved_refund_amount' =>
+                                (float)
+                                (
+                                    $lockedDispute->approved_refund_amount
+                                    ??
+                                    $lockedDispute->refund_amount
+                                ),
+
+                            'refund_gateway_fee_amount' =>
+                                (float)
+                                (
+                                    $lockedDispute->refund_gateway_fee_amount
+                                    ??
+                                    0
+                                ),
 
                             'paystack_refund_id' =>
                                 $lockedDispute->paystack_refund_id,
@@ -1845,37 +2128,67 @@ class DisputeResolutionService
                 }
 
 
+                $approvedRefundAmount =
+                    (float)
+                    (
+                        $lockedDispute->approved_refund_amount
+                        ??
+                        $lockedDispute->refund_amount
+                    );
+
+
+                $refundGatewayFeeAmount =
+                    (float)
+                    (
+                        $lockedDispute->refund_gateway_fee_amount
+                        ??
+                        0
+                    );
+
+
+                $netRefundAmount =
+                    (float)
+                    $lockedDispute->refund_amount;
+
+
                 $this->createSystemMessage(
                     $lockedDispute,
-                    $isFullRefund
+                    'Paystack confirmed the refund. Approved refund: ₦'
+                    .
+                    number_format(
+                        $approvedRefundAmount,
+                        2
+                    )
+                    .
+                    '. Non-refundable Paystack processing fee deducted: ₦'
+                    .
+                    number_format(
+                        $refundGatewayFeeAmount,
+                        2
+                    )
+                    .
+                    '. Net amount processed to the buyer: ₦'
+                    .
+                    number_format(
+                        $netRefundAmount,
+                        2
+                    )
+                    .
+                    (
+                        $isFullRefund
 
-                        ? 'Paystack confirmed that the full refund of ₦'
-                            .
-                            number_format(
-                                (float)
-                                $lockedDispute->refund_amount,
-                                2
-                            )
-                            .
-                            ' was processed. This dispute is resolved and no seller payout was credited.'
+                            ? '. No seller payout was credited.'
 
-                        : 'Paystack confirmed that the partial refund of ₦'
-                            .
-                            number_format(
-                                (float)
-                                $lockedDispute->refund_amount,
-                                2
-                            )
-                            .
-                            ' was processed. The approved seller settlement of ₦'
-                            .
-                            number_format(
-                                (float)
-                                $lockedDispute->seller_settlement_amount,
-                                2
-                            )
-                            .
-                            ' has been credited to the seller Midpoint balance.'
+                            : '. The approved seller settlement of ₦'
+                                .
+                                number_format(
+                                    (float)
+                                    $lockedDispute->seller_settlement_amount,
+                                    2
+                                )
+                                .
+                                ' has been credited to the seller Midpoint balance.'
+                    )
                 );
 
 
@@ -1898,43 +2211,57 @@ class DisputeResolutionService
                     .
                     $fresh->id,
                     'Your Midpoint dispute has been resolved',
-                    $isFullRefund
+                    'Paystack confirmed the refund for transaction '
+                    .
+                    $fresh->transaction->reference
+                    .
+                    '. Approved refund: ₦'
+                    .
+                    number_format(
+                        (float)
+                        (
+                            $fresh->approved_refund_amount
+                            ??
+                            $fresh->refund_amount
+                        ),
+                        2
+                    )
+                    .
+                    '. Non-refundable Paystack processing fee deducted: ₦'
+                    .
+                    number_format(
+                        (float)
+                        (
+                            $fresh->refund_gateway_fee_amount
+                            ??
+                            0
+                        ),
+                        2
+                    )
+                    .
+                    '. Net refund processed to the buyer: ₦'
+                    .
+                    number_format(
+                        (float)
+                        $fresh->refund_amount,
+                        2
+                    )
+                    .
+                    (
+                        $isFullRefund
 
-                        ? 'Paystack confirmed the full refund of ₦'
-                            .
-                            number_format(
-                                (float)
-                                $fresh->refund_amount,
-                                2
-                            )
-                            .
-                            ' for transaction '
-                            .
-                            $fresh->transaction->reference
-                            .
-                            '. The seller received no Midpoint payout for the refunded transaction.'
+                            ? '. No seller payout was credited.'
 
-                        : 'Paystack confirmed the partial refund of ₦'
-                            .
-                            number_format(
-                                (float)
-                                $fresh->refund_amount,
-                                2
-                            )
-                            .
-                            ' for transaction '
-                            .
-                            $fresh->transaction->reference
-                            .
-                            '. The remaining approved seller settlement is ₦'
-                            .
-                            number_format(
-                                (float)
-                                $fresh->seller_settlement_amount,
-                                2
-                            )
-                            .
-                            '.',
+                            : '. The remaining approved seller settlement is ₦'
+                                .
+                                number_format(
+                                    (float)
+                                    $fresh->seller_settlement_amount,
+                                    2
+                                )
+                                .
+                                '.'
+                    ),
                     'Resolved'
                 );
 

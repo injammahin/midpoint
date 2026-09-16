@@ -1,195 +1,227 @@
 @php
 
-    $isBuyer =
-        $mode === 'buyer';
+$isBuyer =
+    $mode === 'buyer';
 
-    $isSeller =
-        $mode === 'seller';
+$isSeller =
+    $mode === 'seller';
 
-    $isMarketplaceOrder =
-        $transaction->transaction_source
-        ===
-        'marketplace_checkout';
-
-
-    $isSellerCreatedTransaction =
-        $transaction->transaction_source
-        ===
-        'seller_link';
+$isMarketplaceOrder =
+    $transaction->transaction_source
+    ===
+    'marketplace_checkout';
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Ordered Product Information
-    |--------------------------------------------------------------------------
-    |
-    | IMPORTANT:
-    |
-    | We use the values saved in SecureTransaction as the main source.
-    |
-    | That is intentional because they are the product snapshot at the
-    | moment the buyer ordered.
-    |
-    | For example, if the seller later changes the live product name or
-    | price, the historical transaction must still show what was actually
-    | purchased.
-    |
-    */
-
-    $orderedItemName =
-        $transaction->title
-        ?:
-        $transaction->product?->name
-        ?:
-        'Item';
+$isSellerCreatedTransaction =
+    $transaction->transaction_source
+    ===
+    'seller_link';
 
 
-    $orderedQuantity =
-        max(
-            1,
-            (int) $transaction->quantity
-        );
+/*
+|--------------------------------------------------------------------------
+| Ordered Product Information
+|--------------------------------------------------------------------------
+|
+| IMPORTANT:
+|
+| We use the values saved in SecureTransaction as the main source.
+|
+| That is intentional because they are the product snapshot at the
+| moment the buyer ordered.
+|
+| For example, if the seller later changes the live product name or
+| price, the historical transaction must still show what was actually
+| purchased.
+|
+*/
+
+$orderedItemName =
+    $transaction->title
+    ?:
+    $transaction->product?->name
+    ?:
+    'Item';
 
 
-    $orderedUnitPrice =
-        (float) $transaction->unit_price;
-
-
-    $orderedSubtotal =
-        (float) $transaction->subtotal;
-
-
-    $buyerDisplayName =
-        $transaction->buyer?->name
-        ?:
-        $transaction->buyer_email
-        ?:
-        'Buyer';
-    /*
-    |--------------------------------------------------------------------------
-    | Dispute State
-    |--------------------------------------------------------------------------
-    */
-
-    $dispute =
-        $transaction->dispute;
-
-
-    $hasDispute =
-        !is_null(
-            $dispute
-        );
-
-
-    $isActiveDispute =
-        $hasDispute
-        &&
-        $dispute->status
-        !==
-        \App\Models\TransactionDispute::STATUS_RESOLVED;
-
-
-    $isResolvedDispute =
-        $hasDispute
-        &&
-        $dispute->status
-        ===
-        \App\Models\TransactionDispute::STATUS_RESOLVED;
-
-
-    $hasFinalDecision =
-        $hasDispute
-        &&
-        !empty(
-        $dispute->resolution_type
+$orderedQuantity =
+    max(
+        1,
+        (int) $transaction->quantity
     );
 
 
-    $isRefundDecision =
-        $hasFinalDecision
-        &&
-        in_array(
-            $dispute->resolution_type,
-            [
-                \App\Models\TransactionDispute::RESOLUTION_FULL_REFUND,
-                \App\Models\TransactionDispute::RESOLUTION_PARTIAL_REFUND,
-            ],
-            true
-        );
+$orderedUnitPrice =
+    (float) $transaction->unit_price;
 
 
-    $isRefundProcessed =
-        $isRefundDecision
-        &&
-        $dispute->resolution_status
-        ===
-        \App\Models\TransactionDispute::RESOLUTION_STATUS_REFUND_PROCESSED;
+$orderedSubtotal =
+    (float) $transaction->subtotal;
 
 
-    $totalPaid =
-        $transaction->paid_amount
-        ?:
-        $transaction->total_amount;
+$buyerDisplayName =
+    $transaction->buyer?->name
+    ?:
+    $transaction->buyer_email
+    ?:
+    'Buyer';
+/*
+|--------------------------------------------------------------------------
+| Dispute State
+|--------------------------------------------------------------------------
+*/
 
-    $sellerNet =
-        $transaction->seller_net_amount
-        ?:
-        $totalPaid;
+$dispute =
+    $transaction->dispute;
 
+
+$hasDispute =
+    !is_null(
+        $dispute
+    );
+
+
+$isActiveDispute =
+    $hasDispute
+    &&
+    $dispute->status
+    !==
+    \App\Models\TransactionDispute::STATUS_RESOLVED;
+
+
+$isResolvedDispute =
+    $hasDispute
+    &&
+    $dispute->status
+    ===
+    \App\Models\TransactionDispute::STATUS_RESOLVED;
+
+
+$hasFinalDecision =
+    $hasDispute
+    &&
+    !empty(
+    $dispute->resolution_type
+);
+
+
+$isRefundDecision =
+    $hasFinalDecision
+    &&
+    in_array(
+        $dispute->resolution_type,
+        [
+            \App\Models\TransactionDispute::RESOLUTION_FULL_REFUND,
+            \App\Models\TransactionDispute::RESOLUTION_PARTIAL_REFUND,
+        ],
+        true
+    );
+
+
+$isRefundProcessed =
+    $isRefundDecision
+    &&
+    $dispute->resolution_status
+    ===
+    \App\Models\TransactionDispute::RESOLUTION_STATUS_REFUND_PROCESSED;
+
+$approvedRefundAmount =
+    $isRefundDecision
+
+    ? (float) 
+    (
+        $dispute->approved_refund_amount
+        ??
+        $dispute->refund_amount
+    )
+
+    : 0;
+
+
+$refundGatewayFeeAmount =
+    $isRefundDecision
+
+    ? (float) 
+    (
+        $dispute->refund_gateway_fee_amount
+        ??
+        0
+    )
+
+    : 0;
+
+
+$netRefundAmount =
+    $isRefundDecision
+
+    ? (float) 
+    $dispute->refund_amount
+
+    : 0;
+$totalPaid =
+    $transaction->paid_amount
+    ?:
+    $transaction->total_amount;
+
+$sellerNet =
+    $transaction->seller_net_amount
+    ?:
+    $totalPaid;
+
+$countdownEnd =
+    null;
+
+/*
+|--------------------------------------------------------------------------
+| Manual Buyer Approval
+|--------------------------------------------------------------------------
+|
+| We may still show the buyer's inspection timer, but there is no automatic
+| seller wallet release countdown anymore.
+|
+*/
+
+if (
+    $transaction->status
+    ===
+    \App\Models\SecureTransaction::STATUS_INSPECTION
+    &&
+    $transaction->inspection_ends_at
+) {
     $countdownEnd =
-        null;
+        $transaction->inspection_ends_at;
+}
 
-    /*
-    |--------------------------------------------------------------------------
-    | Manual Buyer Approval
-    |--------------------------------------------------------------------------
-    |
-    | We may still show the buyer's inspection timer, but there is no automatic
-    | seller wallet release countdown anymore.
-    |
-    */
+$sellerProfile =
+    $transaction
+        ->seller
+            ?->sellerBusinessProfile;
 
-    if (
-        $transaction->status
-        ===
-        \App\Models\SecureTransaction::STATUS_INSPECTION
-        &&
-        $transaction->inspection_ends_at
-    ) {
-        $countdownEnd =
-            $transaction->inspection_ends_at;
-    }
+$whatsappUrl =
+    null;
 
-    $sellerProfile =
-        $transaction
-            ->seller
-                ?->sellerBusinessProfile;
-
+if (
+    $sellerProfile
+    &&
+    $sellerProfile->whatsapp_enabled
+) {
     $whatsappUrl =
-        null;
-
-    if (
-        $sellerProfile
-        &&
-        $sellerProfile->whatsapp_enabled
-    ) {
-        $whatsappUrl =
-            $sellerProfile->whatsappUrl(
-                'Hi '
-                .
-                (
-                    $transaction->seller?->name
-                    ?:
-                    'Seller'
-                )
-                .
-                ', I am contacting you about delivery for Midpoint transaction '
-                .
-                $transaction->reference
-                .
-                '.'
-            );
-    }
+        $sellerProfile->whatsappUrl(
+            'Hi '
+            .
+            (
+                $transaction->seller?->name
+                ?:
+                'Seller'
+            )
+            .
+            ', I am contacting you about delivery for Midpoint transaction '
+            .
+            $transaction->reference
+            .
+            '.'
+        );
+}
 
 @endphp
 
@@ -243,10 +275,10 @@
 
 
             @if(
-                    $isSeller
-                    &&
-                    $isMarketplaceOrder
-                )
+    $isSeller
+    &&
+    $isMarketplaceOrder
+)
 
                 <span class="tm-order-source marketplace">
 
@@ -257,10 +289,10 @@
                 </span>
 
             @elseif(
-                    $isSeller
-                    &&
-                    $isSellerCreatedTransaction
-                )
+    $isSeller
+    &&
+    $isSellerCreatedTransaction
+)
 
                 <span class="tm-order-source seller-created">
 
@@ -329,269 +361,283 @@
 
     @if($isActiveDispute)
 
-        <div class="tm-dispute-banner">
+            <div class="tm-dispute-banner">
 
-            <i class="fa-solid fa-triangle-exclamation"></i>
-
-
-            <div>
-
-                <strong>
-
-                    @if($hasFinalDecision)
-
-                        {{ $dispute->resolution_type_label }} decision
-
-                    @elseif(
-                            $dispute->status
-                            ===
-                            \App\Models\TransactionDispute::STATUS_AWAITING_BUYER
-                        )
-
-                        Dispute awaiting buyer
-
-                    @elseif(
-                            $dispute->status
-                            ===
-                            \App\Models\TransactionDispute::STATUS_AWAITING_SELLER
-                        )
-
-                        Dispute awaiting seller
-
-                    @elseif(
-                            $dispute->status
-                            ===
-                            \App\Models\TransactionDispute::STATUS_UNDER_REVIEW
-                        )
-
-                        Dispute under review
-
-                    @else
-
-                        Transaction disputed
-
-                    @endif
-
-                </strong>
+                <i class="fa-solid fa-triangle-exclamation"></i>
 
 
-                <span>
+                <div>
 
-                    @if($isRefundDecision)
+                    <strong>
 
-                        Midpoint approved a {{ strtolower($dispute->resolution_type_label) }}
-                        of ₦{{ number_format((float) $dispute->refund_amount, 2) }}.
+                        @if($hasFinalDecision)
 
-                        @if($isRefundProcessed)
+                            {{ $dispute->resolution_type_label }} decision
 
-                            Paystack processed the refund. It can still take up to
-                            10 business days to appear in the buyer's bank account.
+                        @elseif(
+        $dispute->status
+        ===
+        \App\Models\TransactionDispute::STATUS_AWAITING_BUYER
+    )
 
-                            @if(
-                                    $isSeller
-                                    &&
-                                    $dispute->resolution_type
-                                    ===
-                                    \App\Models\TransactionDispute::RESOLUTION_PARTIAL_REFUND
-                                )
+                            Dispute awaiting buyer
 
-                                Your approved net settlement of
-                                ₦{{ number_format((float) $dispute->seller_settlement_amount, 2) }}
-                                has been credited to your Midpoint wallet.
+                        @elseif(
+        $dispute->status
+        ===
+        \App\Models\TransactionDispute::STATUS_AWAITING_SELLER
+    )
 
-                            @endif
+                            Dispute awaiting seller
+
+                        @elseif(
+        $dispute->status
+        ===
+        \App\Models\TransactionDispute::STATUS_UNDER_REVIEW
+    )
+
+                            Dispute under review
 
                         @else
 
-                            Paystack is still processing it. The buyer should allow
-                            up to 10 business days for the money to appear.
-                            Seller payout remains locked until the exact approved
-                            refund is confirmed.
+                            Transaction disputed
 
                         @endif
 
-                    @elseif(
-                            $dispute->status
-                            ===
-                            \App\Models\TransactionDispute::STATUS_AWAITING_BUYER
-                        )
+                    </strong>
 
-                        Midpoint is waiting for additional information from the buyer.
-                        Automatic completion and seller payout remain paused.
 
-                    @elseif(
-                            $dispute->status
-                            ===
-                            \App\Models\TransactionDispute::STATUS_AWAITING_SELLER
-                        )
+                    <span>
 
-                        Midpoint is waiting for additional information from the seller.
-                        Automatic completion and seller payout remain paused.
+                        @if($isRefundDecision)
 
-                    @else
+                            Midpoint approved a
+                            {{ strtolower($dispute->resolution_type_label) }}
+                            of ₦{{ number_format($approvedRefundAmount, 2) }}
+                            before the non-refundable Paystack processing fee.
 
-                        Automatic completion and seller payout are paused while
-                        Midpoint reviews this case.
+                            Gateway fee deducted:
+                            ₦{{ number_format($refundGatewayFeeAmount, 2) }}.
+
+                            Buyer net refund:
+                            ₦{{ number_format($netRefundAmount, 2) }}.
+
+                                                    @if($isRefundProcessed)
+
+                                                                        Paystack processed the refund. It can still take up to
+                                                                        10 business days to appear in the buyer's bank account.
+
+                                                                        @if(
+                $isSeller
+                &&
+                $dispute->resolution_type
+                ===
+                \App\Models\TransactionDispute::RESOLUTION_PARTIAL_REFUND
+            )
+
+                                                                            Your approved net settlement of
+                                                                            ₦{{ number_format((float) $dispute->seller_settlement_amount, 2) }}
+                                                                            has been credited to your Midpoint wallet.
+
+                                                                        @endif
+
+                                                    @else
+
+                                                        Paystack is still processing it. The buyer should allow
+                                                        up to 10 business days for the money to appear.
+                                                        Seller payout remains locked until the exact approved
+                                                        refund is confirmed.
+
+                                                    @endif
+
+                        @elseif(
+        $dispute->status
+        ===
+        \App\Models\TransactionDispute::STATUS_AWAITING_BUYER
+    )
+
+                            Midpoint is waiting for additional information from the buyer.
+                            Automatic completion and seller payout remain paused.
+
+                        @elseif(
+        $dispute->status
+        ===
+        \App\Models\TransactionDispute::STATUS_AWAITING_SELLER
+    )
+
+                            Midpoint is waiting for additional information from the seller.
+                            Automatic completion and seller payout remain paused.
+
+                        @else
+
+                            Automatic completion and seller payout are paused while
+                            Midpoint reviews this case.
+
+                        @endif
+
+                    </span>
+
+
+                    @if($dispute->room_activated_at)
+
+                        <a href="{{
+            route(
+                'dispute-room.show',
+                [
+                    'dispute' =>
+                        $dispute,
+
+                    'record' =>
+                        $dispute->isRoomClosed()
+                        ? 1
+                        : 0,
+                ]
+            )
+                                    }}" class="tm-dispute-room-link">
+
+                            <i class="fa-solid fa-comments"></i>
+
+                            {{
+            $dispute->isRoomClosed()
+            ? 'View dispute record'
+            : 'Open private dispute room'
+                                    }}
+
+                        </a>
 
                     @endif
 
-                </span>
-
-
-                @if($dispute->room_activated_at)
-
-                    <a href="{{
-                    route(
-                        'dispute-room.show',
-                        [
-                            'dispute' =>
-                                $dispute,
-
-                            'record' =>
-                                $dispute->isRoomClosed()
-                                ? 1
-                                : 0,
-                        ]
-                    )
-                                }}" class="tm-dispute-room-link">
-
-                        <i class="fa-solid fa-comments"></i>
-
-                        {{
-                    $dispute->isRoomClosed()
-                    ? 'View dispute record'
-                    : 'Open private dispute room'
-                                }}
-
-                    </a>
-
-                @endif
+                </div>
 
             </div>
-
-        </div>
 
 
     @elseif($isResolvedDispute)
 
-        <div class="tm-dispute-resolved-banner">
+            <div class="tm-dispute-resolved-banner">
 
-            <i class="fa-solid fa-circle-check"></i>
+                <i class="fa-solid fa-circle-check"></i>
 
 
-            <div>
+                <div>
 
-                <strong>
-                    {{
+                    <strong>
+                        {{
             $hasFinalDecision
             ? $dispute->resolution_type_label
             : 'Dispute resolved'
-                        }}
-                </strong>
+                            }}
+                    </strong>
 
 
-                <span>
+                    <span>
 
-                    @if($isRefundDecision)
+                        @if($isRefundDecision)
 
-                        Midpoint approved
-                        ₦{{ number_format((float) $dispute->refund_amount, 2) }}
-                        for the buyer.
+                                                    Midpoint approved
+                                                    ₦{{ number_format($approvedRefundAmount, 2) }}
+                                                    before the non-refundable Paystack processing fee.
 
-                        @if($isRefundProcessed)
+                                                    Gateway fee deducted:
+                                                    ₦{{ number_format($refundGatewayFeeAmount, 2) }}.
 
-                            Paystack processed the refund. The buyer should allow
-                            up to 10 business days for it to appear in the bank account.
+                                                    Buyer net refund:
+                                                    ₦{{ number_format($netRefundAmount, 2) }}.
+
+                                                    @if($isRefundProcessed)
+
+                                                        Paystack processed the refund. The buyer should allow
+                                                        up to 10 business days for it to appear in the bank account.
+
+                                                    @else
+
+                                                        The refund is
+                                                        {{ strtolower($dispute->resolution_status_label ?? 'processing') }}.
+                                                        Seller payout remains locked until Paystack confirms it.
+
+                                                    @endif
+
+                                                    @if(
+                                        $dispute->resolution_type
+                                        ===
+                                        \App\Models\TransactionDispute::RESOLUTION_PARTIAL_REFUND
+                                    )
+
+                                                        The approved seller net settlement is
+                                                        ₦{{ number_format((float) $dispute->seller_settlement_amount, 2) }}.
+
+                                                    @endif
+
+                        @elseif(
+            $hasFinalDecision
+            &&
+            $dispute->resolution_type
+            ===
+            \App\Models\TransactionDispute::RESOLUTION_RELEASE_TO_SELLER
+        )
+
+                            Midpoint approved the seller settlement of
+                            ₦{{ number_format((float) $dispute->seller_settlement_amount, 2) }}.
 
                         @else
 
-                            The refund is
-                            {{ strtolower($dispute->resolution_status_label ?? 'processing') }}.
-                            Seller payout remains locked until Paystack confirms it.
+                            Midpoint completed the dispute review and returned this
+                            transaction to its protected workflow.
 
                         @endif
 
-                        @if(
-                                $dispute->resolution_type
-                                ===
-                                \App\Models\TransactionDispute::RESOLUTION_PARTIAL_REFUND
-                            )
 
-                            The approved seller net settlement is
-                            ₦{{ number_format((float) $dispute->seller_settlement_amount, 2) }}.
+                        @if($dispute->resolved_at)
+
+                            Resolved
+                            {{ $dispute->resolved_at->format('d M Y, h:i A') }}.
 
                         @endif
 
-                    @elseif(
-                            $hasFinalDecision
-                            &&
-                            $dispute->resolution_type
-                            ===
-                            \App\Models\TransactionDispute::RESOLUTION_RELEASE_TO_SELLER
-                        )
+                    </span>
 
-                        Midpoint approved the seller settlement of
-                        ₦{{ number_format((float) $dispute->seller_settlement_amount, 2) }}.
 
-                    @else
+                    @if($dispute->resolution_note ?: $dispute->admin_note)
 
-                        Midpoint completed the dispute review and returned this
-                        transaction to its protected workflow.
+                        <small>
+
+                            <strong>
+                                Midpoint resolution:
+                            </strong>
+
+                            {{ $dispute->resolution_note ?: $dispute->admin_note }}
+
+                        </small>
 
                     @endif
 
 
-                    @if($dispute->resolved_at)
+                    @if($dispute->room_activated_at)
 
-                        Resolved
-                        {{ $dispute->resolved_at->format('d M Y, h:i A') }}.
+                        <a href="{{
+                route(
+                    'dispute-room.show',
+                    [
+                        'dispute' =>
+                            $dispute,
+
+                        'record' =>
+                            1,
+                    ]
+                )
+                                    }}" class="tm-dispute-room-link resolved">
+
+                            <i class="fa-solid fa-comments"></i>
+
+                            View dispute record
+
+                        </a>
 
                     @endif
 
-                </span>
-
-
-                @if($dispute->resolution_note ?: $dispute->admin_note)
-
-                    <small>
-
-                        <strong>
-                            Midpoint resolution:
-                        </strong>
-
-                        {{ $dispute->resolution_note ?: $dispute->admin_note }}
-
-                    </small>
-
-                @endif
-
-
-                @if($dispute->room_activated_at)
-
-                    <a href="{{
-                    route(
-                        'dispute-room.show',
-                        [
-                            'dispute' =>
-                                $dispute,
-
-                            'record' =>
-                                1,
-                        ]
-                    )
-                                }}" class="tm-dispute-room-link resolved">
-
-                        <i class="fa-solid fa-comments"></i>
-
-                        View dispute record
-
-                    </a>
-
-                @endif
+                </div>
 
             </div>
-
-        </div>
 
     @endif
 
@@ -720,10 +766,10 @@
                                             <p>
 
                                                 {{
-                                    \Illuminate\Support\Str::limit(
-                                        $transaction->plain_description,
-                                        100
-                                    )
+            \Illuminate\Support\Str::limit(
+                $transaction->plain_description,
+                100
+            )
                                                         }}
 
                                             </p>
@@ -781,9 +827,9 @@
                                 <strong>
 
                                     ₦{{ number_format(
-                    $orderedUnitPrice,
-                    2
-                ) }}
+        $orderedUnitPrice,
+        2
+    ) }}
 
                                 </strong>
 
@@ -811,9 +857,9 @@
                                 <strong>
 
                                     ₦{{ number_format(
-                    $orderedSubtotal,
-                    2
-                ) }}
+        $orderedSubtotal,
+        2
+    ) }}
 
                                 </strong>
 
@@ -964,7 +1010,7 @@
             @if($countdownEnd)
 
                     <div class="tm-card tm-countdown" data-countdown-end="{{
-                $countdownEnd->toIso8601String()
+        $countdownEnd->toIso8601String()
                             }}">
 
                         <h3>
@@ -1135,10 +1181,10 @@
 
 
                             <a href="{{
-                    route(
-                        'buyer.transactions.invoice',
-                        $transaction
-                    )
+        route(
+            'buyer.transactions.invoice',
+            $transaction
+        )
                                     }}" class="tm-invoice">
 
                                 <i class="fa-solid fa-file-pdf"></i>
@@ -1279,10 +1325,10 @@
 
 
             @if(
-                    $isSeller
-                    &&
-                    !$isActiveDispute
-                )
+    $isSeller
+    &&
+    !$isActiveDispute
+)
 
                 <div class="tm-card">
 
@@ -1293,40 +1339,40 @@
 
                     @php
 
-                        $nextSellerStatus =
-                            match ($transaction->status) {
+    $nextSellerStatus =
+        match ($transaction->status) {
 
-                                \App\Models\SecureTransaction::STATUS_PAYMENT_SECURED =>
-                                [
-                                    'value' => \App\Models\SecureTransaction::STATUS_PREPARING_ITEM,
-                                    'label' => 'Mark as Preparing item',
-                                    'icon' => 'fa-box-open',
-                                ],
+            \App\Models\SecureTransaction::STATUS_PAYMENT_SECURED =>
+                [
+                    'value' => \App\Models\SecureTransaction::STATUS_PREPARING_ITEM,
+                    'label' => 'Mark as Preparing item',
+                    'icon' => 'fa-box-open',
+                ],
 
-                                \App\Models\SecureTransaction::STATUS_PREPARING_ITEM =>
-                                [
-                                    'value' => \App\Models\SecureTransaction::STATUS_DISPATCHED,
-                                    'label' => 'Mark as Dispatched',
-                                    'icon' => 'fa-truck',
-                                ],
+            \App\Models\SecureTransaction::STATUS_PREPARING_ITEM =>
+                [
+                    'value' => \App\Models\SecureTransaction::STATUS_DISPATCHED,
+                    'label' => 'Mark as Dispatched',
+                    'icon' => 'fa-truck',
+                ],
 
-                                \App\Models\SecureTransaction::STATUS_DISPATCHED =>
-                                [
-                                    'value' => \App\Models\SecureTransaction::STATUS_IN_TRANSIT,
-                                    'label' => 'Mark as In transit',
-                                    'icon' => 'fa-truck-fast',
-                                ],
+            \App\Models\SecureTransaction::STATUS_DISPATCHED =>
+                [
+                    'value' => \App\Models\SecureTransaction::STATUS_IN_TRANSIT,
+                    'label' => 'Mark as In transit',
+                    'icon' => 'fa-truck-fast',
+                ],
 
-                                \App\Models\SecureTransaction::STATUS_IN_TRANSIT =>
-                                [
-                                    'value' => \App\Models\SecureTransaction::STATUS_DELIVERED,
-                                    'label' => 'Mark as Delivered',
-                                    'icon' => 'fa-box-circle-check',
-                                ],
+            \App\Models\SecureTransaction::STATUS_IN_TRANSIT =>
+                [
+                    'value' => \App\Models\SecureTransaction::STATUS_DELIVERED,
+                    'label' => 'Mark as Delivered',
+                    'icon' => 'fa-box-circle-check',
+                ],
 
-                                default =>
-                                null,
-                            };
+            default =>
+                null,
+        };
 
                     @endphp
 
@@ -1334,10 +1380,10 @@
                     @if($nextSellerStatus)
 
                             <form method="POST" action="{{
-                        route(
-                            'seller.transactions.status.update',
-                            $transaction
-                        )
+            route(
+                'seller.transactions.status.update',
+                $transaction
+            )
                                         }}">
 
                                 @csrf
@@ -1388,10 +1434,10 @@
                     ================================================== --}}
 
                     @if(
-                            $transaction->status
-                            ===
-                            \App\Models\SecureTransaction::STATUS_DELIVERED
-                        )
+        $transaction->status
+        ===
+        \App\Models\SecureTransaction::STATUS_DELIVERED
+    )
 
                         <button type="button" class="tm-main-action" id="openOrderReceivedModal">
 
@@ -1405,10 +1451,10 @@
                         @if(!$hasDispute)
 
                             <a href="{{
-                            route(
-                                'buyer.transactions.dispute.create',
-                                $transaction
-                            )
+                route(
+                    'buyer.transactions.dispute.create',
+                    $transaction
+                )
                                             }}" class="tm-dispute-action">
 
                                 <i class="fa-solid fa-scale-balanced"></i>
@@ -1441,16 +1487,16 @@
                         ================================================== --}}
 
                     @elseif(
-                                $transaction->status
-                                ===
-                                \App\Models\SecureTransaction::STATUS_INSPECTION
-                            )
+        $transaction->status
+        ===
+        \App\Models\SecureTransaction::STATUS_INSPECTION
+    )
 
                             <form method="POST" action="{{
-                        route(
-                            'buyer.transactions.accept',
-                            $transaction
-                        )
+            route(
+                'buyer.transactions.accept',
+                $transaction
+            )
                                         }}">
 
                                 @csrf
@@ -1470,10 +1516,10 @@
                             @if(!$hasDispute)
 
                                 <a href="{{
-                                route(
-                                    'buyer.transactions.dispute.create',
-                                    $transaction
-                                )
+                route(
+                    'buyer.transactions.dispute.create',
+                    $transaction
+                )
                                                 }}" class="tm-dispute-action">
 
                                     <i class="fa-solid fa-scale-balanced"></i>
@@ -1512,26 +1558,26 @@
                             <strong>
 
                                 @if(
-                                        $dispute->status
-                                        ===
-                                        \App\Models\TransactionDispute::STATUS_AWAITING_BUYER
-                                    )
+            $dispute->status
+            ===
+            \App\Models\TransactionDispute::STATUS_AWAITING_BUYER
+        )
 
                                     Action required from buyer
 
                                 @elseif(
-                                        $dispute->status
-                                        ===
-                                        \App\Models\TransactionDispute::STATUS_AWAITING_SELLER
-                                    )
+            $dispute->status
+            ===
+            \App\Models\TransactionDispute::STATUS_AWAITING_SELLER
+        )
 
                                     Awaiting seller response
 
                                 @elseif(
-                                        $dispute->status
-                                        ===
-                                        \App\Models\TransactionDispute::STATUS_UNDER_REVIEW
-                                    )
+            $dispute->status
+            ===
+            \App\Models\TransactionDispute::STATUS_UNDER_REVIEW
+        )
 
                                     Dispute under review
 
@@ -1547,19 +1593,19 @@
                             <span>
 
                                 @if(
-                                        $dispute->status
-                                        ===
-                                        \App\Models\TransactionDispute::STATUS_AWAITING_BUYER
-                                    )
+            $dispute->status
+            ===
+            \App\Models\TransactionDispute::STATUS_AWAITING_BUYER
+        )
 
                                     Midpoint needs information or action from you.
                                     Please check your email and notifications.
 
                                 @elseif(
-                                        $dispute->status
-                                        ===
-                                        \App\Models\TransactionDispute::STATUS_AWAITING_SELLER
-                                    )
+            $dispute->status
+            ===
+            \App\Models\TransactionDispute::STATUS_AWAITING_SELLER
+        )
 
                                     Midpoint is waiting for additional information from the seller.
 
@@ -1597,12 +1643,12 @@
 
 
 @if(
-        $isBuyer
-        &&
-        $transaction->status
-        ===
-        \App\Models\SecureTransaction::STATUS_DELIVERED
-    )
+    $isBuyer
+    &&
+    $transaction->status
+    ===
+    \App\Models\SecureTransaction::STATUS_DELIVERED
+)
 
     <div class="tm-modal" id="orderReceivedModal" aria-hidden="true">
 
@@ -1628,10 +1674,10 @@
 
 
             <form method="POST" action="{{
-            route(
-                'buyer.transactions.accept',
-                $transaction
-            )
+        route(
+            'buyer.transactions.accept',
+            $transaction
+        )
                     }}">
 
                 @csrf
@@ -1663,10 +1709,10 @@
 
 
             <form method="POST" action="{{
-            route(
-                'buyer.transactions.inspection',
-                $transaction
-            )
+        route(
+            'buyer.transactions.inspection',
+            $transaction
+        )
                     }}">
 
                 @csrf

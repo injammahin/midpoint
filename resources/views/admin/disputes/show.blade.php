@@ -17,8 +17,7 @@
 
         $paidAmount =
             round(
-                (float) 
-                (
+                (float) (
                     $transaction->paid_amount
                     ?:
                     $transaction->total_amount
@@ -28,16 +27,14 @@
 
 
         $serviceFeeRate =
-            (float) 
-            config(
+            (float) config(
                 'secure_transactions.service_fee_percent',
                 5
             );
 
 
         $vatRate =
-            (float) 
-            config(
+            (float) config(
                 'secure_transactions.fee_vat_percent',
                 7.5
             );
@@ -50,6 +47,66 @@
         $refundStatus =
             $dispute->paystack_refund_status
             ?:
+            null;
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Refund Display Values
+        |--------------------------------------------------------------------------
+        |
+        | approved_refund_amount
+        |     Amount approved by admin BEFORE Paystack fee deduction.
+        |
+        | refund_gateway_fee_amount
+        |     Original Paystack processing fee deducted from the refund.
+        |
+        | refund_amount
+        |     NET amount actually submitted to Paystack / buyer.
+        |
+        */
+
+        $approvedRefundAmount =
+            (float) (
+                $dispute->approved_refund_amount
+                ??
+                $dispute->refund_amount
+                ??
+                0
+            );
+
+
+        $refundGatewayFeeAmount =
+            (float) (
+                $dispute->refund_gateway_fee_amount
+                ??
+                0
+            );
+
+
+        $netRefundAmount =
+            (float) (
+                $dispute->refund_amount
+                ??
+                0
+            );
+
+
+        $approvedRefundSubunit =
+            $dispute->approved_refund_amount_subunit
+            ??
+            null;
+
+
+        $refundGatewayFeeSubunit =
+            $dispute->refund_gateway_fee_subunit
+            ??
+            null;
+
+
+        $netRefundSubunit =
+            $dispute->refund_amount_subunit
+            ??
             null;
 
     @endphp
@@ -69,13 +126,9 @@
                     Transaction dispute
                 </div>
 
-
                 <h1>
-
                     Dispute #{{ $dispute->id }}
-
                 </h1>
-
 
                 <p>
 
@@ -87,7 +140,7 @@
         $transaction->title
         ?:
         'Secure transaction'
-                        }}
+                    }}
 
                 </p>
 
@@ -96,7 +149,10 @@
 
             <div class="adp-header-actions">
 
-                <a href="{{ route('admin.disputes.index') }}" class="adp-button secondary">
+                <a
+                    href="{{ route('admin.disputes.index') }}"
+                    class="adp-button secondary"
+                >
 
                     <i class="fa-solid fa-arrow-left"></i>
 
@@ -105,57 +161,78 @@
                 </a>
 
 
-                @if (!$dispute->isRoomActivated() && !$dispute->isResolved())
+                @if (
+                            !$dispute->isRoomActivated()
+                            &&
+                            !$dispute->isResolved()
+                        )
 
-                        <form method="POST" action="{{
+                            <form
+                                method="POST"
+                                action="{{
                     route(
                         'admin.disputes.room.activate',
                         $dispute
                     )
-                                            }}">
+                                }}"
+                            >
 
-                            @csrf
+                                @csrf
 
+                                <button
+                                    type="submit"
+                                    class="adp-button primary"
+                                >
 
-                            <button type="submit" class="adp-button primary">
+                                    <i class="fa-solid fa-comments"></i>
 
-                                <i class="fa-solid fa-comments"></i>
+                                    Activate resolution room
 
-                                Activate resolution room
+                                </button>
 
-                            </button>
-
-                        </form>
+                            </form>
 
                 @endif
 
 
                 @if ($dispute->isRoomActive())
 
-                        <form method="POST" action="{{
+                            <form
+                                method="POST"
+                                action="{{
                     route(
                         'admin.disputes.room.close',
                         $dispute
                     )
-                                            }}"
-                            onsubmit="return confirm('Close this room now? Buyer and seller will be redirected to their transaction and the room will become read-only.');">
+                                }}"
+                                onsubmit="
+                                    return confirm(
+                                        'Close this room now? Buyer and seller will be redirected to their transaction and the room will become read-only.'
+                                    );
+                                "
+                            >
 
-                            @csrf
+                                @csrf
+
+                                <input
+                                    type="hidden"
+                                    name="close_reason"
+                                    value="Midpoint Support closed this room. Any final decision or further status update will appear on the transaction page."
+                                >
 
 
-                            <input type="hidden" name="close_reason"
-                                value="Midpoint Support closed this room. Any final decision or further status update will appear on the transaction page.">
+                                <button
+                                    type="submit"
+                                    class="adp-button danger"
+                                >
 
+                                    <i class="fa-solid fa-door-closed"></i>
 
-                            <button type="submit" class="adp-button danger">
+                                    Close room
 
-                                <i class="fa-solid fa-door-closed"></i>
+                                </button>
 
-                                Close room
-
-                            </button>
-
-                        </form>
+                            </form>
 
                 @endif
 
@@ -164,9 +241,8 @@
         </div>
 
 
-
         {{-- =========================================================
-        FLASH
+        FLASH MESSAGES
         ========================================================== --}}
 
         @if (session('success'))
@@ -208,7 +284,6 @@
         @endif
 
 
-
         {{-- =========================================================
         TOP METRICS
         ========================================================== --}}
@@ -235,13 +310,14 @@
                 </span>
 
                 <strong>
+
                     ₦{{
         number_format(
-            (float) 
-            $transaction->seller_net_amount,
+            (float) $transaction->seller_net_amount,
             2
         )
-                        }}
+                    }}
+
                 </strong>
 
             </div>
@@ -273,7 +349,6 @@
             </div>
 
         </div>
-
 
 
         <div class="adp-layout">
@@ -370,7 +445,7 @@
                 $dispute->reason
             )
         )
-                                    }}
+                                }}
 
                             </strong>
 
@@ -393,7 +468,7 @@
                 $dispute->desired_outcome
             )
         )
-                                    }}
+                                }}
 
                             </strong>
 
@@ -414,7 +489,7 @@
         )->format(
                 'd M Y, h:i A'
             )
-                                    }}
+                                }}
 
                             </strong>
 
@@ -435,7 +510,7 @@
         $transaction->paystack_reference
         ?:
         '—'
-                                    }}
+                                }}
 
                             </strong>
 
@@ -452,7 +527,7 @@
                 $dispute->description
             )
         )
-                            !!}
+                        !!}
 
                     </div>
 
@@ -467,48 +542,55 @@
                             )
                         )
 
-                        <div class="adp-evidence">
+                            <div class="adp-evidence">
 
-                            <h3>
-                                Initial evidence
-                            </h3>
+                                <h3>
+                                    Initial evidence
+                                </h3>
 
 
-                            <div>
+                                <div>
 
-                                @foreach ($dispute->evidence as $evidence)
+                                    @foreach (
+                                                            $dispute->evidence
+                                                            as
+                                                            $evidence
+                                                        )
 
-                                                <a href="{{
-                                    asset(
-                                        'storage/'
-                                        .
-                                        ltrim(
-                                            $evidence,
-                                            '/'
+                                                            <a
+                                                                href="{{
+                                        asset(
+                                            'storage/'
+                                            .
+                                            ltrim(
+                                                $evidence,
+                                                '/'
+                                            )
                                         )
-                                    )
-                                                                                    }}" target="_blank" rel="noopener">
+                                                                }}"
+                                                                target="_blank"
+                                                                rel="noopener"
+                                                            >
 
-                                                    <i class="fa-solid fa-paperclip"></i>
+                                                                <i class="fa-solid fa-paperclip"></i>
 
-                                                    {{
-                                    basename(
-                                        $evidence
-                                    )
-                                                                                    }}
+                                                                {{
+                                        basename(
+                                            $evidence
+                                        )
+                                                                }}
 
-                                                </a>
+                                                            </a>
 
-                                @endforeach
+                                    @endforeach
+
+                                </div>
 
                             </div>
-
-                        </div>
 
                     @endif
 
                 </section>
-
 
 
                 {{-- =================================================
@@ -535,7 +617,6 @@
             </main>
 
 
-
             {{-- =====================================================
             SIDEBAR
             ====================================================== --}}
@@ -548,79 +629,94 @@
 
                 @if (!$dispute->isResolved())
 
-                        <section class="adp-card">
+                            <section class="adp-card">
 
-                            <div class="adp-card-head compact">
+                                <div class="adp-card-head compact">
 
-                                <div>
+                                    <div>
 
-                                    <h2>
-                                        Case workflow
-                                    </h2>
+                                        <h2>
+                                            Case workflow
+                                        </h2>
 
-                                    <p>
-                                        Request action without making a financial decision.
-                                    </p>
+                                        <p>
+                                            Request action without making a financial decision.
+                                        </p>
+
+                                    </div>
 
                                 </div>
 
-                            </div>
 
-
-                            <form method="POST" action="{{
+                                <form
+                                    method="POST"
+                                    action="{{
                     route(
                         'admin.disputes.status.update',
                         $dispute
                     )
-                                                }}" class="adp-form">
+                                    }}"
+                                    class="adp-form"
+                                >
 
-                                @csrf
-                                @method('PATCH')
-
-
-                                <label for="status">
-                                    Status
-                                </label>
+                                    @csrf
+                                    @method('PATCH')
 
 
-                                <select id="status" name="status" required>
-
-                                    <option value="under_review">
-                                        Under review
-                                    </option>
-
-                                    <option value="awaiting_buyer">
-                                        Awaiting buyer
-                                    </option>
-
-                                    <option value="awaiting_seller">
-                                        Awaiting seller
-                                    </option>
-
-                                </select>
+                                    <label for="status">
+                                        Status
+                                    </label>
 
 
-                                <label for="note">
-                                    Workflow note
-                                </label>
+                                    <select
+                                        id="status"
+                                        name="status"
+                                        required
+                                    >
+
+                                        <option value="under_review">
+                                            Under review
+                                        </option>
+
+                                        <option value="awaiting_buyer">
+                                            Awaiting buyer
+                                        </option>
+
+                                        <option value="awaiting_seller">
+                                            Awaiting seller
+                                        </option>
+
+                                    </select>
 
 
-                                <textarea id="note" name="note" rows="4" maxlength="5000"
-                                    placeholder="Explain what information or action is required..."></textarea>
+                                    <label for="note">
+                                        Workflow note
+                                    </label>
 
 
-                                <button type="submit" class="adp-button dark full">
+                                    <textarea
+                                        id="note"
+                                        name="note"
+                                        rows="4"
+                                        maxlength="5000"
+                                        placeholder="Explain what information or action is required..."
+                                    ></textarea>
 
-                                    Update workflow
 
-                                </button>
+                                    <button
+                                        type="submit"
+                                        class="adp-button dark full"
+                                    >
 
-                            </form>
+                                        Update workflow
 
-                        </section>
+                                    </button>
+
+                                </form>
+
+                            </section>
 
                 @endif
-
 
 
                 {{-- =================================================
@@ -629,56 +725,104 @@
 
                 @if ($dispute->hasRefundResolution())
 
-                        <section class="adp-card">
+                            <section class="adp-card">
 
-                            <div class="adp-card-head compact">
+                                <div class="adp-card-head compact">
 
-                                <div>
+                                    <div>
 
-                                    <h2>
-                                        Paystack refund
-                                    </h2>
+                                        <h2>
+                                            Paystack refund
+                                        </h2>
 
-                                    <p>
-                                        Gateway refund state for this dispute decision.
-                                    </p>
+                                        <p>
+                                            Gateway refund state for this dispute decision.
+                                        </p>
+
+                                    </div>
 
                                 </div>
 
-                            </div>
 
+                                <div class="adp-refund-summary">
 
-                            <div class="adp-refund-summary">
+                                    {{-- Approved refund --}}
 
-                                <div>
+                                    <div>
 
-                                    <span>
-                                        Refund amount
-                                    </span>
+                                        <span>
+                                            Approved refund
+                                        </span>
 
-                                    <strong>
-                                        ₦{{
+                                        <strong>
+
+                                            ₦{{
                     number_format(
-                        (float) 
-                        $dispute->refund_amount,
+                        $approvedRefundAmount,
                         2
                     )
-                                                        }}
-                                    </strong>
+                                            }}
 
-                                </div>
+                                        </strong>
+
+                                    </div>
 
 
-                                <div>
+                                    {{-- Paystack fee --}}
 
-                                    <span>
-                                        Paystack status
-                                    </span>
+                                    <div>
 
-                                    <strong>
+                                        <span>
+                                            Paystack fee deducted
+                                        </span>
 
-                                        {{
+                                        <strong>
+
+                                            ₦{{
+                    number_format(
+                        $refundGatewayFeeAmount,
+                        2
+                    )
+                                            }}
+
+                                        </strong>
+
+                                    </div>
+
+
+                                    {{-- Actual buyer refund --}}
+
+                                    <div>
+
+                                        <span>
+                                            Buyer net refund
+                                        </span>
+
+                                        <strong>
+
+                                            ₦{{
+                    number_format(
+                        $netRefundAmount,
+                        2
+                    )
+                                            }}
+
+                                        </strong>
+
+                                    </div>
+
+
+                                    <div>
+
+                                        <span>
+                                            Paystack status
+                                        </span>
+
+                                        <strong>
+
+                                            {{
                     $refundStatus
+
                     ? ucwords(
                         str_replace(
                             [
@@ -689,36 +833,37 @@
                             $refundStatus
                         )
                     )
+
                     : 'Waiting'
-                                                        }}
+                                            }}
 
-                                    </strong>
+                                        </strong>
 
-                                </div>
-
-
-                                <div>
-
-                                    <span>
-                                        Refund ID
-                                    </span>
-
-                                    <strong>
-                                        {{ $dispute->paystack_refund_id ?: '—' }}
-                                    </strong>
-
-                                </div>
+                                    </div>
 
 
-                                <div>
+                                    <div>
 
-                                    <span>
-                                        Expected
-                                    </span>
+                                        <span>
+                                            Refund ID
+                                        </span>
 
-                                    <strong>
+                                        <strong>
+                                            {{ $dispute->paystack_refund_id ?: '—' }}
+                                        </strong>
 
-                                        {{
+                                    </div>
+
+
+                                    <div>
+
+                                        <span>
+                                            Expected
+                                        </span>
+
+                                        <strong>
+
+                                            {{
                     optional(
                         $dispute->refund_expected_at
                     )->format(
@@ -726,88 +871,135 @@
                         )
                     ?:
                     '—'
-                                                        }}
+                                            }}
 
-                                    </strong>
+                                        </strong>
 
-                                </div>
+                                    </div>
 
 
-                                <div>
+                                    <div>
 
-                                    <span>
-                                        Approved amount (kobo)
-                                    </span>
+                                        <span>
+                                            Approved refund (kobo)
+                                        </span>
 
-                                    <strong>
-                                        {{
-                    $dispute->refund_amount_subunit
+                                        <strong>
+
+                                            {{
+                    $approvedRefundSubunit
                     ??
                     '—'
-                                                        }}
-                                    </strong>
+                                            }}
 
-                                </div>
+                                        </strong>
+
+                                    </div>
 
 
-                                <div>
+                                    <div>
 
-                                    <span>
-                                        Paystack amount (kobo)
-                                    </span>
+                                        <span>
+                                            Paystack fee (kobo)
+                                        </span>
 
-                                    <strong>
-                                        {{
+                                        <strong>
+
+                                            {{
+                    $refundGatewayFeeSubunit
+                    ??
+                    '—'
+                                            }}
+
+                                        </strong>
+
+                                    </div>
+
+
+                                    <div>
+
+                                        <span>
+                                            Net refund expected (kobo)
+                                        </span>
+
+                                        <strong>
+
+                                            {{
+                    $netRefundSubunit
+                    ??
+                    '—'
+                                            }}
+
+                                        </strong>
+
+                                    </div>
+
+
+                                    <div>
+
+                                        <span>
+                                            Paystack amount (kobo)
+                                        </span>
+
+                                        <strong>
+
+                                            {{
                     $dispute->paystack_refund_amount_subunit
                     ??
                     '—'
-                                                        }}
-                                    </strong>
+                                            }}
+
+                                        </strong>
+
+                                    </div>
 
                                 </div>
 
-                            </div>
+
+                                @if ($dispute->refund_error)
+
+                                    <div class="adp-refund-error">
+
+                                        {{ $dispute->refund_error }}
+
+                                    </div>
+
+                                @endif
 
 
-                            @if ($dispute->refund_error)
+                                @if (!$dispute->refund_processed_at)
 
-                                <div class="adp-refund-error">
+                                                <form
+                                                    method="POST"
+                                                    action="{{
+                                    route(
+                                        'admin.disputes.refund.sync',
+                                        $dispute
+                                    )
+                                                    }}"
+                                                >
 
-                                    {{ $dispute->refund_error }}
-
-                                </div>
-
-                            @endif
-
-
-                            @if (!$dispute->refund_processed_at)
-
-                                    <form method="POST" action="{{
-                                route(
-                                    'admin.disputes.refund.sync',
-                                    $dispute
-                                )
-                                                                    }}">
-
-                                        @csrf
+                                                    @csrf
 
 
-                                        <button type="submit" class="adp-button secondary full">
+                                                    <button
+                                                        type="submit"
+                                                        class="adp-button secondary full"
+                                                    >
 
-                                            <i class="fa-solid fa-rotate"></i>
+                                                        <i class="fa-solid fa-rotate"></i>
 
-                                            Sync Paystack refund
+                                                        Sync Paystack refund
 
-                                        </button>
+                                                    </button>
 
-                                    </form>
+                                                </form>
 
-                            @endif
+                                @endif
 
-                        </section>
+                            </section>
 
                 @endif
-
 
 
                 {{-- =================================================
@@ -832,142 +1024,190 @@
                         )
                     )
 
-                    <section class="adp-card decision">
+                        <section class="adp-card decision">
 
-                        <div class="adp-card-head compact">
+                            <div class="adp-card-head compact">
 
-                            <div>
+                                <div>
 
-                                <h2>
-                                    Final decision
-                                </h2>
+                                    <h2>
+                                        Final decision
+                                    </h2>
 
-                                <p>
-                                    Financial actions are final. Review the evidence first.
-                                </p>
+                                    <p>
+                                        Financial actions are final. Review the evidence first.
+                                    </p>
 
-                            </div>
-
-                        </div>
-
-
-                        @if (!$dispute->isRoomActivated())
-
-                            <div class="adp-decision-lock">
-
-                                <i class="fa-solid fa-lock"></i>
-
-                                Activate the resolution room before making a final decision.
+                                </div>
 
                             </div>
 
-                        @else
 
-                                <form method="POST" action="{{
-                            route(
-                                'admin.disputes.resolve',
-                                $dispute
-                            )
-                                                            }}" class="adp-form" id="resolutionForm">
+                            @if (!$dispute->isRoomActivated())
 
-                                    @csrf
+                                <div class="adp-decision-lock">
 
+                                    <i class="fa-solid fa-lock"></i>
 
-                                    <label for="resolutionType">
-                                        Resolution
-                                    </label>
+                                    Activate the resolution room before making a final decision.
 
+                                </div>
 
-                                    <select id="resolutionType" name="resolution_type" required>
+                            @else
 
-                                        <option value="">
-                                            Select decision
-                                        </option>
+                                            <form
+                                                method="POST"
+                                                action="{{
+                                route(
+                                    'admin.disputes.resolve',
+                                    $dispute
+                                )
+                                                }}"
+                                                class="adp-form"
+                                                id="resolutionForm"
+                                            >
 
-                                        <option value="full_refund">
-                                            Full refund to buyer
-                                        </option>
-
-                                        <option value="partial_refund">
-                                            Partial refund + seller settlement
-                                        </option>
-
-                                        <option value="release_to_seller">
-                                            Release seller entitlement
-                                        </option>
-
-                                        <option value="resume_transaction">
-                                            Resume normal transaction
-                                        </option>
-
-                                    </select>
+                                                @csrf
 
 
-                                    <div id="partialRefundField" hidden>
-
-                                        <label for="refundAmount">
-                                            Buyer refund amount (₦)
-                                        </label>
+                                                <label for="resolutionType">
+                                                    Resolution
+                                                </label>
 
 
-                                        <input id="refundAmount" type="number" name="refund_amount" min="0.01"
-                                            max="{{ max(0, $paidAmount - 0.01) }}" step="0.01" placeholder="50000">
+                                                <select
+                                                    id="resolutionType"
+                                                    name="resolution_type"
+                                                    required
+                                                >
 
-                                    </div>
+                                                    <option value="">
+                                                        Select decision
+                                                    </option>
 
+                                                    <option value="full_refund">
+                                                        Full refund to buyer
+                                                    </option>
 
-                                    <div id="resolutionPreview" class="adp-resolution-preview" hidden data-paid="{{ $paidAmount }}"
-                                        data-service-fee-rate="{{ $serviceFeeRate }}" data-vat-rate="{{ $vatRate }}"
-                                        data-existing-seller-net="{{
-                            (float) 
-                            $transaction->seller_net_amount
-                                                                }}"></div>
+                                                    <option value="partial_refund">
+                                                        Partial refund + seller settlement
+                                                    </option>
 
+                                                    <option value="release_to_seller">
+                                                        Release seller entitlement
+                                                    </option>
 
-                                    <label for="resolutionNote">
-                                        Decision reason
-                                    </label>
+                                                    <option value="resume_transaction">
+                                                        Resume normal transaction
+                                                    </option>
 
-
-                                    <textarea id="resolutionNote" name="resolution_note" rows="5" minlength="20" maxlength="5000"
-                                        required
-                                        placeholder="Explain the evidence reviewed and why Midpoint made this decision..."></textarea>
-
-
-                                    <div class="adp-paystack-note">
-
-                                        <i class="fa-solid fa-circle-info"></i>
-
-                                        Full/partial refunds are sent through Paystack using
-                                        the original successful payment transaction. Midpoint
-                                        does not deduct its service fee from the refunded
-                                        portion. Paystack's original transaction processing
-                                        charge is handled by Paystack/merchant settlement and
-                                        is not manually subtracted from the buyer refund here.
-
-                                    </div>
+                                                </select>
 
 
-                                    <button type="submit" class="adp-button danger full" onclick="
-                                                    return confirm(
-                                                        'Confirm this final dispute decision? Financial actions cannot be casually reversed.'
-                                                    );
-                                                ">
+                                                <div
+                                                    id="partialRefundField"
+                                                    hidden
+                                                >
 
-                                        <i class="fa-solid fa-gavel"></i>
+                                                    <label for="refundAmount">
 
-                                        Confirm final decision
+                                                        Approved refund before Paystack fee (₦)
 
-                                    </button>
+                                                    </label>
 
-                                </form>
 
-                        @endif
+                                                    <input
+                                                        id="refundAmount"
+                                                        type="number"
+                                                        name="refund_amount"
+                                                        min="0.01"
+                                                        max="{{ max(0, $paidAmount - 0.01) }}"
+                                                        step="0.01"
+                                                        placeholder="2500"
+                                                    >
 
-                    </section>
+                                                </div>
+
+
+                                                <div
+                                                    id="resolutionPreview"
+                                                    class="adp-resolution-preview"
+                                                    hidden
+                                                    data-paid="{{ $paidAmount }}"
+                                                    data-service-fee-rate="{{ $serviceFeeRate }}"
+                                                    data-vat-rate="{{ $vatRate }}"
+                                                    data-existing-seller-net="{{
+                                (float) $transaction->seller_net_amount
+                                                    }}"
+                                                ></div>
+
+
+                                                <label for="resolutionNote">
+                                                    Decision reason
+                                                </label>
+
+
+                                                <textarea
+                                                    id="resolutionNote"
+                                                    name="resolution_note"
+                                                    rows="5"
+                                                    minlength="20"
+                                                    maxlength="5000"
+                                                    required
+                                                    placeholder="Explain the evidence reviewed and why Midpoint made this decision..."
+                                                ></textarea>
+
+
+                                                <div class="adp-paystack-note">
+
+                                                    <i class="fa-solid fa-circle-info"></i>
+
+                                                    <div>
+
+                                                        Full and partial refunds use the original
+                                                        successful Paystack transaction.
+
+                                                        <strong>
+                                                            Midpoint does not charge its own
+                                                            service fee on the refunded portion.
+                                                        </strong>
+
+                                                        The original non-refundable Paystack
+                                                        processing fee is automatically retrieved
+                                                        from the verified Paystack transaction and
+                                                        deducted from the approved refund.
+
+                                                        The remaining net amount is then sent to
+                                                        the buyer.
+
+                                                    </div>
+
+                                                </div>
+
+
+                                                <button
+                                                    type="submit"
+                                                    class="adp-button danger full"
+                                                    onclick="
+                                                        return confirm(
+                                                            'Confirm this final dispute decision? The original Paystack processing fee will be deducted from the approved buyer refund.'
+                                                        );
+                                                    "
+                                                >
+
+                                                    <i class="fa-solid fa-gavel"></i>
+
+                                                    Confirm final decision
+
+                                                </button>
+
+                                            </form>
+
+                            @endif
+
+                        </section>
 
                 @endif
-
 
 
                 {{-- =================================================
@@ -976,87 +1216,151 @@
 
                 @if ($dispute->resolution_type)
 
-                        <section class="adp-card">
+                            <section class="adp-card">
 
-                            <div class="adp-card-head compact">
+                                <div class="adp-card-head compact">
 
-                                <div>
+                                    <div>
 
-                                    <h2>
-                                        Resolution record
-                                    </h2>
+                                        <h2>
+                                            Resolution record
+                                        </h2>
 
-                                </div>
-
-                            </div>
-
-
-                            <div class="adp-resolution-record">
-
-                                <div>
-
-                                    <span>
-                                        Decision
-                                    </span>
-
-                                    <strong>
-                                        {{ $dispute->resolution_type_label }}
-                                    </strong>
+                                    </div>
 
                                 </div>
 
 
-                                <div>
+                                <div class="adp-resolution-record">
 
-                                    <span>
-                                        Refund
-                                    </span>
+                                    <div>
 
-                                    <strong>
+                                        <span>
+                                            Decision
+                                        </span>
 
-                                        ₦{{
-                    number_format(
-                        (float) 
-                        $dispute->refund_amount,
-                        2
-                    )
-                                                        }}
+                                        <strong>
+                                            {{ $dispute->resolution_type_label }}
+                                        </strong>
 
-                                    </strong>
-
-                                </div>
+                                    </div>
 
 
-                                <div>
+                                    @if ($dispute->hasRefundResolution())
 
-                                    <span>
-                                        Seller settlement
-                                    </span>
+                                                        <div>
 
-                                    <strong>
+                                                            <span>
+                                                                Approved refund
+                                                            </span>
 
-                                        ₦{{
+                                                            <strong>
+
+                                                                ₦{{
+                                        number_format(
+                                            $approvedRefundAmount,
+                                            2
+                                        )
+                                                                }}
+
+                                                            </strong>
+
+                                                        </div>
+
+
+                                                        <div>
+
+                                                            <span>
+                                                                Paystack fee deducted
+                                                            </span>
+
+                                                            <strong>
+
+                                                                ₦{{
+                                        number_format(
+                                            $refundGatewayFeeAmount,
+                                            2
+                                        )
+                                                                }}
+
+                                                            </strong>
+
+                                                        </div>
+
+
+                                                        <div>
+
+                                                            <span>
+                                                                Buyer net refund
+                                                            </span>
+
+                                                            <strong>
+
+                                                                ₦{{
+                                        number_format(
+                                            $netRefundAmount,
+                                            2
+                                        )
+                                                                }}
+
+                                                            </strong>
+
+                                                        </div>
+
+                                    @else
+
+                                                        <div>
+
+                                                            <span>
+                                                                Refund
+                                                            </span>
+
+                                                            <strong>
+
+                                                                ₦{{
+                                        number_format(
+                                            (float) $dispute->refund_amount,
+                                            2
+                                        )
+                                                                }}
+
+                                                            </strong>
+
+                                                        </div>
+
+                                    @endif
+
+
+                                    <div>
+
+                                        <span>
+                                            Seller settlement
+                                        </span>
+
+                                        <strong>
+
+                                            ₦{{
                     number_format(
                         (float) 
                         $dispute->seller_settlement_amount,
                         2
                     )
-                                                        }}
+                                            }}
 
-                                    </strong>
+                                        </strong>
 
-                                </div>
+                                    </div>
 
 
-                                <div>
+                                    <div>
 
-                                    <span>
-                                        Resolution status
-                                    </span>
+                                        <span>
+                                            Resolution status
+                                        </span>
 
-                                    <strong>
+                                        <strong>
 
-                                        {{
+                                            {{
                     ucwords(
                         str_replace(
                             '_',
@@ -1065,32 +1369,32 @@
                             $dispute->resolution_status
                         )
                     )
-                                                        }}
+                                            }}
 
-                                    </strong>
-
-                                </div>
-
-                            </div>
-
-
-                            @if ($dispute->resolution_note)
-
-                                    <div class="adp-resolution-note">
-
-                                        {!!
-                                nl2br(
-                                    e(
-                                        $dispute->resolution_note
-                                    )
-                                )
-                                                                    !!}
+                                        </strong>
 
                                     </div>
 
-                            @endif
+                                </div>
 
-                        </section>
+
+                                @if ($dispute->resolution_note)
+
+                                                <div class="adp-resolution-note">
+
+                                                    {!!
+                                    nl2br(
+                                        e(
+                                            $dispute->resolution_note
+                                        )
+                                    )
+                                                    !!}
+
+                                                </div>
+
+                                @endif
+
+                            </section>
 
                 @endif
 
@@ -1104,9 +1408,11 @@
     @push('styles')
 
         <style>
+
             .adp-page {
                 width: 100%;
             }
+
 
             .adp-header {
                 display: flex;
@@ -1115,6 +1421,7 @@
                 gap: 18px;
                 margin-bottom: 18px;
             }
+
 
             .adp-eyebrow {
                 margin-bottom: 4px;
@@ -1125,6 +1432,7 @@
                 text-transform: uppercase;
             }
 
+
             .adp-header h1 {
                 margin: 0;
                 color: #13231B;
@@ -1133,17 +1441,20 @@
                 font-weight: 800;
             }
 
+
             .adp-header p {
                 margin: 4px 0 0;
                 color: #718078;
                 font-size: 12px;
             }
 
+
             .adp-header-actions {
                 display: flex;
                 flex-wrap: wrap;
                 gap: 8px;
             }
+
 
             .adp-button {
                 min-height: 38px;
@@ -1160,19 +1471,23 @@
                 cursor: pointer;
             }
 
+
             .adp-button.full {
                 width: 100%;
             }
+
 
             .adp-button.primary {
                 background: #12B76A;
                 color: #FFFFFF;
             }
 
+
             .adp-button.dark {
                 background: #0B3D2E;
                 color: #FFFFFF;
             }
+
 
             .adp-button.secondary {
                 border: 1px solid #DCE5E0;
@@ -1180,10 +1495,12 @@
                 color: #0B3D2E;
             }
 
+
             .adp-button.danger {
                 background: #B42318;
                 color: #FFFFFF;
             }
+
 
             .adp-alert {
                 display: flex;
@@ -1195,17 +1512,20 @@
                 font-size: 11px;
             }
 
+
             .adp-alert.success {
                 border: 1px solid #BCE7CF;
                 background: #ECFDF3;
                 color: #067647;
             }
 
+
             .adp-alert.error {
                 border: 1px solid #F5C5C0;
                 background: #FFF1F0;
                 color: #B42318;
             }
+
 
             .adp-metrics {
                 display: grid;
@@ -1214,22 +1534,26 @@
                 margin-bottom: 15px;
             }
 
-            .adp-metrics>div {
+
+            .adp-metrics > div {
                 padding: 13px;
                 border: 1px solid #E0E7E3;
                 border-radius: 11px;
                 background: #FFFFFF;
             }
 
+
             .adp-metrics span,
             .adp-metrics strong {
                 display: block;
             }
 
+
             .adp-metrics span {
                 color: #7C8882;
                 font-size: 10px;
             }
+
 
             .adp-metrics strong {
                 margin-top: 3px;
@@ -1237,9 +1561,11 @@
                 font-size: 12px;
             }
 
+
             .adp-metrics strong.locked {
                 color: #B54708;
             }
+
 
             .adp-layout {
                 display: grid;
@@ -1248,6 +1574,7 @@
                 gap: 15px;
             }
 
+
             .adp-main,
             .adp-sidebar {
                 display: flex;
@@ -1255,22 +1582,28 @@
                 gap: 15px;
             }
 
+
             .adp-sidebar {
                 position: sticky;
                 top: 88px;
             }
+
 
             .adp-card {
                 padding: 17px;
                 border: 1px solid #DCE5E0;
                 border-radius: 15px;
                 background: #FFFFFF;
-                box-shadow: 0 12px 35px -32px rgba(11, 61, 46, .30);
+                box-shadow:
+                    0 12px 35px -32px
+                    rgba(11, 61, 46, .30);
             }
+
 
             .adp-card.decision {
                 border-color: #F2CBC7;
             }
+
 
             .adp-card-head {
                 display: flex;
@@ -1280,9 +1613,11 @@
                 margin-bottom: 15px;
             }
 
+
             .adp-card-head.compact {
                 margin-bottom: 12px;
             }
+
 
             .adp-card-head h2 {
                 margin: 0;
@@ -1291,12 +1626,14 @@
                 font-weight: 800;
             }
 
+
             .adp-card-head p {
                 margin: 3px 0 0;
                 color: #7A8780;
                 font-size: 10px;
                 line-height: 1.5;
             }
+
 
             .adp-status-badge {
                 padding: 6px 9px;
@@ -1307,6 +1644,7 @@
                 font-weight: 800;
             }
 
+
             .adp-parties {
                 display: grid;
                 grid-template-columns: 1fr 1fr;
@@ -1314,11 +1652,13 @@
                 margin-bottom: 10px;
             }
 
-            .adp-parties>div {
+
+            .adp-parties > div {
                 padding: 11px;
                 border-radius: 10px;
                 background: #F7F9F8;
             }
+
 
             .adp-parties span,
             .adp-parties strong,
@@ -1326,11 +1666,13 @@
                 display: block;
             }
 
+
             .adp-parties span {
                 color: #7B8781;
                 font-size: 9px;
                 text-transform: uppercase;
             }
+
 
             .adp-parties strong {
                 margin-top: 3px;
@@ -1338,11 +1680,13 @@
                 font-size: 12px;
             }
 
+
             .adp-parties small {
                 margin-top: 2px;
                 color: #7A8780;
                 font-size: 10px;
             }
+
 
             .adp-detail-grid {
                 display: grid;
@@ -1350,21 +1694,25 @@
                 gap: 8px;
             }
 
-            .adp-detail-grid>div {
+
+            .adp-detail-grid > div {
                 padding: 10px;
                 border: 1px solid #E7ECE9;
                 border-radius: 9px;
             }
+
 
             .adp-detail-grid span,
             .adp-detail-grid strong {
                 display: block;
             }
 
+
             .adp-detail-grid span {
                 color: #7D8983;
                 font-size: 9px;
             }
+
 
             .adp-detail-grid strong {
                 margin-top: 2px;
@@ -1372,6 +1720,7 @@
                 font-size: 11px;
                 overflow-wrap: anywhere;
             }
+
 
             .adp-description {
                 margin-top: 12px;
@@ -1384,9 +1733,11 @@
                 line-height: 1.65;
             }
 
+
             .adp-evidence {
                 margin-top: 13px;
             }
+
 
             .adp-evidence h3 {
                 margin: 0 0 7px;
@@ -1394,11 +1745,13 @@
                 font-size: 11px;
             }
 
-            .adp-evidence>div {
+
+            .adp-evidence > div {
                 display: flex;
                 flex-wrap: wrap;
                 gap: 6px;
             }
+
 
             .adp-evidence a {
                 display: inline-flex;
@@ -1414,6 +1767,7 @@
                 text-decoration: none;
             }
 
+
             .adp-form label {
                 display: block;
                 margin-bottom: 5px;
@@ -1421,6 +1775,7 @@
                 font-size: 10px;
                 font-weight: 800;
             }
+
 
             .adp-form select,
             .adp-form input,
@@ -1436,11 +1791,13 @@
                 outline: none;
             }
 
+
             .adp-form select,
             .adp-form input {
                 height: 38px;
                 padding: 0 10px;
             }
+
 
             .adp-form textarea {
                 padding: 9px 10px;
@@ -1448,12 +1805,16 @@
                 resize: vertical;
             }
 
+
             .adp-form select:focus,
             .adp-form input:focus,
             .adp-form textarea:focus {
                 border-color: #12B76A;
-                box-shadow: 0 0 0 3px rgba(18, 183, 106, .08);
+                box-shadow:
+                    0 0 0 3px
+                    rgba(18, 183, 106, .08);
             }
+
 
             .adp-refund-summary,
             .adp-resolution-record {
@@ -1463,12 +1824,14 @@
                 margin-bottom: 11px;
             }
 
-            .adp-refund-summary>div,
-            .adp-resolution-record>div {
+
+            .adp-refund-summary > div,
+            .adp-resolution-record > div {
                 padding: 8px;
                 border-radius: 8px;
                 background: #F7F9F8;
             }
+
 
             .adp-refund-summary span,
             .adp-refund-summary strong,
@@ -1477,11 +1840,13 @@
                 display: block;
             }
 
+
             .adp-refund-summary span,
             .adp-resolution-record span {
                 color: #7B8781;
                 font-size: 9px;
             }
+
 
             .adp-refund-summary strong,
             .adp-resolution-record strong {
@@ -1490,6 +1855,7 @@
                 font-size: 10px;
                 overflow-wrap: anywhere;
             }
+
 
             .adp-refund-error {
                 margin-bottom: 10px;
@@ -1500,6 +1866,7 @@
                 font-size: 10px;
                 line-height: 1.5;
             }
+
 
             .adp-decision-lock,
             .adp-paystack-note {
@@ -1513,15 +1880,23 @@
                 line-height: 1.5;
             }
 
+
             .adp-decision-lock {
                 background: #FFF6E8;
                 color: #925B0A;
             }
 
+
             .adp-paystack-note {
                 background: #F1F7F4;
                 color: #587068;
             }
+
+
+            .adp-paystack-note strong {
+                color: #0B3D2E;
+            }
+
 
             .adp-resolution-preview {
                 margin-bottom: 11px;
@@ -1533,9 +1908,22 @@
                 line-height: 1.8;
             }
 
+
             .adp-resolution-preview strong {
                 color: #0B3D2E;
             }
+
+
+            .adp-preview-note {
+                display: block;
+                margin-top: 2px;
+                padding: 8px;
+                border-radius: 8px;
+                background: #EEF6F2;
+                color: #587068;
+                line-height: 1.55;
+            }
+
 
             .adp-resolution-note {
                 padding: 9px;
@@ -1546,25 +1934,34 @@
                 line-height: 1.6;
             }
 
+
             @media(max-width: 1050px) {
+
                 .adp-layout {
                     grid-template-columns: 1fr;
                 }
 
+
                 .adp-sidebar {
                     position: static;
                 }
+
             }
 
+
             @media(max-width: 720px) {
+
                 .adp-header {
                     flex-direction: column;
                 }
 
+
                 .adp-metrics {
                     grid-template-columns: 1fr 1fr;
                 }
+
             }
+
 
             @media(max-width: 520px) {
 
@@ -1575,7 +1972,9 @@
                 .adp-resolution-record {
                     grid-template-columns: 1fr;
                 }
+
             }
+
         </style>
 
     @endpush
@@ -1585,348 +1984,488 @@
 
         <script>
 
-            document.addEventListener(
-                'DOMContentLoaded',
-                function () {
+        document.addEventListener(
+            'DOMContentLoaded',
+            function () {
 
-                    const type =
-                        document.getElementById(
-                            'resolutionType'
+                const type =
+                    document.getElementById(
+                        'resolutionType'
+                    );
+
+
+                const partialField =
+                    document.getElementById(
+                        'partialRefundField'
+                    );
+
+
+                const amount =
+                    document.getElementById(
+                        'refundAmount'
+                    );
+
+
+                const preview =
+                    document.getElementById(
+                        'resolutionPreview'
+                    );
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | The form does not exist after the dispute has already been decided.
+                |--------------------------------------------------------------------------
+                */
+
+                if (
+                    !type
+                    ||
+                    !partialField
+                    ||
+                    !amount
+                    ||
+                    !preview
+                ) {
+
+                    return;
+                }
+
+
+                const paid =
+                    Number(
+                        preview.dataset.paid
+                        ||
+                        0
+                    );
+
+
+                const feeRate =
+                    Number(
+                        preview.dataset.serviceFeeRate
+                        ||
+                        0
+                    );
+
+
+                const vatRate =
+                    Number(
+                        preview.dataset.vatRate
+                        ||
+                        0
+                    );
+
+
+                const existingSellerNet =
+                    Number(
+                        preview.dataset.existingSellerNet
+                        ||
+                        0
+                    );
+
+
+                function money(
+                    value
+                ) {
+
+                    return new Intl
+                        .NumberFormat(
+                            'en-NG',
+                            {
+                                style:
+                                    'currency',
+
+                                currency:
+                                    'NGN',
+
+                                minimumFractionDigits:
+                                    2,
+
+                                maximumFractionDigits:
+                                    2,
+                            }
+                        )
+                        .format(
+                            Number(
+                                value
+                                ||
+                                0
+                            )
                         );
 
-
-                    const partialField =
-                        document.getElementById(
-                            'partialRefundField'
-                        );
+                }
 
 
-                    const amount =
-                        document.getElementById(
-                            'refundAmount'
-                        );
+                function roundMoney(
+                    value
+                ) {
+
+                    return Math.round(
+                        (
+                            Number(
+                                value
+                                ||
+                                0
+                            )
+                            +
+                            Number.EPSILON
+                        )
+                        *
+                        100
+                    )
+                    /
+                    100;
+
+                }
 
 
-                    const preview =
-                        document.getElementById(
-                            'resolutionPreview'
-                        );
+                /*
+                |--------------------------------------------------------------------------
+                | Paystack Fee Notice
+                |--------------------------------------------------------------------------
+                |
+                | IMPORTANT:
+                |
+                | We deliberately DO NOT calculate Paystack fee in JavaScript.
+                |
+                | The backend calls Paystack verifyTransaction() and retrieves the
+                | actual original transaction "fees" value.
+                |
+                | That makes the backend authoritative and avoids hard-coding
+                | Paystack pricing here.
+                |
+                */
+
+                function paystackFeeNotice() {
+
+                    return (
+                        '<span class="adp-preview-note">'
+                        +
+                        '<strong>Paystack fee:</strong> '
+                        +
+                        'The exact original Paystack processing fee will be verified automatically when this decision is submitted. '
+                        +
+                        'The verified Paystack fee will be deducted from the approved refund before the net refund is returned to the buyer.'
+                        +
+                        '</span>'
+                    );
+
+                }
+
+
+                function render() {
+
+                    const selected =
+                        type.value;
+
+
+                    partialField.hidden =
+                        selected
+                        !==
+                        'partial_refund';
+
+
+                    amount.required =
+                        selected
+                        ===
+                        'partial_refund';
 
 
                     if (
-                        !type
-                        ||
-                        !preview
+                        !selected
                     ) {
 
-                        return;
-                    }
+                        preview.hidden =
+                            true;
 
-
-                    const paid =
-                        Number(
-                            preview.dataset.paid
-                            ||
-                            0
-                        );
-
-
-                    const feeRate =
-                        Number(
-                            preview.dataset.serviceFeeRate
-                            ||
-                            0
-                        );
-
-
-                    const vatRate =
-                        Number(
-                            preview.dataset.vatRate
-                            ||
-                            0
-                        );
-
-
-                    const existingSellerNet =
-                        Number(
-                            preview.dataset.existingSellerNet
-                            ||
-                            0
-                        );
-
-
-                    function money(
-                        value
-                    ) {
-
-                        return new Intl
-                            .NumberFormat(
-                                'en-NG',
-                                {
-                                    style:
-                                        'currency',
-
-                                    currency:
-                                        'NGN',
-
-                                    maximumFractionDigits:
-                                        2,
-                                }
-                            )
-                            .format(
-                                Number(
-                                    value
-                                    ||
-                                    0
-                                )
-                            );
-                    }
-
-
-                    function roundMoney(
-                        value
-                    ) {
-
-                        return Math.round(
-                            (
-                                Number(
-                                    value
-                                    ||
-                                    0
-                                )
-                                +
-                                Number.EPSILON
-                            )
-                            *
-                            100
-                        )
-                            /
-                            100;
-                    }
-
-
-                    function render() {
-                        const selected =
-                            type.value;
-
-
-                        partialField.hidden =
-                            selected
-                            !==
-                            'partial_refund';
-
-
-                        amount.required =
-                            selected
-                            ===
-                            'partial_refund';
-
-
-                        if (
-                            !selected
-                        ) {
-
-                            preview.hidden =
-                                true;
-
-                            return;
-                        }
-
-
-                        let html =
+                        preview.innerHTML =
                             '';
 
+                        return;
 
-                        if (
-                            selected
-                            ===
-                            'full_refund'
-                        ) {
+                    }
 
-                            html =
-                                '<strong>Buyer refund:</strong> '
-                                +
-                                money(
-                                    paid
-                                )
-                                +
-                                '<br>'
-                                +
-                                '<strong>Midpoint fee on refunded amount:</strong> '
-                                +
-                                money(
+
+                    let html =
+                        '';
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Full Refund
+                    |--------------------------------------------------------------------------
+                    */
+
+                    if (
+                        selected
+                        ===
+                        'full_refund'
+                    ) {
+
+                        html =
+                            '<strong>Approved refund before Paystack fee:</strong> '
+                            +
+                            money(
+                                paid
+                            )
+                            +
+                            '<br>'
+                            +
+                            '<strong>Paystack fee deducted:</strong> '
+                            +
+                            'Verified automatically on submission'
+                            +
+                            '<br>'
+                            +
+                            '<strong>Buyer net refund:</strong> '
+                            +
+                            'Approved refund − verified Paystack fee'
+                            +
+                            '<br>'
+                            +
+                            '<strong>Midpoint service fee on refunded amount:</strong> '
+                            +
+                            money(
+                                0
+                            )
+                            +
+                            '<br>'
+                            +
+                            '<strong>Seller settlement:</strong> '
+                            +
+                            money(
+                                0
+                            )
+                            +
+                            '<br><br>'
+                            +
+                            paystackFeeNotice();
+
+                    }
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Partial Refund
+                    |--------------------------------------------------------------------------
+                    */
+
+                    else if (
+                        selected
+                        ===
+                        'partial_refund'
+                    ) {
+
+                        const approvedRefund =
+                            Math.max(
+                                0,
+                                Number(
+                                    amount.value
+                                    ||
                                     0
                                 )
-                                +
-                                '<br>'
-                                +
-                                '<strong>Seller settlement:</strong> '
-                                +
-                                money(
-                                    0
-                                );
+                            );
 
-                        } else if (
-                            selected
-                            ===
-                            'partial_refund'
-                        ) {
 
-                            const refund =
+                        /*
+                        |--------------------------------------------------------------------------
+                        | IMPORTANT:
+                        |
+                        | Remaining seller-side amount is based on GROSS APPROVED REFUND.
+                        |
+                        | Example:
+                        |
+                        | Paid              = ₦5,000
+                        | Approved refund   = ₦2,500
+                        | Paystack fee      = ₦175
+                        | Buyer receives    = ₦2,325
+                        |
+                        | Seller-side gross remains:
+                        |
+                        | ₦5,000 - ₦2,500 = ₦2,500
+                        |
+                        |--------------------------------------------------------------------------
+                        */
+
+                        const retained =
+                            roundMoney(
                                 Math.max(
                                     0,
-                                    Number(
-                                        amount.value
-                                        ||
-                                        0
-                                    )
-                                );
-
-
-                            const retained =
-                                roundMoney(
-                                    Math.max(
-                                        0,
-                                        paid
-                                        -
-                                        refund
-                                    )
-                                );
-
-
-                            const fee =
-                                roundMoney(
-                                    retained
-                                    *
-                                    feeRate
-                                    /
-                                    100
-                                );
-
-
-                            const vat =
-                                roundMoney(
-                                    fee
-                                    *
-                                    vatRate
-                                    /
-                                    100
-                                );
-
-
-                            const seller =
-                                roundMoney(
-                                    Math.max(
-                                        0,
-                                        retained
-                                        -
-                                        fee
-                                        -
-                                        vat
-                                    )
-                                );
-
-
-                            html =
-                                '<strong>Buyer refund:</strong> '
-                                +
-                                money(
-                                    refund
+                                    paid
+                                    -
+                                    approvedRefund
                                 )
-                                +
-                                '<br>'
-                                +
-                                '<strong>Remaining transaction amount:</strong> '
-                                +
-                                money(
-                                    retained
-                                )
-                                +
-                                '<br>'
-                                +
-                                '<strong>Midpoint service fee on remaining amount:</strong> '
-                                +
-                                money(
-                                    fee
-        )
-                                        +
-                                        '<br>'
-                                        +
-                                        '<strong>VAT on service fee:</strong> '
-                                        +
-                                        money(
-                                            vat
-                                        )
-                                        +
-                                        '<br>'
-                                        +
-                                        '<strong>Seller settlement:</strong> '
-                                        +
-                                        money(
-                                            seller
-                                        );
-
-                                } else if (
-                                    selected
-                                    ===
-                                    'release_to_seller'
-                                ) {
-
-                                    html =
-                                        '<strong>Buyer refund:</strong> '
-                                        +
-                                        money(
-                                            0
-                                        )
-                                        +
-                                        '<br>'
-                                        +
-                                        '<strong>Seller settlement:</strong> '
-                                        +
-                                        money(
-                                            existingSellerNet
-                                        );
-
-                                } else {
-
-                                    html =
-                                        '<strong>No immediate refund or wallet credit.</strong>'
-                                        +
-                                        '<br>'
-                                        +
-                                        'The transaction returns to its protected delivery/inspection flow.';
-                                }
-
-
-                                preview.innerHTML =
-                                    html;
-
-
-                                preview.hidden =
-                                    false;
-                            }
-
-
-                            type.addEventListener(
-                                'change',
-                                render
                             );
 
 
-                            amount?.addEventListener(
-                                'input',
-                                render
+                        const fee =
+                            roundMoney(
+                                retained
+                                *
+                                feeRate
+                                /
+                                100
                             );
 
 
-                            render();
+                        const vat =
+                            roundMoney(
+                                fee
+                                *
+                                vatRate
+                                /
+                                100
+                            );
 
-                        }
-                    );
 
-                </script>
+                        const seller =
+                            roundMoney(
+                                Math.max(
+                                    0,
+                                    retained
+                                    -
+                                    fee
+                                    -
+                                    vat
+                                )
+                            );
+
+
+                        html =
+                            '<strong>Approved refund before Paystack fee:</strong> '
+                            +
+                            money(
+                                approvedRefund
+                            )
+                            +
+                            '<br>'
+                            +
+                            '<strong>Paystack fee deducted:</strong> '
+                            +
+                            'Verified automatically on submission'
+                            +
+                            '<br>'
+                            +
+                            '<strong>Buyer net refund:</strong> '
+                            +
+                            'Approved refund − verified Paystack fee'
+                            +
+                            '<br>'
+                            +
+                            '<strong>Remaining transaction amount:</strong> '
+                            +
+                            money(
+                                retained
+                            )
+                            +
+                            '<br>'
+                            +
+                            '<strong>Midpoint service fee on remaining amount:</strong> '
+                            +
+                            money(
+                                fee
+                            )
+                            +
+                            '<br>'
+                            +
+                            '<strong>VAT on service fee:</strong> '
+                            +
+                            money(
+                                vat
+                            )
+                            +
+                            '<br>'
+                            +
+                            '<strong>Seller settlement:</strong> '
+                            +
+                            money(
+                                seller
+                            )
+                            +
+                            '<br><br>'
+                            +
+                            paystackFeeNotice();
+
+                    }
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Release Seller
+                    |--------------------------------------------------------------------------
+                    */
+
+                    else if (
+                        selected
+                        ===
+                        'release_to_seller'
+                    ) {
+
+                        html =
+                            '<strong>Buyer refund:</strong> '
+                            +
+                            money(
+                                0
+                            )
+                            +
+                            '<br>'
+                            +
+                            '<strong>Seller settlement:</strong> '
+                            +
+                            money(
+                                existingSellerNet
+                            );
+
+                    }
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Resume Transaction
+                    |--------------------------------------------------------------------------
+                    */
+
+                    else {
+
+                        html =
+                            '<strong>No immediate refund or wallet credit.</strong>'
+                            +
+                            '<br>'
+                            +
+                            'The transaction returns to its protected delivery/inspection flow.';
+
+                    }
+
+
+                    preview.innerHTML =
+                        html;
+
+
+                    preview.hidden =
+                        false;
+
+                }
+
+
+                type.addEventListener(
+                    'change',
+                    render
+                );
+
+
+                amount.addEventListener(
+                    'input',
+                    render
+                );
+
+
+                render();
+
+            }
+        );
+
+        </script>
 
     @endpush
-
 
 @endsection
